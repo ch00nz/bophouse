@@ -1,0 +1,62 @@
+{
+  "activities": [
+    {
+      "id": "idle",
+      "label": "Hanging out",
+      "room_type": "",
+      "spot": 0.5,
+      "anim": "idle",
+      "min_minutes": 0,
+      "max_minutes": 0,
+      "rates_per_hour": {}
+    },
+    {
+      "id": "film_content",
+      "label": "Filming content",
+      "room_type": "studio",
+      "spot": 0.62,
+      "face": -1,
+      "anim": "film",
+      "min_minutes": 60,
+      "max_minutes": 240,
+      "rates_per_hour": {
+        "cash": 40,
+        "audience_cash": 0.15,
+        "followers": 14,
+        "viral_rate": 0.004,
+        "subscriber_conversion_rate": 0.25,
+        "energy": -12,
+        "mood": -4
+      }
+    },
+    {
+      "id": "socialise",
+      "label": "Chilling & posting to socials",
+      "room_type": "living_room",
+      "spot": 0.42,
+      "anim": "socialise",
+      "min_minutes": 45,
+      "max_minutes": 120,
+      "rates_per_hour": {
+        "cash": 4,
+        "followers": 6,
+        "viral_rate": 0.001,
+        "energy": 3,
+        "mood": 14
+      }
+    },
+    {
+      "id": "sleep",
+      "label": "Sleeping",
+      "room_type": "bedroom",
+      "spot": 0.33,
+      "anim": "sleep",
+      "min_minutes": 120,
+      "max_minutes": 0,
+      "rates_per_hour": {
+        "energy": 16,
+        "mood": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "rooms": [
+    { "id": "bedroom_1", "type": "bedroom", "storey": 1, "column": 0, "width": 2 },
+    { "id": "stairs_1", "type": "stairs", "storey": 1, "column": 2, "width": 1 },
+    { "id": "lot_1", "type": "empty_lot", "storey": 1, "column": 3, "width": 2 },
+    { "id": "living_1", "type": "living_room", "storey": 0, "column": 0, "width": 2 },
+    { "id": "stairs_0", "type": "stairs", "storey": 0, "column": 2, "width": 1 },
+    { "id": "studio_1", "type": "studio", "storey": 0, "column": 3, "width": 2 }
+  ]
+}

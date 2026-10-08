@@ -1,0 +1,12 @@
+# Godot 4 generated
+.godot/
+*.translation
+
+# Local tooling (Godot binaries, export templates) and build output
+/tools/
+/build/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.tmp

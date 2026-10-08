@@ -1,0 +1,42 @@
+{
+  "creators": [
+    {
+      "id": "ava",
+      "name": "Ava Monroe",
+      "age": 24,
+      "bio": "Former retail manager turned full-time creator. Bubbly on camera, fiercely organised off it.",
+      "stats": {
+        "looks": 68,
+        "wildness": 40,
+        "adaptability": 55,
+        "charisma": 62,
+        "work_ethic": 58,
+        "stamina": 60,
+        "confidence": 55,
+        "drama": 30
+      },
+      "traits": ["Girl Next Door", "Ambitious Hustler"],
+      "content": {
+        "accepts": ["social_media", "glamour", "solo_subscription"],
+        "declines": ["premium", "collab_boy_girl", "collab_girl_girl"]
+      },
+      "appearance": {
+        "skin": "#f1c6a5",
+        "hair": "#6b3b2a",
+        "hair_style": "long",
+        "outfit": "#e0457b",
+        "outfit_accent": "#ffd166",
+        "lips": "#c2185b",
+        "eyes": "#2f5d7c",
+        "sprite_frames": "res://assets/characters/ava/ava_frames.tres",
+        "portrait": "res://assets/characters/ava/portrait.png"
+      },
+      "starting": {
+        "followers": 500,
+        "subscribers": 20,
+        "energy": 90,
+        "mood": 70
+      }
+    }
+  ]
+}

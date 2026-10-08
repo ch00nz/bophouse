@@ -1,0 +1,11 @@
+{
+  "content_types": [
+    { "id": "social_media", "label": "Social media" },
+    { "id": "glamour", "label": "Glamour" },
+    { "id": "solo_subscription", "label": "Solo subscription" },
+    { "id": "premium", "label": "Premium sets" },
+    { "id": "livestream", "label": "Livestreaming" },
+    { "id": "collab_boy_girl", "label": "Boy/girl collabs" },
+    { "id": "collab_girl_girl", "label": "Girl/girl collabs" }
+  ]
+}
