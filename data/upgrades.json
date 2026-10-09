@@ -1,0 +1,62 @@
+{
+  "_comment": "House-wide equipment and business upgrades (room renovations live in rooms.json levels; bedrooms are built on lots). price: one-off cost. maintenance_per_day: ongoing equipment maintenance / subscription cost. requires: other upgrade ids that must be owned first. category: bonuses within one category stack with diminishing returns (stack_falloff^n for the n-th strongest). effects: room_attributes {attribute: add} applied to every filming room (or only 'rooms' types), capped at 1.0; content_income {content_id or '*': multiplier}; content_followers {content_id or '*': multiplier}; unlock_house_expansion: adds the top floor of the house (layout rooms marked requires_expansion), with extra rent (balance.json expenses).",
+  "stack_falloff": 0.55,
+  "categories": [
+    { "id": "lighting", "label": "Lighting" },
+    { "id": "camera", "label": "Cameras & phones" },
+    { "id": "wardrobe", "label": "Wardrobe & props" },
+    { "id": "production", "label": "Editing & production" },
+    { "id": "house", "label": "House" }
+  ],
+  "upgrades": [
+    {
+      "id": "ring_light", "label": "Ring light", "category": "lighting", "price": 150, "maintenance_per_day": 1,
+      "description": "A cheap ring light that goes wherever she films. Flattering light for selfies, sets and streams.",
+      "effects": { "room_attributes": { "lighting": 0.35 } }
+    },
+    {
+      "id": "phone_upgrade", "label": "Phone upgrade", "category": "camera", "price": 400, "maintenance_per_day": 2,
+      "description": "A flagship phone with a great camera and stabilisation. Sharper posts and more shares.",
+      "effects": { "room_attributes": { "equipment": 0.3 }, "content_followers": { "social_media": 1.2, "*": 1.08 } }
+    },
+    {
+      "id": "wardrobe_upgrade", "label": "Wardrobe upgrade", "category": "wardrobe", "price": 650, "maintenance_per_day": 3,
+      "description": "A rail of statement outfits, lingerie sets and props, so every set looks different.",
+      "effects": { "room_attributes": { "decor": 0.3 }, "content_income": { "glamour": 1.15, "solo_premium": 1.1, "topless_premium": 1.1, "custom_content": 1.1, "livestream": 1.05 } }
+    },
+    {
+      "id": "softbox_kit", "label": "Softbox lighting kit", "category": "lighting", "price": 900, "maintenance_per_day": 3,
+      "requires": ["ring_light"],
+      "description": "Two softboxes and stands for proper studio-style lighting in any room.",
+      "effects": { "room_attributes": { "lighting": 0.3 } }
+    },
+    {
+      "id": "editing_suite", "label": "Editing suite subscription", "category": "production", "price": 1200, "maintenance_per_day": 10,
+      "description": "Pro editing software and a fast laptop. Every post and set looks more polished.",
+      "effects": { "content_income": { "*": 1.08 }, "content_followers": { "*": 1.08 } }
+    },
+    {
+      "id": "pro_camera", "label": "Professional camera", "category": "camera", "price": 1500, "maintenance_per_day": 6,
+      "requires": ["phone_upgrade"],
+      "description": "A mirrorless camera, lenses and a gimbal. Premium-looking sets and video.",
+      "effects": { "room_attributes": { "equipment": 0.45 }, "content_income": { "glamour": 1.1, "solo_premium": 1.08, "topless_premium": 1.08 } }
+    },
+    {
+      "id": "streaming_rig", "label": "Streaming rig", "category": "camera", "price": 2800, "maintenance_per_day": 12,
+      "requires": ["pro_camera"],
+      "description": "Capture card, mics, overlays and a second monitor. Livestreams look and sound professional.",
+      "effects": { "room_attributes": { "equipment": 0.2 }, "content_income": { "livestream": 1.25 }, "content_followers": { "livestream": 1.15 } }
+    },
+    {
+      "id": "prop_collection", "label": "Set dressing & props", "category": "wardrobe", "price": 2200, "maintenance_per_day": 6,
+      "requires": ["wardrobe_upgrade"],
+      "description": "Backdrops, furniture throws and themed props to change the look of any set.",
+      "effects": { "room_attributes": { "decor": 0.25 } }
+    },
+    {
+      "id": "house_expansion", "label": "Bigger house (top floor)", "category": "house", "price": 25000, "maintenance_per_day": 0,
+      "description": "Add a whole new top floor with space for two more bedrooms. Rent goes up with the bigger place.",
+      "effects": { "unlock_house_expansion": true }
+    }
+  ]
+}

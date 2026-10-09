@@ -7,7 +7,7 @@
     { "id": "work_ethic", "label": "Work Ethic", "description": "How long she keeps working before needing to stop and rest." },
     { "id": "stamina", "label": "Stamina", "description": "Slows energy drain while working. Helps with draining content like livestreams." },
     { "id": "confidence", "label": "Confidence", "description": "Comfort on camera. Needed for premium content; boosts glamour." },
-    { "id": "drama", "label": "Drama", "description": "Propensity for gossip and disputes. No effect yet; used by future events." }
+    { "id": "drama", "label": "Drama", "description": "Propensity for gossip and disputes. Makes housemate disagreements more likely; used by future events." }
   ],
   "traits": [
     { "id": "Girl Next Door", "description": "Relatable and warm. Audiences trust her." },
@@ -15,6 +15,12 @@
     { "id": "Party Animal", "description": "Loves a night out. Fun, but sometimes unreliable." },
     { "id": "Drama Queen", "description": "Never a dull moment. Gossip follows her around." },
     { "id": "Fitness Fanatic", "description": "Lives in the gym. Fitness trends suit her." },
-    { "id": "Shy", "description": "Takes time to warm up on camera." }
+    { "id": "Shy", "description": "Takes time to warm up on camera." },
+    { "id": "Bombshell", "description": "Big hair, big glam, big personality. Lives for the spotlight." },
+    { "id": "Luxury Obsessed", "description": "Designer everything. Expects the best and charges accordingly." },
+    { "id": "Loyal Friend", "description": "Warm and dependable. Builds friendships with housemates faster." },
+    { "id": "Alt Icon", "description": "Tattoos, piercings and a fiercely devoted niche audience." },
+    { "id": "Night Owl", "description": "Comes alive after dark. Sleeps late, works late." },
+    { "id": "Early Bird", "description": "Up at dawn and in bed early. Never misses a morning post." }
   ]
 }

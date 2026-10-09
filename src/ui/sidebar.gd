@@ -90,7 +90,10 @@ func _on_navigate(kind: String, id: String) -> void:
 		"creator":
 			show_creator(id)
 		"creator_content":
-			show_creator(id, "Content")
+			show_creator(id)
+			var hud := get_tree().get_first_node_in_group("hud")
+			if hud != null:
+				hud.call("open_manager", id, "Content")
 		"room":
 			show_room(id)
 		"trends":

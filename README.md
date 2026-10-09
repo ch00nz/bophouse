@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 4, Automated Multi-Room Content Production
+## Current milestone: 5, Housemates, Applications & Body Measurements
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -67,7 +67,46 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
   Idle play never needs it.
 * Save v4 (v1, v2 and v3 saves load; all tested against real saves).
 
-Art review: `godot --path . --script res://tests/visual/lookbook.gd -- out.png` renders a grid of looks;
+**Milestone 5 (housemates, applications & body measurements):**
+* **Applications, not purchases:** creators apply to live and work in the house (`data/creators.json`, six applicants:
+  bombshell, girl next door, alternative, fitness, newcomer, party girl). Joining is free; each brings her own revenue
+  split and adds **living costs** per day. Some only apply once the house meets their expectations (e.g. a Lv 2 studio,
+  a bigger combined audience). Everyone needs her own bedroom; bedrooms are built on empty lots (each costs more).
+* **Revenue split:** gross revenue per creator, her share, the house share (the only part credited to cash), living
+  costs, and growth since joining are tracked per creator and for the whole house. Offline income uses the same split.
+* **Body measurements** (height, bust/waist/hips, muscle tone) for every creator, shown in cm or inches. They drive the
+  renderer's body regions (bust, waist, hips, glutes, shoulders, limbs, uniform height scale), so every body looks
+  different in the house and the big previews, with clothes, hair, tattoos and piercings staying aligned.
+* **Body tags** (petite, slim, curvy, voluptuous, athletic) derive from measurement combinations; two new audience
+  segments (petite & slim fans, curves lovers) and updated likes mean no body type wins everywhere.
+* Breast augmentation (+10 cm bust) and BBL (+7 cm hips) change measurements and visuals; styling, tattoos and
+  piercings never do. Creators still decide: refusals can't be overridden. New styling: 4 hair colours, 3 hairstyles,
+  2 outfits, nose stud, floral arm sleeve.
+* **Audience loyalty:** fans who dislike a new look slowly cancel; the fan mix drifts gradually (also off camera),
+  explained in the Finances tab.
+* **Many autonomous residents:** independent movement, schedules (night owls, early birds), work-session lengths,
+  room choice with capacity/privacy rules, own bedrooms for sleep and private filming, spread-out standing spots.
+* **Housemate relationships:** friendship, trust and rivalry; chats, hangouts, celebrations, gossip and minor
+  disagreements in shared rooms, with reaction bubbles and poses (drama-prone personalities clash more).
+* **UI:** left roster (portrait, activity, energy/mood, fans, $/hr, recovery), full management screen (Overview,
+  Stats & Measurements, Content, Makeover, Finances, Relationships) with a big preview and creator switcher,
+  Applications screen with profiles and a compare-all table, a three-storey house that scales to fit 1280x720.
+* **Save v5:** v1 to v4 saves load; old single-creator saves get measurements derived from their procedures, a
+  founder agreement for Ava, a ledger seeded from past earnings and the new lots, with nothing reset or duplicated.
+
+**Economy rebalance:** start with $250, 350 followers and 8 subscribers (~$18 gross per productive hour).
+Running costs (rent, utilities, equipment maintenance, residents' living costs) are charged continuously and shown
+line by line in **Finances** (yesterday / today / lifetime). **Upgrades** (`data/upgrades.json`: ring light $150,
+phone $400, wardrobe $650, pro camera $1,500, editing suite, streaming rig, studio renovation $3,500, bigger house
+$25,000) show maintenance, effects and estimated payback; bonuses within a category have diminishing returns.
+Audiences saturate (soft cap, daily unfollows, subscriber churn), repeated content loses freshness, offline time
+runs at 10% speed and 70% earnings, and new housemates need a bedroom plus a cash reserve. Debug builds have an
+economy inspector (F9) to skip time and adjust cash. Balance report:
+`godot --headless --path . --script res://tests/balance/run_balance.gd -- [all|idle,casual,upgrades,recruitment,optimised] [days] [seed]`.
+
+Art review: `godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]` renders a grid of looks
+(`cast` = every creator side by side); `tests/visual/house_scene.gd -- <dir>` screenshots the house, management
+and applications screens with three residents;
 `tests/visual/room_scenes.gd` renders every production pose in its room.
 
 ## Running

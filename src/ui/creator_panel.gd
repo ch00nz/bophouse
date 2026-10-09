@@ -1,31 +1,28 @@
 class_name CreatorPanel
 extends VBoxContainer
-## Sidebar profile for one creator: a large portrait header with identity, appeal tags and status,
-## then tabs: Profile, Content, Makeover and Income.
+## Sidebar summary for the selected creator: portrait, identity, measurements, appeal tags, status,
+## activity and key numbers, with shortcuts into the full management screen (where the Overview,
+## Stats & Measurements, Content, Makeover, Finances and Relationships tabs live).
 
 signal navigate(kind: String, id: String)
 
-const TABS := ["Profile", "Content", "Makeover", "Income"]
-
-static var last_tab: String = "Profile" # remembered across selections for convenience
-
 var creator_id: String = ""
 
-var _tab_buttons: Dictionary = {}
-var _body: VBoxContainer
 var _portrait: CreatorPreview
 var _tags: HFlowContainer
+var _measure: Label
 var _status: Label
 var _focus_label: Label
 var _activity: Label
+var _energy: ProgressBar
+var _mood: ProgressBar
+var _numbers: Label
 var _photoshoot: Button
-var _section: Control
+var _look_signature: String = ""
 
 
-func _init(id: String, initial_tab: String = "") -> void:
+func _init(id: String, _initial_tab: String = "") -> void:
 	creator_id = id
-	if not initial_tab.is_empty():
-		last_tab = initial_tab
 	add_theme_constant_override("separation", 6)
 
 
@@ -39,7 +36,7 @@ func _ready() -> void:
 	back.pressed.connect(func() -> void: navigate.emit("overview", ""))
 	add_child(back)
 
-	_portrait = CreatorPreview.new("portrait", Vector2(0, 176))
+	_portrait = CreatorPreview.new("portrait", Vector2(0, 160))
 	_portrait.pose = "idle"
 	add_child(_portrait)
 
@@ -51,6 +48,9 @@ func _ready() -> void:
 	age.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	name_row.add_child(age)
 	add_child(name_row)
+	add_child(UiTheme.label(creator.archetype, 13, UiTheme.ACCENT))
+	_measure = UiTheme.label("", 14, UiTheme.GOLD)
+	add_child(UiTheme.tip(_measure, "Height and bust / waist / hips."))
 
 	var traits := HFlowContainer.new()
 	traits.add_theme_constant_override("h_separation", 4)
@@ -59,13 +59,11 @@ func _ready() -> void:
 		var description := str(Game.config.trait_defs.get(trait_name, {}).get("description", ""))
 		traits.add_child(UiTheme.chip(str(trait_name), UiTheme.GOLD, description))
 	add_child(traits)
-
 	_tags = HFlowContainer.new()
 	_tags.add_theme_constant_override("h_separation", 4)
 	_tags.add_theme_constant_override("v_separation", 4)
 	add_child(_tags)
 
-	# Fixed heights so live text changes never shift the buttons below under the cursor.
 	_status = UiTheme.label("", 13, UiTheme.MUTED)
 	_status.clip_text = true
 	add_child(_status)
@@ -78,6 +76,28 @@ func _ready() -> void:
 	_activity.max_lines_visible = 2
 	_activity.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	add_child(_activity)
+	_energy = UiTheme.bar(0, Color("4cc9f0"), 10)
+	_mood = UiTheme.bar(0, Color("f72585"), 10)
+	add_child(UiTheme.row("Energy", UiTheme.value_label()))
+	get_child(get_child_count() - 1).add_child(_energy)
+	add_child(UiTheme.row("Mood", UiTheme.value_label()))
+	get_child(get_child_count() - 1).add_child(_mood)
+	_numbers = UiTheme.label("", 13, UiTheme.TEXT, true)
+	add_child(_numbers)
+
+	var manage := Button.new()
+	manage.text = "Open %s's management" % creator.first_name()
+	manage.custom_minimum_size = Vector2(0, 40)
+	manage.pressed.connect(_open_manager.bind(""))
+	add_child(manage)
+	var shortcuts := HBoxContainer.new()
+	shortcuts.add_theme_constant_override("separation", 4)
+	for tab: String in ["Content", "Makeover", "Finances"]:
+		var button := UiTheme.tab_button(tab)
+		button.toggle_mode = false
+		button.pressed.connect(_open_manager.bind(tab))
+		shortcuts.add_child(button)
+	add_child(shortcuts)
 
 	_photoshoot = Button.new()
 	_photoshoot.custom_minimum_size = Vector2(0, 32)
@@ -88,32 +108,17 @@ func _ready() -> void:
 		if hud != null:
 			hud.call("open_photoshoot", creator_id))
 	add_child(_photoshoot)
-
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 3)
-	for tab_name: String in TABS:
-		var button := UiTheme.tab_button(tab_name)
-		button.pressed.connect(_show_tab.bind(tab_name))
-		tabs.add_child(button)
-		_tab_buttons[tab_name] = button
-	add_child(tabs)
-
-	_body = VBoxContainer.new()
-	_body.add_theme_constant_override("separation", 8)
-	add_child(_body)
-
-	Game.content_focus_changed.connect(_on_content_changed)
-	Game.content_unlocked.connect(_on_content_unlocked)
-	Game.appearance_changed.connect(_on_appearance_changed)
-	Game.recovery_finished.connect(_on_recovery_finished)
-	_refresh_look()
-	_show_tab(last_tab)
+	refresh()
 
 
 func refresh() -> void:
 	var creator := _creator()
 	if creator == null or _activity == null:
 		return
+	var signature := JSON.stringify(creator.look) + creator.measurements.summary() + str(Game.imperial_units()) + str(creator.is_recovering())
+	if signature != _look_signature:
+		_look_signature = signature
+		_refresh_look()
 	_activity.text = Game.describe_activity(creator)
 	_focus_label.text = "Specialising in: " + Game.config.content_label(creator.content_focus) \
 		if not creator.content_focus.is_empty() else "No content specialisation"
@@ -125,16 +130,21 @@ func refresh() -> void:
 	else:
 		_status.text = "Status: healthy  |  Reputation %d" % roundi(creator.reputation)
 		_status.add_theme_color_override("font_color", UiTheme.MUTED)
+	_energy.value = creator.energy
+	_mood.value = creator.mood
+	var gross := Economy.creator_cash_per_hour(creator, Game.state, Game.config)
+	_numbers.text = "%s followers  |  %s subscribers\nEarning %s/hr gross, %s/hr to the house (%s split)\nLiving costs %s/day" % [
+		Fmt.compact(creator.followers), Fmt.compact(creator.subscribers), Fmt.money(gross),
+		Fmt.money(gross * creator.house_share()), Contracts.split_text(creator.creator_share()), Fmt.money(creator.living_cost_per_day)]
 	var shoot := Photoshoot.check(creator, Game.state, Game.config)
 	_photoshoot.disabled = not bool(shoot["ok"])
 	_photoshoot.text = "Direct a bonus photoshoot" if bool(shoot["ok"]) else "Photoshoot: " + str(shoot["reason"])
-	if _section != null and _section.has_method("refresh"):
-		_section.call("refresh")
 
 
 func _refresh_look() -> void:
 	var creator := _creator()
 	_portrait.show_look(Appearance.render_spec(creator, Game.config))
+	_measure.text = creator.measurements.summary(Game.imperial_units())
 	for child in _tags.get_children():
 		_tags.remove_child(child)
 		child.queue_free()
@@ -144,44 +154,10 @@ func _refresh_look() -> void:
 			"Appeal tag (%d%%). Tags decide which audiences love her look." % roundi(creator.tag(tag_id) * 100.0)))
 
 
-func _show_tab(tab_name: String) -> void:
-	last_tab = tab_name
-	for key: String in _tab_buttons:
-		(_tab_buttons[key] as Button).set_pressed_no_signal(key == tab_name)
-	for child in _body.get_children():
-		_body.remove_child(child)
-		child.queue_free()
-	match tab_name:
-		"Content":
-			_section = CreatorContentSection.new(creator_id)
-		"Makeover":
-			_section = CreatorMakeoverSection.new(creator_id)
-		"Income":
-			_section = CreatorIncomeSection.new(creator_id)
-		_:
-			_section = CreatorProfileSection.new(creator_id)
-	_body.add_child(_section)
-	refresh()
-
-
-func _on_content_unlocked(_content_id: String) -> void:
-	_show_tab(last_tab)
-
-
-func _on_content_changed(changed_id: String, _content_id: String) -> void:
-	if changed_id == creator_id:
-		_show_tab(last_tab)
-
-
-func _on_appearance_changed(changed_id: String, _item_id: String) -> void:
-	if changed_id == creator_id:
-		_refresh_look()
-
-
-func _on_recovery_finished(changed_id: String) -> void:
-	if changed_id == creator_id:
-		_refresh_look()
-		_show_tab(last_tab)
+func _open_manager(tab: String) -> void:
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null:
+		hud.call("open_manager", creator_id, tab)
 
 
 func _creator() -> CreatorState:

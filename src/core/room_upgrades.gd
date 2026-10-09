@@ -26,6 +26,9 @@ static func try_upgrade(state: GameState, config: GameConfig, room_id: String) -
 	if not can_upgrade(state, config, room_id):
 		return false
 	var room := state.get_room(room_id)
-	state.cash -= upgrade_cost(config, room)
+	var cost := upgrade_cost(config, room)
+	state.cash -= cost
+	state.spending["renovations"] = float(state.spending.get("renovations", 0.0)) + cost
 	room.level += 1
+	Upgrades.refresh(state, config)
 	return true

@@ -68,3 +68,21 @@ func fixture_config() -> GameConfig:
 		"stamina_drain_base": 1.5,
 	}
 	return config
+
+
+## A new game with the given creators moved in on their own terms (bedrooms built as needed;
+## buys the bigger house when lots run out; house expectations are skipped so tests can pick any housemates).
+## Cash is reset to 0 afterwards so tests can measure earnings from a clean slate.
+func house_with(config: GameConfig, recruit_ids: Array, seed: int = 42) -> GameState:
+	var state := GameState.new_game(config, seed)
+	for recruit_id in recruit_ids:
+		state.cash += 1_000_000.0
+		if Housing.free_bedrooms(state, config).is_empty():
+			if Housing.buildable_lots(state, config, "bedroom").is_empty():
+				Upgrades.purchase(state, config, Upgrades.EXPANSION) # the top floor's lots
+			var lot: RoomState = Housing.buildable_lots(state, config, "bedroom")[0]
+			Housing.build(state, config, lot.id, "bedroom")
+		assert_true(Housing.has_vacancy(state, config), "room for " + str(recruit_id))
+		Applications.move_in(state, config, str(recruit_id))
+	state.cash = 0.0
+	return state

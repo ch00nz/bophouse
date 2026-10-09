@@ -5,7 +5,11 @@ extends RefCounted
 ## v1: first prototype. v2: content specialisation, experience, unlocks, trends.
 ## v3: appearance (look, owned styles, procedures, recovery, tags), fan mix, reputation.
 ## v4: multi-room production (home room, last work room, room preferences), photoshoot cooldown.
-const SAVE_VERSION := 4
+## v5: multiple creators: measurements, contracts and revenue ledger, schedules, relationships, social
+##     log, house finances (living/build costs), extra layout lots, settings.
+## v6: economy rebalance: equipment upgrades, running costs (rent, utilities, maintenance), content
+##     freshness, spending totals, house expansion.
+const SAVE_VERSION := 6
 
 ## Content ids renamed in v2.
 const V2_CONTENT_RENAMES := {"solo_subscription": "solo_premium", "premium": "topless_premium"}
@@ -47,6 +51,14 @@ static func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 	if version == 3:
 		# v4 only adds fields (home/work rooms, preferences, photoshoot cooldown); post_load fills them.
 		version = 4
+	if version == 4:
+		# v5 only adds fields. Measurements (from the template's natural body plus applied procedures),
+		# contracts, relationships and new layout lots need config, so post_load() fills them in.
+		version = 5
+	if version == 5:
+		# v6 only adds fields (upgrades, expense totals, freshness). Progress is never reset: cash,
+		# audiences and rooms carry over; post_load() keeps any top-floor rooms a v5 house already had.
+		version = 6
 	migrated["version"] = version
 	return migrated
 
@@ -77,7 +89,16 @@ static func _migrate_v1_to_v2(data: Dictionary) -> void:
 ## Repairs a loaded state against current data: unlocks, trends, invalid choices.
 ## Call after loading (needs config, so it isn't part of from_save_dict).
 static func post_load(state: GameState, config: GameConfig) -> void:
+	# A house that already had its top floor (v5 layout) keeps it: count it as expanded.
+	for room in state.rooms:
+		if room.storey >= 2 and not Upgrades.owned(state, Upgrades.EXPANSION):
+			state.upgrades.append(Upgrades.EXPANSION)
+	state.ensure_layout_rooms(config)
+	for creator in state.creators:
+		CreatorSetup.repair(creator, config)
 	RoomPlanner.assign_home_rooms(state, config)
+	Relationships.ensure_all(state, config)
+	Upgrades.refresh(state, config)
 	ContentRules.refresh_unlocks(state, config)
 	TrendSystem.ensure_initialized(state, config)
 	for creator in state.creators:

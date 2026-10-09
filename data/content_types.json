@@ -24,11 +24,11 @@
         "stats": {}
       },
       "rates_per_hour": {
-        "cash": 6,
-        "audience_cash": 0.02,
+        "cash": 4.2,
+        "audience_cash": 0.078,
         "followers": 40,
         "viral": 0.8,
-        "subscriber_conversion": 0.01,
+        "subscriber_conversion": 0.004,
         "conversion_speed": 0.25,
         "energy": -7,
         "mood": -1,
@@ -71,11 +71,11 @@
         }
       },
       "rates_per_hour": {
-        "cash": 22,
-        "audience_cash": 0.07,
+        "cash": 11.2,
+        "audience_cash": 0.224,
         "followers": 14,
         "viral": 0.3,
-        "subscriber_conversion": 0.04,
+        "subscriber_conversion": 0.015,
         "conversion_speed": 0.25,
         "energy": -10,
         "mood": -2,
@@ -113,11 +113,11 @@
         }
       },
       "rates_per_hour": {
-        "cash": 45,
-        "audience_cash": 0.2,
+        "cash": 16.8,
+        "audience_cash": 0.448,
         "followers": 5,
         "viral": 0.1,
-        "subscriber_conversion": 0.09,
+        "subscriber_conversion": 0.035,
         "conversion_speed": 0.25,
         "energy": -12,
         "mood": -3
@@ -157,11 +157,11 @@
         }
       },
       "rates_per_hour": {
-        "cash": 56,
-        "audience_cash": 0.25,
+        "cash": 21,
+        "audience_cash": 0.56,
         "followers": 3,
         "viral": 0.06,
-        "subscriber_conversion": 0.12,
+        "subscriber_conversion": 0.045,
         "conversion_speed": 0.25,
         "energy": -13,
         "mood": -5
@@ -198,11 +198,11 @@
         }
       },
       "rates_per_hour": {
-        "cash": 28,
-        "audience_cash": 0.2,
+        "cash": 11.2,
+        "audience_cash": 0.448,
         "followers": 12,
         "viral": 0.25,
-        "subscriber_conversion": 0.06,
+        "subscriber_conversion": 0.025,
         "conversion_speed": 0.3,
         "energy": -16,
         "mood": -1,
@@ -248,13 +248,13 @@
         }
       },
       "rates_per_hour": {
-        "cash": 75,
-        "audience_cash": 0.3,
+        "cash": 28,
+        "audience_cash": 0.672,
         "followers": 10,
         "viral": 0.3,
-        "subscriber_conversion": 0.1,
+        "subscriber_conversion": 0.04,
         "conversion_speed": 0.25,
-        "fee_per_hour": 40,
+        "fee_per_hour": 10,
         "energy": -14,
         "mood": -3
       },
@@ -293,13 +293,13 @@
         }
       },
       "rates_per_hour": {
-        "cash": 70,
-        "audience_cash": 0.28,
+        "cash": 26.6,
+        "audience_cash": 0.627,
         "followers": 12,
         "viral": 0.35,
-        "subscriber_conversion": 0.1,
+        "subscriber_conversion": 0.04,
         "conversion_speed": 0.25,
-        "fee_per_hour": 35,
+        "fee_per_hour": 9,
         "energy": -13,
         "mood": -2
       },
@@ -334,8 +334,8 @@
         "min_subscribers": 40
       },
       "rates_per_hour": {
-        "cash": 8,
-        "per_subscriber_cash": 0.9,
+        "cash": 5.6,
+        "per_subscriber_cash": 0.21,
         "energy": -9,
         "mood": -3
       },

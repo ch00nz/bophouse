@@ -5,7 +5,7 @@ extends RefCounted
 ##
 ## Rules:
 ##  - room capacity is never exceeded (people already there or walking there count);
-##  - private rooms (bedrooms) can only be filmed in by their owner;
+##  - private rooms (bedrooms) can only be filmed in by their owner, and only residents sleep there;
 ##  - exclusive activities (most adult content) need the room to themselves;
 ##  - nobody films where someone else is sleeping/recovering ("quiet"), and nobody sleeps where
 ##    someone else is filming.
@@ -107,6 +107,9 @@ static func choose_rest_room(creator: CreatorState, state: GameState, config: Ga
 	for room in state.rooms:
 		if room.type_id != room_type or not can_use(state, config, creator, room, activity_id):
 			continue
+		# Never borrow someone else's bed.
+		if bool(config.room_type(room.type_id).get("private", false)) and not Housing.residents_of(state, room.id).is_empty():
+			continue
 		var distance := absf(room.center_column() - creator.position.x) + absf(room.storey - creator.position.y) * 3.0
 		if distance < best_distance:
 			best_distance = distance
@@ -114,12 +117,18 @@ static func choose_rest_room(creator: CreatorState, state: GameState, config: Ga
 	return best
 
 
-## Gives every creator without a valid home a bedroom: an empty one if possible, else a shared one
-## with a free bed.
+## Gives every creator without a valid home a bedroom with a free bed (rooms.json "beds").
+## Also fixes over-full bedrooms (e.g. old saves), keeping the first resident.
 static func assign_home_rooms(state: GameState, config: GameConfig) -> void:
+	var kept := {}
 	for creator in state.creators:
 		var home := state.get_room(creator.home_room_id)
-		if home != null and bool(config.room_type(home.type_id).get("private", false)):
+		if home != null and Housing.beds(config, home) > int(kept.get(home.id, 0)):
+			kept[home.id] = int(kept.get(home.id, 0)) + 1
+			continue
+		creator.home_room_id = ""
+	for creator in state.creators:
+		if not creator.home_room_id.is_empty():
 			continue
 		creator.home_room_id = ""
 		var best: RoomState = null
@@ -131,7 +140,7 @@ static func assign_home_rooms(state: GameState, config: GameConfig) -> void:
 			for other in state.creators:
 				if other.home_room_id == room.id:
 					residents += 1
-			if residents < int(config.room_type(room.type_id).get("capacity", 1)) and residents < best_residents:
+			if residents < Housing.beds(config, room) and residents < best_residents:
 				best = room
 				best_residents = residents
 		if best != null:

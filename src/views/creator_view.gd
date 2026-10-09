@@ -23,7 +23,7 @@ var _spec: Dictionary = {}
 func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 	creator = creator_state
 	house = house_view
-	_last_earnings = creator.lifetime_earnings
+	_last_earnings = creator.house_earnings
 	refresh_look()
 	Game.appearance_changed.connect(_on_appearance_changed)
 	Game.recovery_finished.connect(_on_appearance_changed.bind(""))
@@ -53,7 +53,11 @@ func current_activity() -> Dictionary:
 func current_anim() -> String:
 	if creator.is_travelling():
 		return "walk"
-	return str(current_activity().get("anim", "idle"))
+	var anim := str(current_activity().get("anim", "idle"))
+	# Social reactions (chatting, celebrating, bickering) override standing poses.
+	if creator.has_reaction(house.state.game_minutes) and not is_lying(anim):
+		return str(creator.reaction.get("anim", anim))
+	return anim
 
 
 ## Poses performed lying on a bed or sofa (lifted onto the sleep surface).
@@ -81,6 +85,9 @@ func _process(delta: float) -> void:
 			_facing = signf(target.x - position.x)
 	else:
 		var face := float(current_activity().get("face", 0))
+		var partner := _reaction_partner()
+		if partner != null and absf(partner.position.x - creator.position.x) > 0.01:
+			face = partner.position.x - creator.position.x # turn to the housemate she's with
 		if face != 0.0:
 			_facing = signf(face)
 	position = target
@@ -95,8 +102,8 @@ func _process(delta: float) -> void:
 	_popup_timer += delta
 	if _popup_timer >= POPUP_INTERVAL:
 		_popup_timer = 0.0
-		var earned := creator.lifetime_earnings - _last_earnings
-		_last_earnings = creator.lifetime_earnings
+		var earned := creator.house_earnings - _last_earnings # the house's cut, i.e. what the player gets
+		_last_earnings = creator.house_earnings
 		if earned >= 1.0:
 			house.spawn_floating_text(position + Vector2(0, -135), "+" + Fmt.money(earned), Color("7ae582"))
 	queue_redraw()
@@ -123,16 +130,41 @@ func _draw() -> void:
 		Color.WHITE, 120, HORIZONTAL_ALIGNMENT_CENTER, 4)
 
 
+func _reaction_partner() -> CreatorState:
+	if not creator.has_reaction(house.state.game_minutes):
+		return null
+	return house.state.get_creator(str(creator.reaction.get("with", "")))
+
+
 func _draw_bubble(anim: String, lift: float) -> void:
 	if anim == "walk":
 		return
+	var bubble := str(current_activity().get("bubble", "dots"))
+	if creator.has_reaction(house.state.game_minutes):
+		bubble = str(creator.reaction.get("kind", bubble))
 	var centre := Vector2(10, -140) if not is_lying(anim) else Vector2(-30, -lift - 58)
 	centre.y += sin(_t * 2.0) * 1.5
 	draw_colored_polygon(PackedVector2Array([centre + Vector2(-5, 9), centre + Vector2(3, 10), centre + Vector2(-6, 18)]), Color.WHITE)
 	draw_circle(centre, 13.0, Color.WHITE)
 	draw_arc(centre, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.25), 1.5, true)
 	# Bubble icon comes from data (activity or content), so new content types need no code.
-	match str(current_activity().get("bubble", "dots")):
+	match bubble:
+		"chat":
+			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-9, -7), Vector2(12, 8)), Color("9d4edd"), 3)
+			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-2, -1), Vector2(12, 8)), Color("ff7ab8"), 3)
+			for i in 3:
+				draw_circle(centre + Vector2(1.5 + i * 3.0, 3), 0.9 if fmod(_t * 3.0, 3.0) > i else 0.5, Color.WHITE)
+		"party":
+			draw_colored_polygon(PackedVector2Array([centre + Vector2(-7, 8), centre + Vector2(-2, -6), centre + Vector2(4, 4)]), Color("ffb703"))
+			for i in 5:
+				var a := _t * 2.0 + i * 1.3
+				draw_circle(centre + Vector2(cos(a) * 7.0, sin(a) * 6.0 - 2.0), 1.4, Color.from_hsv(fmod(i * 0.21, 1.0), 0.7, 1.0))
+		"gossip":
+			PlaceholderArt.draw_text(self, centre + Vector2(-10, 5), "psst", 10, Color("6a4c93"))
+		"angry":
+			for sign_x: float in [-1.0, 1.0]:
+				draw_line(centre + Vector2(sign_x * 2.0, -6), centre + Vector2(sign_x * 7.0, -1), Color("e63946"), 2.5)
+				draw_line(centre + Vector2(sign_x * 2.0, 6), centre + Vector2(sign_x * 7.0, 1), Color("e63946"), 2.5)
 		"camera":
 			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-8, -5), Vector2(13, 10)), Color("333333"), 2)
 			draw_colored_polygon(PackedVector2Array([centre + Vector2(5, -2), centre + Vector2(9, -5), centre + Vector2(9, 5), centre + Vector2(5, 2)]), Color("333333"))

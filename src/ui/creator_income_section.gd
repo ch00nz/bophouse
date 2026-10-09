@@ -156,6 +156,9 @@ func refresh() -> void:
 		_add_multiplier("Trend: " + str(effect["name"]), float(effect["income"]),
 			"Trend strength %d%%, from content match, her favoured stats and her adaptability." % roundi(float(effect["strength"]) * 100.0))
 	_add_multiplier("Experience", float(m["experience"]), "Settling into new content. Improves as she works; faster with high adaptability.")
+	_add_multiplier("Freshness", float(m["freshness"]), "Her audience tires of the same content day after day. Switching content (or riding a new trend) lets it recover.")
+	if absf(float(m["gear_income"]) - 1.0) > 0.001:
+		_add_multiplier("Equipment & wardrobe", float(m["gear_income"]), "Upgrades that boost this content (diminishing returns within a category).")
 	_add_multiplier("Audience fit (look x content)", float(m["audience_fit"]),
 		"How much the audiences who buy this content like her look (appearance tags). See 'Who's buying' below.")
 	if creator.is_recovering():

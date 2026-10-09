@@ -1,0 +1,225 @@
+{
+	"saved_at_unix": 1790000000.0,
+	"state": {
+		"cash": 9971.41882942832,
+		"creators": [
+			{
+				"activity_id": "recover",
+				"activity_minutes": 341.0,
+				"age": 24,
+				"appearance": {
+					"eyes": "#2f5d7c",
+					"hair": "#6b3b2a",
+					"hair_style": "long",
+					"lips": "#c2185b",
+					"outfit": "#e0457b",
+					"outfit_accent": "#ffd166",
+					"portrait": "res://assets/characters/ava/portrait.png",
+					"skin": "#f1c6a5",
+					"sprite_frames": "res://assets/characters/ava/ava_frames.tres"
+				},
+				"appearance_prefs": {
+					"declines": [],
+					"wishes": [
+						"lip_filler",
+						"outfit:glamour"
+					]
+				},
+				"appearance_tags": {
+					"alternative": 0.0,
+					"bombshell": 1.0,
+					"cute": 0.1,
+					"enhanced": 1.0,
+					"fitness": 0.1,
+					"glamour": 0.9,
+					"luxury": 0.2,
+					"mature": 0.0,
+					"natural": 0.0,
+					"wholesome": 0.4
+				},
+				"base_tags": {
+					"cute": 0.3,
+					"natural": 0.6,
+					"wholesome": 0.6
+				},
+				"bio": "Former retail manager turned full-time creator. Bubbly on camera, fiercely organised off it.",
+				"content_accepts": [
+					"social_media",
+					"glamour",
+					"solo_premium"
+				],
+				"content_declines": [
+					"topless_premium",
+					"collab_boy_girl",
+					"collab_girl_girl"
+				],
+				"content_experience": {
+					"glamour": 1.0
+				},
+				"content_focus": "glamour",
+				"energy": 95.9633333333286,
+				"fan_mix": {
+					"alt_fans": 0.0220370360475344,
+					"bombshell_fans": 0.132219033413814,
+					"collab_fans": 0.0128534337876298,
+					"fitness_fans": 0.0447535703401264,
+					"glamour_fans": 0.185218338596843,
+					"gnd_fans": 0.20131782593608,
+					"luxury_fans": 0.0782296826617407,
+					"milf_fans": 0.0419085122452406,
+					"natural_fans": 0.256976066757047,
+					"premium_fans": 0.0244865002139447
+				},
+				"followers": 1020.52419115721,
+				"home_room_id": "bedroom_1",
+				"id": "ava",
+				"last_work_room_id": "studio_1",
+				"lifetime_earnings": 1504.38116269135,
+				"look": {
+					"body": "curvy",
+					"bust": "enhanced",
+					"hair_color": "blonde",
+					"hair_style": "long_waves",
+					"lips": "natural",
+					"makeup": "natural",
+					"outfit": "lingerie",
+					"piercings": [],
+					"tattoos": []
+				},
+				"mood": 100.0,
+				"name": "Ava Monroe",
+				"owned_styles": [
+					"hair_color:brunette",
+					"hair_style:long_waves",
+					"outfit:casual",
+					"makeup:natural",
+					"outfit:lingerie",
+					"hair_color:blonde"
+				],
+				"photoshoot_ready_at": 0.0,
+				"position": [
+					0.660000026226044,
+					1.0
+				],
+				"procedure_history": [
+					{
+						"day": 2,
+						"item_id": "breast_augmentation"
+					},
+					{
+						"day": 2,
+						"item_id": "bbl"
+					}
+				],
+				"recovery": {
+					"item_id": "bbl",
+					"remaining_minutes": 6840.0,
+					"total_minutes": 7200.0
+				},
+				"reputation": 48.9394152155208,
+				"room_id": "bedroom_1",
+				"room_preferences": {
+					"bedroom": 1.05,
+					"living_room": 1.0,
+					"studio": 1.0
+				},
+				"stats": {
+					"adaptability": 55.0,
+					"charisma": 62.0,
+					"confidence": 55.0,
+					"drama": 30.0,
+					"looks": 68.0,
+					"stamina": 60.0,
+					"wildness": 40.0,
+					"work_ethic": 58.0
+				},
+				"subscribers": 43.4996737977011,
+				"target_activity_id": "",
+				"target_room_id": "",
+				"traits": [
+					"Girl Next Door",
+					"Ambitious Hustler"
+				],
+				"travel_path": [],
+				"travel_progress": 0.0
+			}
+		],
+		"game_minutes": 2640.0,
+		"last_seen_unix": 1790000000.0,
+		"lifetime_earnings": 1504.38116269135,
+		"rooms": [
+			{
+				"column": 0,
+				"id": "bedroom_1",
+				"level": 2,
+				"storey": 1,
+				"type_id": "bedroom",
+				"width": 2
+			},
+			{
+				"column": 2,
+				"id": "stairs_1",
+				"level": 1,
+				"storey": 1,
+				"type_id": "stairs",
+				"width": 1
+			},
+			{
+				"column": 3,
+				"id": "lot_1",
+				"level": 1,
+				"storey": 1,
+				"type_id": "empty_lot",
+				"width": 2
+			},
+			{
+				"column": 0,
+				"id": "living_1",
+				"level": 1,
+				"storey": 0,
+				"type_id": "living_room",
+				"width": 2
+			},
+			{
+				"column": 2,
+				"id": "stairs_0",
+				"level": 1,
+				"storey": 0,
+				"type_id": "stairs",
+				"width": 1
+			},
+			{
+				"column": 3,
+				"id": "studio_1",
+				"level": 2,
+				"storey": 0,
+				"type_id": "studio",
+				"width": 2
+			}
+		],
+		"trends": {
+			"active": [
+				{
+					"duration_minutes": 2250.54084777832,
+					"id": "gym_girl_summer",
+					"remaining_minutes": 2042.58567810059
+				},
+				{
+					"duration_minutes": 2087.85690307617,
+					"id": "late_night_live",
+					"remaining_minutes": 996.216888427734
+				}
+			],
+			"next_id": "wholesome_lifestyle",
+			"rng_seed": "4242",
+			"rng_state": "-6712294940136152233"
+		},
+		"unlocked_content": [
+			"topless_premium",
+			"livestream",
+			"collab_boy_girl",
+			"collab_girl_girl"
+		]
+	},
+	"version": 4
+}

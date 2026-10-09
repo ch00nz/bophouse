@@ -9,18 +9,36 @@
     "frame_gap_offline_seconds": 5.0
   },
   "economy": {
-    "starting_cash": 100,
+    "starting_cash": 250,
     "appeal_weights": { "looks": 0.4, "charisma": 0.35, "confidence": 0.25 },
     "stat_baseline": 50,
-    "audience_exponent": 0.85,
+    "audience_exponent": 0.5,
     "subscriber_conversion": 0.06,
-    "subscription_cash_per_sub_hour": 0.3,
+    "subscription_cash_per_sub_hour": 0.025,
     "min_energy_efficiency": 0.4,
     "min_mood_efficiency": 0.6,
     "stamina_drain_base": 1.5,
-    "follower_soft_cap": 250000,
+    "_audience_comment": "Growth slows as followers approach follower_soft_cap; follower_decay_per_day unfollows a share of followers every day, so audiences level off instead of growing forever. subscriber_base_churn_per_day cancels a share of subscribers daily, so they must be kept up by working.",
+    "follower_soft_cap": 15000,
+    "follower_decay_per_day": 0.025,
+    "subscriber_base_churn_per_day": 0.03,
     "subscriber_churn_speed": 0.04,
     "loved_content_mood_per_hour": 2
+  },
+  "freshness": {
+    "_comment": "Making the same content wears it out for her audience: freshness falls by decay_per_hour while she makes it (down to floor) and recovers by recover_per_hour while she makes something else. Income and growth are multiplied by freshness.",
+    "decay_per_hour": 0.012,
+    "recover_per_hour": 0.03,
+    "floor": 0.75
+  },
+  "expenses": {
+    "_comment": "Running costs per game day, charged continuously (including while away). rent: base + per room built on a lot + the bigger-house premium. utilities: internet, power and water, base + per resident. Equipment maintenance comes from upgrades.json and room level 'upkeep_per_day'; living costs from creators.json. When cash is negative the house is behind on bills: purchases are blocked and residents get stressed (debt_mood_per_hour).",
+    "rent_per_day": 45,
+    "rent_per_built_room": 60,
+    "rent_expansion": 300,
+    "utilities_per_day": 12,
+    "utilities_per_resident": 5,
+    "debt_mood_per_hour": -1.5
   },
   "content": {
     "ramp_floor": 0.7,
@@ -28,7 +46,7 @@
     "ramp_adaptability_per_hour": 0.22
   },
   "audience": {
-    "fit_exponent": 0.85,
+    "fit_exponent": 0.6,
     "min_segment_appeal": 0.15,
     "max_segment_appeal": 4.0,
     "min_fan_satisfaction": 0.5,
@@ -36,15 +54,15 @@
     "fan_mix_drift_per_hour": 0.03
   },
   "rooms": {
-    "min_production": 0.6,
-    "max_production": 1.5,
+    "min_production": 0.4,
+    "max_production": 1.35,
     "switch_threshold": 0.15
   },
   "photoshoot": {
     "cooldown_hours": 12,
     "energy_cost": 12,
     "min_energy": 30,
-    "reward_hours": 3.0,
+    "reward_hours": 1.5,
     "min_reward_factor": 0.5,
     "max_reward_factor": 2.0,
     "shots": 3
@@ -67,8 +85,10 @@
     "stat_fit_floor": 0.5
   },
   "offline": {
+    "_comment": "Time away runs the house at time_scale of the active clock (8 real hours = ~4 game days), earning at 'efficiency' while running costs are charged in full, so reopening often never beats playing.",
     "max_seconds": 28800,
-    "efficiency": 0.75,
+    "time_scale": 0.1,
+    "efficiency": 0.7,
     "min_seconds_for_popup": 30
   },
   "save": {
@@ -88,6 +108,33 @@
     "night_start_hour": 23,
     "night_end_hour": 7,
     "night_sleep_below_energy": 70
+  },
+  "housing": {
+    "_comment": "max_residents caps the house regardless of bedrooms. Each extra room built costs build_cost x (1 + build_cost_growth x rooms already built).",
+    "max_residents": 6,
+    "build_cost_growth": 0.6
+  },
+  "living": {
+    "_comment": "Each resident's living_cost_per_day (creators.json) is charged continuously, including while away, so every new housemate raises the house's running costs."
+  },
+  "applications": {
+    "_comment": "Before someone moves in, the house must hold a cash reserve covering reserve_days of its running costs including her own, so growth can't bankrupt the house. No money changes hands with her.",
+    "reserve_days": 4
+  },
+  "schedule": {
+    "_comment": "Work sessions last max_minutes x lerp(min, max, work_ethic / 100), so diligent creators work longer stints.",
+    "work_session_min_factor": 0.75,
+    "work_session_max_factor": 1.3
+  },
+  "loyalty": {
+    "_comment": "Subscribers who dislike her current look slowly cancel: subscribers x unhappy_churn_per_hour x unhappiness, where unhappiness = sum(fan share x max(0, 1 - satisfaction)). Fan mix also drifts slowly when she isn't working.",
+    "unhappy_churn_per_hour": 0.004,
+    "idle_drift_factor": 0.25
+  },
+  "milestones": {
+    "_comment": "Used by the balancing simulator (tests/balance) to report progression: an established house has this many residents and net profit per day.",
+    "established_residents": 4,
+    "established_net_per_day": 3000
   },
   "starting_creators": ["ava"]
 }

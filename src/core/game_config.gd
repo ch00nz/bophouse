@@ -9,6 +9,7 @@ var balance: Dictionary = {}
 var room_types: Dictionary = {}        # type_id -> definition
 var activities: Dictionary = {}        # activity_id -> definition
 var creator_templates: Dictionary = {} # creator_id -> template
+var creator_order: Array[String] = []  # template ids in data-file order (applications list)
 var content_types: Dictionary = {}     # content_type_id -> definition
 var content_order: Array[String] = []  # content ids in data-file order (for UI lists)
 var trends: Dictionary = {}            # trend_id -> definition
@@ -24,6 +25,11 @@ var look_items: Dictionary = {}        # item_id -> definition (makeover catalog
 var look_item_order: Array[String] = []
 var audience: Dictionary = {}          # raw audiences.json
 var segments: Array = []               # audience segment definitions, in order
+var body: Dictionary = {}              # raw body.json (measurement limits, render curves, body tags)
+var social: Dictionary = {}            # raw social.json (housemate interactions)
+var upgrades_data: Dictionary = {}     # raw upgrades.json (stack_falloff, categories)
+var upgrades: Dictionary = {}          # upgrade_id -> definition
+var upgrade_order: Array[String] = []  # catalogue order
 
 
 static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
@@ -31,7 +37,10 @@ static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
 	config.balance = _read_json(dir.path_join("balance.json"))
 	config.room_types = _index_by_id(_read_json(dir.path_join("rooms.json")).get("room_types", []))
 	config.activities = _index_by_id(_read_json(dir.path_join("activities.json")).get("activities", []))
-	config.creator_templates = _index_by_id(_read_json(dir.path_join("creators.json")).get("creators", []))
+	var creator_list: Array = _read_json(dir.path_join("creators.json")).get("creators", [])
+	config.creator_templates = _index_by_id(creator_list)
+	for item in creator_list:
+		config.creator_order.append(str(item.get("id", "")))
 	var content_list: Array = _read_json(dir.path_join("content_types.json")).get("content_types", [])
 	config.content_types = _index_by_id(content_list)
 	for item in content_list:
@@ -56,6 +65,12 @@ static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
 		config.look_item_order.append(str(item["id"]))
 	config.audience = _read_json(dir.path_join("audiences.json"))
 	config.segments = config.audience.get("segments", [])
+	config.body = _read_json(dir.path_join("body.json"))
+	config.social = _read_json(dir.path_join("social.json"))
+	config.upgrades_data = _read_json(dir.path_join("upgrades.json"))
+	for item in config.upgrades_data.get("upgrades", []):
+		config.upgrades[str(item["id"])] = item
+		config.upgrade_order.append(str(item["id"]))
 	return config
 
 
@@ -65,6 +80,10 @@ func look_option(slot: String, option_id: String) -> Dictionary:
 
 func look_item(item_id: String) -> Dictionary:
 	return look_items.get(item_id, {})
+
+
+func upgrade(upgrade_id: String) -> Dictionary:
+	return upgrades.get(upgrade_id, {})
 
 
 func tag_label(tag_id: String) -> String:

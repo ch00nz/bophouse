@@ -68,6 +68,38 @@ static func fan_value(creator: CreatorState, config: GameConfig) -> float:
 	return value
 
 
+## 0..1: how much of her fanbase dislikes her current look (share-weighted shortfall below 1.0 appeal).
+static func unhappiness(creator: CreatorState, config: GameConfig) -> float:
+	var total := 0.0
+	for segment: Dictionary in config.segments:
+		var share := float(creator.fan_mix.get(str(segment["id"]), 0.0))
+		if share > 0.0:
+			total += share * maxf(0.0, 1.0 - segment_appeal(segment, creator.appearance_tags, config))
+	return clampf(total, 0.0, 1.0)
+
+
+## Subscribers per hour cancelling because they dislike her current look.
+static func unhappy_churn_per_hour(creator: CreatorState, config: GameConfig) -> float:
+	return maxf(creator.subscribers, 0.0) * config.tuning_f("loyalty", "unhappy_churn_per_hour", 0.004) * unhappiness(creator, config)
+
+
+## Her fanbase for the UI, largest first: [{id, name, share, target, satisfaction, spend}] where
+## target is the share her current look + content attracts (where the mix is drifting to).
+static func fan_breakdown(creator: CreatorState, config: GameConfig) -> Array:
+	var content_id := creator.content_focus if not creator.content_focus.is_empty() else "social_media"
+	var target := target_mix(creator.appearance_tags, content_id, config)
+	var rows: Array = []
+	for segment: Dictionary in config.segments:
+		var segment_id := str(segment["id"])
+		rows.append({
+			"id": segment_id, "name": str(segment.get("name", segment_id)),
+			"share": float(creator.fan_mix.get(segment_id, 0.0)), "target": float(target.get(segment_id, 0.0)),
+			"satisfaction": segment_appeal(segment, creator.appearance_tags, config), "spend": float(segment.get("spend", 1.0)),
+		})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["share"]) > float(b["share"]))
+	return rows
+
+
 ## Moves her fan mix toward the audience her current content and look attract.
 static func drift_mix(creator: CreatorState, config: GameConfig, content_id: String, hours: float) -> void:
 	var target := target_mix(creator.appearance_tags, content_id, config)

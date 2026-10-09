@@ -15,6 +15,12 @@ signal trends_changed(started_ids: Array)
 signal appearance_changed(creator_id: String, item_id: String)
 signal recovery_finished(creator_id: String)
 signal photoshoot_completed(creator_id: String, result: Dictionary)
+signal creator_joined(creator_id: String)
+signal room_built(room_id: String)
+signal bedroom_changed(creator_id: String)
+signal social_interaction(event: Dictionary)
+signal settings_changed
+signal upgrade_purchased(upgrade_id: String)
 
 var config: GameConfig
 var state: GameState
@@ -32,6 +38,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	config = GameConfig.load_from_dir()
 	save_path = str(config.tuning("save", "path", save_path))
+	# Test runners and visual tools (godot --script ...) must never load or overwrite the player's save.
+	if OS.get_cmdline_args().has("--script"):
+		save_path = "user://tool_savegame.json"
 	get_tree().set_auto_accept_quit(false)
 	_load_or_create()
 
@@ -65,6 +74,8 @@ func _process(delta: float) -> void:
 			trends_changed.emit(totals["trends_started"])
 		for creator_id in totals.get("recovered", []):
 			recovery_finished.emit(str(creator_id))
+		for event: Dictionary in totals.get("social", []):
+			social_interaction.emit(event)
 		ticked.emit()
 	_autosave_elapsed += delta
 	if _autosave_elapsed >= config.tuning_f("save", "autosave_seconds", 15.0):
@@ -92,6 +103,84 @@ func save_game() -> void:
 		saved.emit()
 	else:
 		push_warning("Game: failed to save to %s" % save_path)
+
+
+## Accepts a creator's application to move in. Returns Applications.check() (plus "creator" on success).
+func accept_application(template_id: String) -> Dictionary:
+	var result := Applications.accept(state, config, template_id)
+	if bool(result["ok"]):
+		for content_id in ContentRules.refresh_unlocks(state, config):
+			content_unlocked.emit(content_id)
+		creator_joined.emit(template_id)
+		save_game()
+	return result
+
+
+## Builds a room type on an empty lot. Returns Housing.check_build().
+func build_room(room_id: String, type_id: String) -> Dictionary:
+	var result := Housing.build(state, config, room_id, type_id)
+	if bool(result["ok"]):
+		RoomPlanner.assign_home_rooms(state, config)
+		room_built.emit(room_id)
+		for content_id in ContentRules.refresh_unlocks(state, config):
+			content_unlocked.emit(content_id)
+		save_game()
+	return result
+
+
+## Moves a creator into another bedroom (swapping if it's taken). Returns Housing.assign_bedroom().
+func assign_bedroom(creator_id: String, room_id: String) -> Dictionary:
+	var creator := state.get_creator(creator_id)
+	if creator == null:
+		return {"ok": false, "reason": "Unknown creator"}
+	var result := Housing.assign_bedroom(state, config, creator, room_id)
+	if bool(result["ok"]):
+		bedroom_changed.emit(creator_id)
+		if not str(result["swapped_with"]).is_empty():
+			bedroom_changed.emit(str(result["swapped_with"]))
+		save_game()
+	return result
+
+
+## Measurement display units (metric by default).
+func imperial_units() -> bool:
+	return bool(state.settings.get("imperial", false))
+
+
+func set_imperial_units(value: bool) -> void:
+	state.settings["imperial"] = value
+	settings_changed.emit()
+
+
+## Developer tools (debug builds only): advance time through the real simulation at full efficiency.
+func dev_advance(minutes: float) -> void:
+	if not OS.is_debug_build():
+		return
+	var totals := Simulation.advance(state, config, minutes, 5.0)
+	if totals.has("trends_started"):
+		trends_changed.emit(totals["trends_started"])
+	for creator_id in totals.get("recovered", []):
+		recovery_finished.emit(str(creator_id))
+	ticked.emit()
+	save_game()
+
+
+func dev_add_cash(amount: float) -> void:
+	if not OS.is_debug_build():
+		return
+	state.cash += amount
+	save_game()
+
+
+## Buys an equipment / business upgrade. Returns Upgrades.check().
+func purchase_upgrade(upgrade_id: String) -> Dictionary:
+	var result := Upgrades.purchase(state, config, upgrade_id)
+	if bool(result["ok"]):
+		upgrade_purchased.emit(upgrade_id)
+		for content_id in ContentRules.refresh_unlocks(state, config):
+			content_unlocked.emit(content_id)
+		save_game()
+	return result
 
 
 func upgrade_room(room_id: String) -> bool:
@@ -171,6 +260,10 @@ func describe_activity(creator: CreatorState) -> String:
 	var room := state.get_room(creator.room_id)
 	var activity := ActivityResolver.resolve(creator, creator.activity_id, config, room)
 	var label := str(activity.get("label", creator.activity_id))
+	if creator.has_reaction(state.game_minutes):
+		var other := state.get_creator(str(creator.reaction.get("with", "")))
+		if other != null and not str(creator.reaction.get("label", "")).is_empty():
+			label = "%s with %s" % [str(creator.reaction["label"]).capitalize(), other.first_name()]
 	if room != null and not str(activity.get("room_type", "")).is_empty():
 		return "%s in the %s" % [label, config.room_type(room.type_id).get("name", "")]
 	return label

@@ -52,7 +52,7 @@ static func desired_activity(creator: CreatorState, state: GameState, config: Ga
 	# Urgent needs.
 	if energy <= stop_energy:
 		return "sleep"
-	if _is_night(state.hour_of_day(), config) and energy < config.tuning_f("brain", "night_sleep_below_energy", 70.0):
+	if is_night_for(creator, state, config) and energy < config.tuning_f("brain", "night_sleep_below_energy", 70.0):
 		return "sleep"
 	if mood <= config.tuning_f("brain", "relax_when_mood_below", 30.0):
 		return "socialise"
@@ -67,10 +67,25 @@ static func desired_activity(creator: CreatorState, state: GameState, config: Ga
 
 	# Long work sessions end with a break.
 	if current == WORK:
-		var max_work := float(current_def.get("max_minutes", 0))
+		var max_work := work_session_minutes(creator, current_def, config)
 		if max_work > 0.0 and minutes >= max_work:
 			return "socialise"
 	return WORK
+
+
+## Length of her work sessions: diligent creators work longer stints (balance schedule factors).
+static func work_session_minutes(creator: CreatorState, work_def: Dictionary, config: GameConfig) -> float:
+	var base := float(work_def.get("max_minutes", 0))
+	if base <= 0.0:
+		return 0.0
+	return base * lerpf(config.tuning_f("schedule", "work_session_min_factor", 0.75),
+		config.tuning_f("schedule", "work_session_max_factor", 1.3), clampf(creator.stat("work_ethic") / 100.0, 0.0, 1.0))
+
+
+## Her personal night: the house night window moved by her routine (night owls sleep later).
+static func is_night_for(creator: CreatorState, state: GameState, config: GameConfig) -> bool:
+	var hour := fposmod(fmod(state.game_minutes, GameState.MINUTES_PER_DAY) / 60.0 - creator.sleep_shift_hours, 24.0)
+	return _is_night(int(hour), config)
 
 
 ## Energy level at which a creator stops working. Higher work ethic pushes on longer.

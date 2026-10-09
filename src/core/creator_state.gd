@@ -1,11 +1,17 @@
 class_name CreatorState
 extends RefCounted
 ## Runtime state of one creator. Plain data plus small helpers; no rendering.
+## Everything is per creator (identified by a unique id), so any number of residents work the same way.
+
+## Every character in adult content is an adult; enforced in code as well as data.
+const MIN_AGE := 21
 
 var id: String = ""
 var display_name: String = ""
-var age: int = 18
+var age: int = MIN_AGE
 var bio: String = ""
+## Short descriptor shown in applications and the roster (e.g. "Bombshell").
+var archetype: String = ""
 var stats: Dictionary = {}
 var traits: Array = []
 var appearance: Dictionary = {}
@@ -15,6 +21,9 @@ var content_accepts: Array = []
 var content_declines: Array = []
 ## The player's chosen content specialisation (must be within her boundaries).
 var content_focus: String = ""
+## content_id -> freshness (floor..1). Making the same content wears it out for her audience;
+## it recovers while she makes something else. Missing = fully fresh.
+var content_freshness: Dictionary = {}
 ## content_id -> 0..1 experience. Rises while making that content, faster with adaptability.
 ## New content starts at 0, so switching strategy has a short settling-in cost.
 var content_experience: Dictionary = {}
@@ -48,6 +57,26 @@ var room_preferences: Dictionary = {}
 ## Game minute when the optional bonus photoshoot is available again.
 var photoshoot_ready_at: float = 0.0
 
+## Permanent body measurements (null only while loading a save that predates them).
+var measurements: BodyMeasurements = null
+## Her agreement with the house: {creator_share (0..1), joined_day, label}.
+var contract: Dictionary = {}
+## What she adds to the house's running costs per game day (rent share, utilities, food, lifestyle).
+var living_cost_per_day: float = 0.0
+## Living costs the house has paid for her so far.
+var living_costs_paid: float = 0.0
+## Lifetime split of her gross revenue (lifetime_earnings is the gross).
+var creator_earnings: float = 0.0
+var house_earnings: float = 0.0
+## Audience when she joined, for growth tracking.
+var joined_day: int = 1
+var joined_followers: float = 0.0
+var joined_subscribers: float = 0.0
+## Personal routine: moves her night later (+) or earlier (-), in hours.
+var sleep_shift_hours: float = 0.0
+## Transient social reaction bubble: {kind, anim, with, until (game minute), label}.
+var reaction: Dictionary = {}
+
 var energy: float = 100.0
 var mood: float = 70.0
 var followers: float = 0.0
@@ -71,8 +100,9 @@ static func from_template(template: Dictionary) -> CreatorState:
 	var c := CreatorState.new()
 	c.id = str(template.get("id", ""))
 	c.display_name = str(template.get("name", c.id))
-	c.age = maxi(18, int(template.get("age", 18))) # All characters are adults, enforced in code too.
+	c.age = maxi(MIN_AGE, int(template.get("age", MIN_AGE))) # All characters are adults, enforced in code too.
 	c.bio = str(template.get("bio", ""))
+	c.archetype = str(template.get("archetype", ""))
 	c.stats = template.get("stats", {}).duplicate()
 	c.traits = template.get("traits", []).duplicate()
 	c.appearance = template.get("appearance", {}).duplicate()
@@ -93,12 +123,33 @@ static func from_template(template: Dictionary) -> CreatorState:
 	c.appearance_prefs = template.get("appearance_prefs", {}).duplicate(true)
 	c.reputation = float(template.get("reputation", 40))
 	c.room_preferences = _float_dict(template.get("room_preferences", {}))
+	c.sleep_shift_hours = float(template.get("schedule", {}).get("sleep_shift_hours", 0.0))
+	c.living_cost_per_day = maxf(float(template.get("living_cost_per_day", 0.0)), 0.0)
+	c.joined_followers = c.followers
+	c.joined_subscribers = c.subscribers
 	return c
 
 
 ## Deep, independent copy (used for makeover previews so nothing is applied for real).
 func clone() -> CreatorState:
 	return CreatorState.from_dict(JSON.parse_string(JSON.stringify(to_dict())))
+
+
+## Her cut of gross revenue (0..1). The house keeps the rest.
+func creator_share() -> float:
+	return clampf(float(contract.get("creator_share", 0.0)), 0.0, 1.0)
+
+
+func house_share() -> float:
+	return 1.0 - creator_share()
+
+
+func first_name() -> String:
+	return display_name.get_slice(" ", 0)
+
+
+func has_reaction(game_minutes: float) -> bool:
+	return not reaction.is_empty() and float(reaction.get("until", 0.0)) > game_minutes
 
 
 func is_recovering() -> bool:
@@ -122,6 +173,10 @@ func stat(stat_name: String) -> float:
 	return float(stats.get(stat_name, 50))
 
 
+func freshness(content_id: String) -> float:
+	return float(content_freshness.get(content_id, 1.0))
+
+
 func experience(content_id: String) -> float:
 	return float(content_experience.get(content_id, 0.0))
 
@@ -140,15 +195,20 @@ func to_dict() -> Dictionary:
 	for point: Vector2 in travel_path:
 		path_data.append([point.x, point.y])
 	return {
-		"id": id, "name": display_name, "age": age, "bio": bio,
+		"id": id, "name": display_name, "age": age, "bio": bio, "archetype": archetype,
 		"stats": stats, "traits": traits, "appearance": appearance,
 		"content_accepts": content_accepts, "content_declines": content_declines,
-		"content_focus": content_focus, "content_experience": content_experience,
+		"content_focus": content_focus, "content_experience": content_experience, "content_freshness": content_freshness,
 		"look": look, "owned_styles": owned_styles, "procedure_history": procedure_history,
 		"recovery": recovery, "base_tags": base_tags, "appearance_tags": appearance_tags,
 		"appearance_prefs": appearance_prefs, "fan_mix": fan_mix, "reputation": reputation,
 		"home_room_id": home_room_id, "last_work_room_id": last_work_room_id,
 		"room_preferences": room_preferences, "photoshoot_ready_at": photoshoot_ready_at,
+		"measurements": measurements.to_dict() if measurements != null else {},
+		"contract": contract, "creator_earnings": creator_earnings, "house_earnings": house_earnings,
+		"living_cost_per_day": living_cost_per_day, "living_costs_paid": living_costs_paid,
+		"joined_day": joined_day, "joined_followers": joined_followers, "joined_subscribers": joined_subscribers,
+		"sleep_shift_hours": sleep_shift_hours, "reaction": reaction,
 		"energy": energy, "mood": mood, "followers": followers, "subscribers": subscribers,
 		"lifetime_earnings": lifetime_earnings,
 		"activity_id": activity_id, "activity_minutes": activity_minutes, "room_id": room_id,
@@ -162,8 +222,9 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	var c := CreatorState.new()
 	c.id = str(data.get("id", ""))
 	c.display_name = str(data.get("name", c.id))
-	c.age = maxi(18, int(data.get("age", 18)))
+	c.age = maxi(MIN_AGE, int(data.get("age", MIN_AGE)))
 	c.bio = str(data.get("bio", ""))
+	c.archetype = str(data.get("archetype", ""))
 	c.stats = data.get("stats", {})
 	c.traits = data.get("traits", [])
 	c.appearance = data.get("appearance", {})
@@ -173,6 +234,7 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	var experience: Dictionary = data.get("content_experience", {})
 	for content_id in experience:
 		c.content_experience[str(content_id)] = clampf(float(experience[content_id]), 0.0, 1.0)
+	c.content_freshness = _float_dict(data.get("content_freshness", {}))
 	c.look = _dict(data.get("look", {}))
 	c.owned_styles = _arr(data.get("owned_styles", []))
 	c.procedure_history = _arr(data.get("procedure_history", []))
@@ -186,6 +248,20 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	c.last_work_room_id = str(data.get("last_work_room_id", ""))
 	c.room_preferences = _float_dict(data.get("room_preferences", {}))
 	c.photoshoot_ready_at = float(data.get("photoshoot_ready_at", 0.0))
+	var body_data: Variant = data.get("measurements", {})
+	if body_data is Dictionary and not (body_data as Dictionary).is_empty():
+		c.measurements = BodyMeasurements.from_dict(body_data)
+	c.contract = _dict(data.get("contract", {}))
+	c.creator_earnings = float(data.get("creator_earnings", 0.0))
+	c.living_cost_per_day = maxf(float(data.get("living_cost_per_day", 0.0)), 0.0)
+	c.living_costs_paid = float(data.get("living_costs_paid", 0.0))
+	# Saves before contracts credited everything to the house.
+	c.house_earnings = float(data.get("house_earnings", data.get("lifetime_earnings", 0.0)))
+	c.joined_day = int(data.get("joined_day", 1))
+	c.joined_followers = float(data.get("joined_followers", data.get("followers", 0.0)))
+	c.joined_subscribers = float(data.get("joined_subscribers", data.get("subscribers", 0.0)))
+	c.sleep_shift_hours = float(data.get("sleep_shift_hours", 0.0))
+	c.reaction = _dict(data.get("reaction", {}))
 	c.energy = float(data.get("energy", 100))
 	c.mood = float(data.get("mood", 70))
 	c.followers = float(data.get("followers", 0))

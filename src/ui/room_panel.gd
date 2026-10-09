@@ -7,6 +7,8 @@ signal navigate(kind: String, id: String)
 var room_id: String = ""
 
 var _built_level: int = -1
+var _built_type: String = ""
+var _build_buttons: Dictionary = {} # type_id -> [Button, Label]
 var _occupants: Label
 var _upgrade_button: Button
 var _upgrade_status: Label
@@ -32,6 +34,8 @@ func _build() -> void:
 	var type_def := config.room_type(room.type_id)
 	var level_def := config.room_level_def(room.type_id, room.level)
 	_built_level = room.level
+	_built_type = room.type_id
+	_build_buttons.clear()
 
 	var back := Button.new()
 	back.text = "< House overview"
@@ -50,6 +54,28 @@ func _build() -> void:
 		var quality := float(level_def.get("quality", 1.0))
 		add_child(UiTheme.row(effect, UiTheme.label("x%.2f" % quality, 15, UiTheme.GOOD)))
 
+	if Housing.beds(config, room) > 0:
+		var residents := Housing.residents_of(Game.state, room.id)
+		var who := "Resident: %s" % residents[0].display_name if not residents.is_empty() else "Free bedroom: ready for a new recruit."
+		add_child(UiTheme.label(who, 14, UiTheme.GOLD if not residents.is_empty() else UiTheme.GOOD, true))
+	var options := Housing.build_options(config, room)
+	if not options.is_empty():
+		add_child(HSeparator.new())
+		add_child(UiTheme.label("Build here", 16))
+		for type_id in options:
+			var type_name := str(config.room_type(str(type_id)).get("name", type_id))
+			add_child(UiTheme.label(str(config.room_type(str(type_id)).get("description", "")), 12, UiTheme.MUTED, true))
+			var button := Button.new()
+			button.custom_minimum_size = Vector2(0, 40)
+			var build_type := str(type_id)
+			button.pressed.connect(func() -> void:
+				if bool(Game.build_room(room_id, build_type)["ok"]):
+					_build())
+			add_child(button)
+			var status := UiTheme.label("", 13, UiTheme.MUTED, true)
+			add_child(status)
+			_build_buttons[build_type] = [button, status, type_name]
+		add_child(UiTheme.label("Each new room costs more than the last and adds %s/day rent. A new bedroom lets another creator move in." % Fmt.money(config.tuning_f("expenses", "rent_per_built_room", 0.0)), 12, UiTheme.MUTED, true))
 	_occupants = UiTheme.label("", 14, UiTheme.TEXT, true)
 	add_child(UiTheme.label("In here now", 14, UiTheme.MUTED))
 	add_child(_occupants)
@@ -88,6 +114,12 @@ func _build() -> void:
 			gains.append("%s +%d" % [attr.capitalize(), roundi(delta * 100.0)])
 	if not gains.is_empty():
 		add_child(UiTheme.label("Set quality: " + ", ".join(gains), 13, UiTheme.GOOD, true))
+	var upkeep := float(next.get("upkeep_per_day", 0.0))
+	if upkeep > 0.0:
+		add_child(UiTheme.label("Upkeep %s/day once renovated." % Fmt.money(upkeep), 12, UiTheme.BAD, true))
+	var value := Forecast.renovation_value(Game.state, config, room_id)
+	add_child(UiTheme.label("Estimated %s%s/day net%s" % ["+" if float(value["gain_per_day"]) >= 0.0 else "", Fmt.money(float(value["gain_per_day"])),
+		"" if float(value["payback_days"]) > 1000.0 else ", pays back in ~%s" % Fmt.game_duration(float(value["payback_days"]) * GameState.MINUTES_PER_DAY)], 12, UiTheme.GOLD, true))
 	_upgrade_button = Button.new()
 	_upgrade_button.custom_minimum_size = Vector2(0, 40)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)
@@ -101,9 +133,15 @@ func refresh() -> void:
 	var room := Game.state.get_room(room_id)
 	if room == null:
 		return
-	if room.level != _built_level:
+	if room.level != _built_level or room.type_id != _built_type:
 		_build()
 		return
+	for type_id: String in _build_buttons:
+		var entry: Array = _build_buttons[type_id]
+		var check := Housing.check_build(Game.state, Game.config, room_id, type_id)
+		(entry[0] as Button).text = "Build %s for %s" % [str(entry[2]).to_lower(), Fmt.money(float(check["cost"]))]
+		(entry[0] as Button).disabled = not bool(check["ok"])
+		(entry[1] as Label).text = str(check["reason"])
 	if _occupants != null:
 		var names := PackedStringArray()
 		for creator in Game.state.occupants_of(room_id):

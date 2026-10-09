@@ -1,0 +1,25 @@
+{
+  "_comment": "Lightweight housemate interactions. Two creators relaxing in the same shared (non-private) room roll an interaction every 'interval_minutes'. Weights are scaled by personality: 'positive' interactions by average charisma/50 and existing friendship, 'negative' ones by average drama/50 (squared) and existing rivalry. Effects change friendship/trust/rivalry (0..100) and both creators' mood; a reaction bubble shows for 'bubble_minutes'. Romance, jealousy and other storylines are later milestones.",
+  "interval_minutes": 45,
+  "bubble_minutes": 25,
+  "log_size": 30,
+  "start": { "friendship": 30, "trust": 25, "rivalry": 5 },
+  "trait_bonus": {
+    "Loyal Friend": { "friendship": 0.5, "trust": 0.5 },
+    "Drama Queen": { "rivalry": 0.5 },
+    "Party Animal": { "friendship": 0.2 }
+  },
+  "relaxing_activities": ["socialise", "idle"],
+  "interactions": [
+    { "id": "chat", "label": "chatting", "text": "%s and %s are catching up.", "bubble": "chat", "anim": "chat", "kind": "positive", "weight": 5.0,
+      "effects": { "friendship": 2.0, "trust": 0.6, "rivalry": -0.4 }, "mood": 3.0 },
+    { "id": "hang_out", "label": "hanging out", "text": "%s and %s are hanging out on the couch.", "bubble": "heart", "anim": "chat", "kind": "positive", "weight": 3.0,
+      "min_friendship": 40, "effects": { "friendship": 3.0, "trust": 1.5, "rivalry": -0.6 }, "mood": 4.0 },
+    { "id": "celebrate", "label": "celebrating", "text": "%s and %s are celebrating a great day!", "bubble": "party", "anim": "celebrate", "kind": "positive", "weight": 2.0,
+      "min_mood": 70, "effects": { "friendship": 2.5, "trust": 1.0 }, "mood": 6.0 },
+    { "id": "gossip", "label": "gossiping", "text": "%s and %s are swapping gossip.", "bubble": "gossip", "anim": "chat", "kind": "negative", "weight": 1.2,
+      "effects": { "friendship": 1.0, "trust": -1.0, "rivalry": 1.0 }, "mood": 1.0 },
+    { "id": "disagree", "label": "bickering", "text": "%s and %s had a minor disagreement.", "bubble": "angry", "anim": "argue", "kind": "negative", "weight": 0.6,
+      "effects": { "friendship": -3.0, "trust": -1.5, "rivalry": 4.0 }, "mood": -5.0 }
+  ]
+}

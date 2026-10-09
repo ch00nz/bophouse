@@ -19,7 +19,8 @@ static func apply(state: GameState, config: GameConfig, now_unix: float) -> Dict
 	var max_seconds := config.tuning_f("offline", "max_seconds", 28800.0)
 	var raw_seconds := now_unix - state.last_seen_unix if state.last_seen_unix > 0.0 else 0.0
 	var seconds := creditable_seconds(state.last_seen_unix, now_unix, max_seconds)
-	var minutes := seconds * config.tuning_f("time", "game_minutes_per_real_second", 2.0)
+	# The house runs slower while you're away (offline.time_scale), so playing always beats reopening.
+	var minutes := seconds * config.tuning_f("time", "game_minutes_per_real_second", 2.0) * config.tuning_f("offline", "time_scale", 1.0)
 	var totals := {}
 	if minutes > 0.0:
 		totals = Simulation.advance(state, config, minutes,
@@ -32,6 +33,12 @@ static func apply(state: GameState, config: GameConfig, now_unix: float) -> Dict
 		"capped": raw_seconds > max_seconds,
 		"game_minutes": minutes,
 		"cash": float(totals.get("cash", 0.0)),
+		"gross": float(totals.get("gross", 0.0)),
+		"living_costs": float(totals.get("living_costs", 0.0)),
+		"house": float(totals.get("house", 0.0)),
+		"expenses": float(totals.get("expenses", 0.0)),
+		"by_creator": totals.get("by_creator", {}),
+		"social": (totals.get("social", []) as Array).size(),
 		"followers": float(totals.get("followers", 0.0)),
 		"subscribers": float(totals.get("subscribers", 0.0)),
 	}

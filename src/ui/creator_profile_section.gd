@@ -1,10 +1,11 @@
 class_name CreatorProfileSection
 extends VBoxContainer
-## Profile tab: needs, audience, all core stats (with tooltips) and bio.
+## Profile: needs, audience, optionally all core stats (with tooltips) and bio.
 
 const STAT_ORDER := ["looks", "wildness", "adaptability", "charisma", "work_ethic", "stamina", "confidence", "drama"]
 
 var creator_id: String = ""
+var show_stats: bool = true
 
 var _energy: ProgressBar
 var _energy_value: Label
@@ -17,8 +18,9 @@ var _rate: Label
 var _lifetime: Label
 
 
-func _init(id: String) -> void:
+func _init(id: String, with_stats: bool = true) -> void:
 	creator_id = id
+	show_stats = with_stats
 	add_theme_constant_override("separation", 6)
 
 
@@ -46,11 +48,24 @@ func _ready() -> void:
 	_lifetime = UiTheme.value_label()
 	add_child(UiTheme.tip(UiTheme.row("Followers", _followers), "Public reach. Drives audience earnings and the subscriber pool."))
 	add_child(UiTheme.tip(UiTheme.row("Paying subscribers", _subscribers), "Paying fans. Their subscriptions pay out around the clock."))
-	add_child(UiTheme.tip(UiTheme.row("Earning now", _rate), "Current hourly income including subscriptions. See the Income tab for details."))
-	add_child(UiTheme.row("Lifetime earnings", _lifetime))
+	add_child(UiTheme.tip(UiTheme.row("Earning now (gross)", _rate), "Her current hourly revenue including subscriptions, before the contract split. See Finances for the house share."))
+	add_child(UiTheme.tip(UiTheme.row("Lifetime gross", _lifetime), "Everything she's earned while living here, before the split."))
 
+	if not show_stats:
+		refresh()
+		return
 	add_child(HSeparator.new())
 	add_child(UiTheme.header("Stats"))
+	add_child(stat_grid(creator))
+	if not creator.bio.is_empty():
+		add_child(HSeparator.new())
+		add_child(UiTheme.label(creator.bio, 13, UiTheme.TEXT, true))
+	refresh()
+
+
+## All core stats as labelled bars with tooltips (shared with the Stats & Measurements tab).
+static func stat_grid(creator: CreatorState) -> GridContainer:
+	var config := Game.config
 	var grid := GridContainer.new()
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 8)
@@ -64,12 +79,7 @@ func _ready() -> void:
 		var value := UiTheme.value_label(str(int(creator.stat(stat_id))), UiTheme.TEXT, 13)
 		value.custom_minimum_size = Vector2(26, 0)
 		grid.add_child(value)
-	add_child(grid)
-
-	if not creator.bio.is_empty():
-		add_child(HSeparator.new())
-		add_child(UiTheme.label(creator.bio, 13, UiTheme.TEXT, true))
-	refresh()
+	return grid
 
 
 func refresh() -> void:
@@ -99,7 +109,7 @@ func _need_row(caption: String, bar: ProgressBar, value: Label) -> HBoxContainer
 	return h
 
 
-func _stat_color(value: float) -> Color:
+static func _stat_color(value: float) -> Color:
 	if value >= 65.0:
 		return UiTheme.GOOD.darkened(0.1)
 	if value >= 45.0:

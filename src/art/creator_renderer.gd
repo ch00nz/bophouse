@@ -2,9 +2,12 @@ class_name CreatorRenderer
 extends RefCounted
 ## Layered, data-driven creator drawing (placeholder art pipeline).
 ##
-## The body is built from front/back silhouette curves that body-shape parameters (bust, hips,
-## glutes) bend. Garments are drawn by re-using that silhouette over a vertical range, so outfits
-## are pure data (appearance.json) and automatically follow body changes.
+## The body is built from front/back silhouette curves that body-region parameters bend: bust,
+## waist, hips, glutes and shoulders (from body measurements via BodyShape), plus a uniform height
+## scale (never a non-uniform stretch, so faces, hair and outfits keep their proportions).
+## Garments are drawn by re-using that silhouette over a vertical range, so outfits are pure data
+## (appearance.json) and automatically follow body changes; hair, tattoos and piercings anchor to
+## the same curves/joints, so they stay aligned on every body and in every pose.
 ## Layer order: back hair > back arm > legs > legwear > shoes > torso skin > bottom > top >
 ## trims/details > tattoo/piercing > front arm > neck/head > makeup > front hair.
 ## All characters are adult women; everything is clothed / non-explicit.
@@ -18,8 +21,10 @@ const HIP_Y := -50.0
 const LEG_LENGTH := 46.0
 
 
-## Draws a creator with feet at `origin`. Poses: idle, walk, film, socialise, selfie, stream, sleep.
+## Draws a creator with feet at `origin`. Poses: idle, walk, film, socialise, selfie, stream, sleep,
+## recline, chat, celebrate, argue. Her height scales the whole figure uniformly.
 static func draw(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origin: Vector2, facing: float = 1.0, scale: float = 1.0, sleep_lift: float = 0.0) -> void:
+	scale *= float(spec.get("height_scale", 1.0))
 	if anim == "sleep":
 		ci.draw_set_transform(origin + Vector2(56.0, -sleep_lift - 12.0) * scale, -PI / 2.0, Vector2(scale, scale))
 	elif anim == "recline":
@@ -29,6 +34,8 @@ static func draw(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origi
 		ci.draw_set_transform(origin + Vector2(56.0, -sleep_lift + 1.0) * scale, -PI / 2.0 + 0.2 + sway, Vector2(scale, scale))
 	else:
 		var bob := -absf(cos(t * 9.0)) * 2.0 if anim == "walk" else sin(t * 2.2) * 0.7
+		if anim == "celebrate":
+			bob = -absf(sin(t * 7.0)) * 4.0
 		ci.draw_set_transform(origin + Vector2(0.0, bob) * scale, 0.0, Vector2(facing * scale, scale))
 	_draw_body(ci, spec, anim, t)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -137,6 +144,16 @@ static func _pose(anim: String, t: float) -> Dictionary:
 			pose["hand_back"] = Vector2(-12.0, -110.0) # propped on the elbow, hand by her head
 			pose["hand_front"] = Vector2(11.0, -64.0) if fmod(t, 5.0) < 3.0 else Vector2(10.0, -98.0)
 			pose["leg_swing"] = 0.12
+		"chat": # talking with her hands
+			pose["hand_front"] = Vector2(16.0 + sin(t * 4.0) * 3.0, -80.0 + cos(t * 3.0) * 4.0)
+			pose["hand_back"] = Vector2(-11.0, -63.0)
+			pose["hip_shift"] = 0.6
+		"celebrate": # arms up, bouncing
+			pose["hand_front"] = Vector2(12.0, -122.0 + sin(t * 7.0) * 3.0)
+			pose["hand_back"] = Vector2(-12.0, -121.0 + cos(t * 7.0) * 3.0)
+		"argue": # hands on hips, then a pointed finger
+			pose["hand_back"] = Vector2(-11.0, -63.0)
+			pose["hand_front"] = Vector2(11.0, -63.0) if fmod(t, 2.4) < 1.2 else Vector2(19.0, -92.0)
 	return pose
 
 
@@ -148,9 +165,12 @@ static func _pose(anim: String, t: float) -> Dictionary:
 ## Hourglass silhouette. The bust is drawn as separate rounded shapes (see _bust_shapes).
 static func _front_points(spec: Dictionary) -> PackedVector2Array:
 	var hips := float(spec.get("hips", 1.0))
+	var waist := float(spec.get("waist", 1.0))
+	var shoulders := float(spec.get("shoulders", 1.0))
 	return PackedVector2Array([
-		Vector2(-90.0, 7.2), Vector2(-86.0, 9.0), Vector2(-80.0, 9.2), Vector2(-74.0, 7.6),
-		Vector2(-67.0, 6.3), Vector2(-60.0, 8.0 * hips), Vector2(-54.0, 9.2 * hips), Vector2(-46.0, 8.6 * hips),
+		Vector2(-90.0, 7.2 * shoulders), Vector2(-86.0, 9.0 * shoulders), Vector2(-80.0, 9.2 * lerpf(1.0, waist, 0.3)),
+		Vector2(-74.0, 7.6 * lerpf(1.0, waist, 0.6)), Vector2(-67.0, 6.3 * waist),
+		Vector2(-60.0, 8.0 * hips * lerpf(1.0, waist, 0.25)), Vector2(-54.0, 9.2 * hips), Vector2(-46.0, 8.6 * hips),
 	])
 
 
@@ -158,9 +178,11 @@ static func _front_points(spec: Dictionary) -> PackedVector2Array:
 static func _back_points(spec: Dictionary) -> PackedVector2Array:
 	var hips := float(spec.get("hips", 1.0))
 	var glutes := float(spec.get("glutes", 1.0))
+	var waist := float(spec.get("waist", 1.0))
+	var shoulders := float(spec.get("shoulders", 1.0))
 	return PackedVector2Array([
-		Vector2(-90.0, -7.6), Vector2(-84.0, -9.2), Vector2(-76.0, -8.2),
-		Vector2(-67.0, -6.9), Vector2(-61.0, -8.9 * hips - 0.9 * (glutes - 1.0)),
+		Vector2(-90.0, -7.6 * shoulders), Vector2(-84.0, -9.2 * shoulders), Vector2(-76.0, -8.2 * lerpf(1.0, waist, 0.5)),
+		Vector2(-67.0, -6.9 * waist), Vector2(-61.0, -8.9 * hips - 0.9 * (glutes - 1.0)),
 		Vector2(-54.0, -10.2 * hips - 2.4 * glutes + 0.6), Vector2(-46.0, -8.8 * hips - 0.9 * glutes),
 	])
 
@@ -246,8 +268,10 @@ static func _draw_body(ci: CanvasItem, spec: Dictionary, anim: String, t: float)
 	var hair := PlaceholderArt.color(spec.get("hair_color"), Color("6b3b2a"))
 	var outfit: Dictionary = spec.get("outfit", {})
 
+	var shoulders := float(spec.get("shoulders", 1.0))
+	var tone := float(spec.get("limb_tone", 1.0))
 	_draw_back_hair(ci, spec, hair, t)
-	_draw_arm(ci, Vector2(-8, -87), pose["hand_back"], skin_shade)
+	_draw_arm(ci, Vector2(-8.0 * shoulders, -87), pose["hand_back"], skin_shade, tone)
 
 	var line := skin.darkened(0.35)
 	var legs := _leg_geometry(spec, float(pose["leg_swing"]))
@@ -270,7 +294,8 @@ static func _draw_body(ci: CanvasItem, spec: Dictionary, anim: String, t: float)
 	_draw_garment(ci, spec, outfit.get("top", {}), t)
 	_draw_skin_details(ci, spec, outfit, legs[1], skin_shade)
 
-	_draw_arm(ci, Vector2(7.5, -87), pose["hand_front"], skin)
+	_draw_arm(ci, Vector2(7.5 * shoulders, -87), pose["hand_front"], skin, tone,
+		(spec.get("tattoos", []) as Array).has("arm_sleeve"))
 	if bool(pose["phone"]):
 		var hand: Vector2 = pose["hand_front"]
 		PlaceholderArt.draw_rounded_rect(ci, Rect2(hand + Vector2(-2.5, -10), Vector2(6, 11)), Color("222222"), 1)
@@ -287,7 +312,9 @@ static func _leg_geometry(spec: Dictionary, swing: float) -> Array:
 		var direction := Vector2(sin(angle), cos(angle))
 		var knee := hip + direction * (LEG_LENGTH * 0.5) + Vector2(0.6, 0)
 		var ankle := hip + direction * LEG_LENGTH
-		result.append({"hip": hip, "knee": knee, "ankle": ankle, "thigh": 5.4 * hips, "knee_w": 2.8, "ankle_w": 1.6})
+		var tone := float(spec.get("limb_tone", 1.0))
+		result.append({"hip": hip, "knee": knee, "ankle": ankle, "thigh": 5.4 * hips * lerpf(1.0, tone, 0.5), "knee_w": 2.8, "ankle_w": 1.6,
+			"calf": tone})
 	return result
 
 
@@ -300,7 +327,7 @@ static func _leg_at(leg: Dictionary, t: float) -> Array:
 		var u := t / 0.5
 		return [hip.lerp(knee, u), lerpf(float(leg["thigh"]), float(leg["knee_w"]), pow(u, 0.8))]
 	var v := (t - 0.5) / 0.5
-	var calf := sin(v * PI) * 1.0 # a little calf curve
+	var calf := sin(v * PI) * float(leg.get("calf", 1.0)) # a little calf curve (more defined when toned)
 	return [knee.lerp(ankle, v), lerpf(float(leg["knee_w"]), float(leg["ankle_w"]), v) + calf]
 
 
@@ -337,6 +364,19 @@ static func _draw_legwear(ci: CanvasItem, leg: Dictionary, legwear: Dictionary, 
 	if is_back:
 		colour = colour.darkened(0.12)
 	var from := float(legwear.get("from", 0.0))
+	if str(legwear.get("type", "")) == "fishnets":
+		# Diamond mesh over the skin, following the leg (two sets of diagonal threads).
+		var mesh := Color(colour, 0.85)
+		for i in 11:
+			var a := _leg_at(leg, lerpf(from, 0.95, i / 11.0))
+			var b := _leg_at(leg, lerpf(from, 0.95, (i + 1) / 11.0))
+			var a_c: Vector2 = a[0]
+			var b_c: Vector2 = b[0]
+			var a_w := float(a[1])
+			var b_w := float(b[1])
+			ci.draw_line(a_c + Vector2(-a_w, 0), b_c + Vector2(b_w, 0), mesh, 0.45, true)
+			ci.draw_line(a_c + Vector2(a_w, 0), b_c + Vector2(-b_w, 0), mesh, 0.45, true)
+		return
 	ci.draw_colored_polygon(_leg_polygon(leg, from, 0.97, 0.15), colour)
 	if str(legwear.get("type", "")) == "stockings":
 		var band := _leg_at(leg, from)
@@ -351,6 +391,14 @@ static func _draw_shoe(ci: CanvasItem, leg: Dictionary, shoes: Dictionary, is_ba
 	var colour := PlaceholderArt.color(shoes.get("color"), Color("ffd166"))
 	if is_back:
 		colour = colour.darkened(0.15)
+	if str(shoes.get("type", "heels")) == "boots":
+		# Chunky platform boots up to mid-calf.
+		ci.draw_colored_polygon(_leg_polygon(leg, 0.72, 1.0, 0.6), colour)
+		var boot := PackedVector2Array([ankle + Vector2(-3.4, -2), ankle + Vector2(3.4, -2.5), ankle + Vector2(8, 1.5),
+			ankle + Vector2(8, 4.5), ankle + Vector2(-3.8, 4.5)])
+		ci.draw_colored_polygon(boot, colour)
+		ci.draw_line(ankle + Vector2(-3.8, 4.0), ankle + Vector2(8, 4.0), colour.lightened(0.25), 1.4)
+		return
 	if str(shoes.get("type", "heels")) == "sneakers":
 		var shoe := PackedVector2Array([ankle + Vector2(-3, -2), ankle + Vector2(3, -2.5), ankle + Vector2(7.5, 1.5),
 			ankle + Vector2(7.5, 4), ankle + Vector2(-3.5, 4)])
@@ -411,6 +459,18 @@ static func _draw_garment(ci: CanvasItem, spec: Dictionary, garment: Dictionary,
 		for i in 4:
 			var ly := -70.0 + i * 3.5
 			ci.draw_line(Vector2(lace_x - 1.0, ly), Vector2(lace_x + 1.0, ly + 1.5), trim, 0.6, true)
+	if garment.has("plaid"):
+		var check := Color(PlaceholderArt.color(garment.get("plaid"), Color.WHITE), 0.45)
+		var y := y0 + 2.0
+		while y < y1 - 1.0:
+			ci.draw_polyline(_edge_line(spec, y, 0.0, pow((y - y0) / maxf(y1 - y0, 0.001), 2.0) * flare), check, 0.6, true)
+			y += 4.0
+		var back_x := _edge_x(_back_points(spec), (y0 + y1) * 0.5)
+		var front_x := _edge_x(_front_points(spec), (y0 + y1) * 0.5)
+		var x := back_x + 2.0
+		while x < front_x - 1.0:
+			ci.draw_line(Vector2(x, y0 + 1.0), Vector2(x + (x - (back_x + front_x) * 0.5) * 0.15, y1 - 1.0), check, 0.6, true)
+			x += 4.0
 	if bool(garment.get("sparkle", false)):
 		for i in 9:
 			var sy := lerpf(y0 + 3.0, y1 - 2.0, fmod(i * 0.37, 1.0))
@@ -444,20 +504,32 @@ static func _draw_rose(ci: CanvasItem, centre: Vector2) -> void:
 	ci.draw_arc(centre, 0.9, 0.0, TAU * 0.75, 8, Color(0.45, 0.03, 0.12), 0.5, true)
 
 
-static func _draw_arm(ci: CanvasItem, shoulder: Vector2, hand: Vector2, skin: Color) -> void:
+static func _draw_arm(ci: CanvasItem, shoulder: Vector2, hand: Vector2, skin: Color, tone: float = 1.0, sleeve_tattoo: bool = false) -> void:
 	var mid := (shoulder + hand) * 0.5
 	var bend := (hand - shoulder).orthogonal().normalized() * 3.0
 	if bend.x > 0.0:
 		bend = -bend
 	var elbow := mid + bend
 	var line := skin.darkened(0.3)
-	ci.draw_line(shoulder, elbow, line, 5.6, true)
+	var upper := 4.4 * lerpf(1.0, tone, 0.6)
+	ci.draw_line(shoulder, elbow, line, upper + 1.2, true)
 	ci.draw_line(elbow, hand, line, 4.6, true)
-	ci.draw_line(shoulder, elbow, skin, 4.4, true)
+	ci.draw_line(shoulder, elbow, skin, upper, true)
 	ci.draw_circle(elbow, 2.0, skin)
 	ci.draw_line(elbow, hand, skin, 3.5, true)
 	ci.draw_circle(shoulder, 2.6, skin)
 	ci.draw_circle(hand, 2.1, skin)
+	if sleeve_tattoo:
+		# Floral half-sleeve: the ink follows the upper arm and forearm, so it moves with every pose.
+		var ink := Color(0.16, 0.12, 0.3, 0.85)
+		for i in 4:
+			var p := shoulder.lerp(elbow, 0.2 + i * 0.22)
+			ci.draw_circle(p, 1.0, Color(0.85, 0.15, 0.4, 0.9))
+			ci.draw_arc(p, 1.5, 0.0, TAU * 0.7, 6, ink, 0.4, true)
+		for i in 3:
+			var p := elbow.lerp(hand, 0.15 + i * 0.22)
+			ci.draw_line(p + Vector2(-1.0, -0.6), p + Vector2(1.0, 0.6), ink, 0.5, true)
+			ci.draw_circle(p + Vector2(0.4, -0.8), 0.6, Color(0.2, 0.55, 0.3, 0.9))
 
 
 # ---------------------------------------------------------------------------
@@ -506,6 +578,13 @@ static func _draw_head(ci: CanvasItem, spec: Dictionary, skin: Color, skin_shade
 	# Blush
 	var blush := float(makeup.get("blush", 0.3))
 	ci.draw_circle(Vector2(7.2, -101.2), 2.2, Color(1.0, 0.42, 0.52, blush))
+	if bool(spec.get("freckles", false)):
+		var freckle := Color(skin_shade.darkened(0.3), 0.75)
+		for p: Vector2 in [Vector2(5.4, -102.4), Vector2(6.6, -101.6), Vector2(8.1, -102.2), Vector2(9.0, -103.1), Vector2(4.6, -101.4), Vector2(2.2, -102.0)]:
+			ci.draw_circle(p, 0.32, freckle)
+	if (spec.get("piercings", []) as Array).has("nose"):
+		ci.draw_circle(Vector2(9.7, -101.9), 0.55, Color("fff1b8"))
+		ci.draw_circle(Vector2(9.55, -102.05), 0.22, Color.WHITE)
 	# Lips (lip filler scales them)
 	var lip_size := float(spec.get("lip_size", 1.0))
 	var lip_color := PlaceholderArt.color(makeup.get("lips"), Color("c2185b"))
@@ -517,6 +596,29 @@ static func _draw_head(ci: CanvasItem, spec: Dictionary, skin: Color, skin_shade
 
 static func _draw_back_hair(ci: CanvasItem, spec: Dictionary, hair: Color, t: float) -> void:
 	var dark := hair.darkened(0.12)
+	match str(spec.get("hair_style", "long_waves")):
+		"bob":
+			# Rounded shoulder-length bob that swings a little.
+			var swing := sin(t * 2.0) * 0.6
+			var bob := PackedVector2Array([Vector2(-11, -113), Vector2(2, -117), Vector2(12, -110), Vector2(13.5, -100),
+				Vector2(12.5 + swing, -92), Vector2(6 + swing, -89.5), Vector2(-6 + swing, -89), Vector2(-14 + swing, -91),
+				Vector2(-16, -100)])
+			ci.draw_colored_polygon(bob, dark)
+			return
+		"curls":
+			# Big curls: overlapping ringlets around the head and down past the shoulders.
+			for i in 11:
+				var u := i / 10.0
+				var centre := Vector2(lerpf(-12.0, -15.0, u) + sin(u * 9.0) * 2.0, lerpf(-112.0, -76.0, u))
+				ci.draw_circle(centre + Vector2(sin(t * 2.0 + i) * 0.4, 0), 5.2 - u * 0.8, dark)
+			for i in 4:
+				ci.draw_circle(Vector2(-6.0 + i * 5.0, -115.0 + absf(i - 1.5) * 1.5), 5.0, dark)
+			for i in 4:
+				ci.draw_circle(Vector2(13.0 - i * 0.4, -104.0 + i * 6.0), 4.2, dark)
+			return
+		"space_buns":
+			ci.draw_circle(Vector2(-7.5, -117.5), 5.6, dark) # far bun, behind the head
+			return
 	if str(spec.get("hair_style", "long_waves")) == "high_ponytail":
 		var sway := sin(t * 2.5) * 1.5
 		var tail := PackedVector2Array([Vector2(-6, -115), Vector2(-2, -116), Vector2(-7 + sway * 0.3, -104),
@@ -538,7 +640,38 @@ static func _draw_front_hair(ci: CanvasItem, spec: Dictionary, hair: Color, _t: 
 	for i in 13:
 		var angle := PI + PI * i / 12.0
 		crown.append(Vector2(1.5, -105.0) + Vector2(cos(angle) * 10.8, sin(angle) * 12.0))
-	if str(spec.get("hair_style", "long_waves")) == "high_ponytail":
+	var style := str(spec.get("hair_style", "long_waves"))
+	if style == "bob":
+		# Blunt fringe and sides that end at the jaw.
+		crown.append_array(PackedVector2Array([Vector2(12.4, -103), Vector2(10.5, -108.5), Vector2(4, -108),
+			Vector2(-2.5, -109), Vector2(-8.5, -104), Vector2(-10.5, -97)]))
+		ci.draw_colored_polygon(crown, hair)
+		ci.draw_colored_polygon(PackedVector2Array([Vector2(10.6, -104), Vector2(12.8, -100), Vector2(12.6, -93),
+			Vector2(11.2, -91.5), Vector2(10.2, -96)]), hair)
+		ci.draw_line(Vector2(0, -114), Vector2(8, -109), hair.lightened(0.3), 1.0, true)
+		return
+	if style == "curls":
+		crown.append_array(PackedVector2Array([Vector2(12.4, -103), Vector2(9, -109), Vector2(3.5, -107),
+			Vector2(-2.5, -109), Vector2(-8.5, -104), Vector2(-10.5, -97)]))
+		ci.draw_colored_polygon(crown, hair)
+		for p: Vector2 in [Vector2(-5, -112), Vector2(0.5, -114.5), Vector2(6, -113), Vector2(10.5, -108.5)]:
+			ci.draw_circle(p, 3.4, hair)
+			ci.draw_arc(p, 1.8, 0.4, PI + 0.4, 6, hair.lightened(0.25), 0.7, true)
+		for i in 3: # ringlets over the front shoulder
+			var p := Vector2(12.2 - i * 0.4, -99.0 + i * 6.0)
+			ci.draw_circle(p, 3.0, hair)
+			ci.draw_arc(p, 1.6, 0.0, PI, 6, hair.lightened(0.25), 0.6, true)
+		return
+	if style == "space_buns":
+		crown.append_array(PackedVector2Array([Vector2(11, -108), Vector2(4, -111.5), Vector2(-4, -110), Vector2(-9.5, -104)]))
+		ci.draw_colored_polygon(crown, hair)
+		ci.draw_circle(Vector2(6.0, -118.5), 5.8, hair)
+		ci.draw_arc(Vector2(6.0, -118.5), 3.2, 0.3, TAU - 0.8, 10, hair.lightened(0.28), 0.8, true)
+		ci.draw_line(Vector2(-6, -112), Vector2(7, -112.5), hair.lightened(0.25), 0.8, true)
+		# Loose wisps framing the face.
+		ci.draw_line(Vector2(11.4, -104), Vector2(12.2, -95), hair, 1.2, true)
+		return
+	if style == "high_ponytail":
 		# Sleek pulled-back hair with a tie.
 		crown.append_array(PackedVector2Array([Vector2(11, -108), Vector2(4, -111.5), Vector2(-4, -110), Vector2(-9.5, -104)]))
 		ci.draw_colored_polygon(crown, hair)

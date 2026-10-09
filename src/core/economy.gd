@@ -7,7 +7,9 @@ extends RefCounted
 ##                 (energy & mood) x trends x experience (settling into the content).
 ## Subscriptions pay continuously, whatever the creator is doing.
 ## Follower growth = (base + viral x sqrt(followers)) x multipliers x saturation, which grows
-## polynomially and flattens toward a soft cap, so there is no runaway exponential growth.
+## polynomially and flattens toward a soft cap; a daily unfollow rate gives every audience a natural
+## ceiling. Subscribers churn daily and must be kept up by working. Repeating the same content wears
+## out its freshness. Equipment upgrades add (diminishing) multipliers. No runaway exponential growth.
 
 
 # ---------------------------------------------------------------------------
@@ -127,10 +129,13 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 	var market := AudienceModel.market(creator.appearance_tags, content_id, config)
 	var audience_fit := float(market["multiplier"])
 	var recovery := Appearance.recovery_output(creator, config)
+	var freshness := creator.freshness(content_id)
+	var gear_income := Upgrades.content_income_multiplier(state, config, content_id)
+	var gear_followers := Upgrades.content_follower_multiplier(state, config, content_id)
 
-	var common := fit * quality * prod * experience * audience_fit * recovery * time_of_day
-	var cash_multiplier := common * float(trend["income"])
-	var follower_multiplier := common * float(trend["followers"])
+	var common := fit * quality * prod * experience * audience_fit * recovery * time_of_day * freshness
+	var cash_multiplier := common * float(trend["income"]) * gear_income
+	var follower_multiplier := common * float(trend["followers"]) * gear_followers
 	var content_sales := float(rates.get("cash", 0.0)) * cash_multiplier
 	var audience_earnings := float(rates.get("audience_cash", 0.0)) * audience_value(creator.followers, config) * cash_multiplier
 	var custom_sales := float(rates.get("per_subscriber_cash", 0.0)) * maxf(creator.subscribers, 0.0) * cash_multiplier
@@ -181,7 +186,7 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 			"fit": fit, "room": quality, "productivity": prod,
 			"trend_income": float(trend["income"]), "trend_followers": float(trend["followers"]),
 			"experience": experience, "audience_fit": audience_fit, "recovery": recovery,
-			"time_of_day": time_of_day,
+			"time_of_day": time_of_day, "freshness": freshness, "gear_income": gear_income, "gear_followers": gear_followers,
 		},
 		"trend_effects": trend["effects"],
 	}
@@ -216,12 +221,46 @@ static func current_rates(creator: CreatorState, state: GameState, config: GameC
 	return activity_rates(creator, activity, room_quality(config, state.get_room(creator.room_id)), config)
 
 
-## Estimated current cash per hour for one creator (for UI display).
+## Estimated current gross revenue per hour for one creator (before the contract split).
 static func creator_cash_per_hour(creator: CreatorState, state: GameState, config: GameConfig) -> float:
 	return subscription_cash_per_hour(creator, config) + float(current_rates(creator, state, config)["cash"])
 
 
+## The house's share of one creator's current revenue per hour.
+static func creator_house_cash_per_hour(creator: CreatorState, state: GameState, config: GameConfig) -> float:
+	return creator_cash_per_hour(creator, state, config) * creator.house_share()
+
+
+## What the player is earning per hour right now: the house share of every creator's revenue.
 static func house_cash_per_hour(state: GameState, config: GameConfig) -> float:
+	var total := 0.0
+	for creator in state.creators:
+		total += creator_house_cash_per_hour(creator, state, config)
+	return total
+
+
+## The house's running costs per hour (rent, utilities, maintenance, living costs).
+static func expenses_per_hour(state: GameState, config: GameConfig) -> float:
+	return Expenses.total_per_day(state, config) / 24.0
+
+
+## The player's net income per hour right now: house shares minus running costs.
+static func house_profit_per_hour(state: GameState, config: GameConfig) -> float:
+	return house_cash_per_hour(state, config) - expenses_per_hour(state, config)
+
+
+## Followers lost per hour to unfollows (gives audiences a natural ceiling).
+static func follower_decay_per_hour(creator: CreatorState, config: GameConfig) -> float:
+	return maxf(creator.followers, 0.0) * config.tuning_f("economy", "follower_decay_per_day", 0.0) / 24.0
+
+
+## Subscribers cancelling per hour regardless of what she does (normal churn).
+static func subscriber_base_churn_per_hour(creator: CreatorState, config: GameConfig) -> float:
+	return maxf(creator.subscribers, 0.0) * config.tuning_f("economy", "subscriber_base_churn_per_day", 0.0) / 24.0
+
+
+## Combined gross revenue per hour of every creator (before splits).
+static func gross_cash_per_hour(state: GameState, config: GameConfig) -> float:
 	var total := 0.0
 	for creator in state.creators:
 		total += creator_cash_per_hour(creator, state, config)

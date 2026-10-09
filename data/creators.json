@@ -1,9 +1,11 @@
 {
+  "_comment": "Creator templates. Every character is an adult (21+, enforced in code). 'body' holds her NATURAL measurements in cm (height, bust, waist, hips) and muscle tone 0..1; procedures already in her 'look' (e.g. bust: enhanced) add their measurement deltas on top, so numbers and visuals always agree. 'contract': creator_share (her cut of gross revenue; the house keeps the rest). Creators apply to live and work in the house; there is no fee to join. 'living_cost_per_day' is what she adds to the house's running costs (rent share, utilities, food, lifestyle). 'applicant' templates can apply to join; 'expects' lists what the house needs before she applies (room_levels by room type, combined house_followers, owned upgrades). 'schedule.sleep_shift_hours' moves her night (+ later, - earlier). 'appearance_prefs': declines are refused whatever the player pays; wishes give a mood boost when funded.",
   "creators": [
     {
       "id": "ava",
       "name": "Ava Monroe",
       "age": 24,
+      "archetype": "Founding creator",
       "bio": "Former retail manager turned full-time creator. Bubbly on camera, fiercely organised off it.",
       "stats": {
         "looks": 68,
@@ -45,7 +47,6 @@
       },
       "owned_styles": ["hair_color:brunette", "hair_style:long_waves", "outfit:casual", "makeup:natural"],
       "base_tags": { "natural": 0.6, "wholesome": 0.6, "cute": 0.3 },
-      "_appearance_prefs_comment": "Her own choices: the player can offer to fund changes but never force them. 'declines' items are refused; 'wishes' give a mood boost when funded.",
       "appearance_prefs": {
         "declines": [],
         "wishes": ["lip_filler", "outfit:glamour"]
@@ -53,12 +54,208 @@
       "reputation": 40,
       "_room_preferences_comment": "Multipliers on how much she likes working in a room type (personal comfort, not income).",
       "room_preferences": { "bedroom": 1.05, "studio": 1.0, "living_room": 1.0 },
+      "body": { "height_cm": 168, "bust_cm": 96, "waist_cm": 66, "hips_cm": 99, "tone": 0.35 },
+      "contract": { "creator_share": 0.3, "label": "Founding partner" },
+      "living_cost_per_day": 0,
+      "schedule": { "sleep_shift_hours": 0 },
       "starting": {
-        "followers": 500,
-        "subscribers": 20,
+        "followers": 350,
+        "subscribers": 8,
         "energy": 90,
         "mood": 70
       }
+    },
+    {
+      "id": "chloe",
+      "name": "Chloe Laurent",
+      "age": 26,
+      "archetype": "Bombshell",
+      "applicant": true,
+      "bio": "Platinum, polished and permanently camera-ready. Her glamour sets sell out, and she knows exactly what she's worth.",
+      "strengths": "Huge glamour following, top looks and confidence, premium fans pay well.",
+      "weaknesses": "Pricey lifestyle, keeps 70%, low adaptability, short work sessions and a dramatic streak.",
+      "stats": { "looks": 88, "wildness": 55, "adaptability": 40, "charisma": 66, "work_ethic": 46, "stamina": 52, "confidence": 86, "drama": 62 },
+      "traits": ["Bombshell", "Luxury Obsessed"],
+      "content": {
+        "default_focus": "glamour",
+        "accepts": ["glamour", "solo_premium", "topless_premium"],
+        "declines": ["collab_boy_girl"]
+      },
+      "appearance": { "skin": "#eab894", "eyes": "#3b7a57" },
+      "look": {
+        "hair_color": "blonde", "hair_style": "long_waves", "outfit": "glamour", "makeup": "glam",
+        "bust": "enhanced", "body": "natural", "lips": "full", "piercings": ["belly"], "tattoos": []
+      },
+      "base_tags": { "glamour": 0.4, "luxury": 0.5, "bombshell": 0.3 },
+      "appearance_prefs": { "declines": ["outfit:fitness", "hair_color:pink", "makeup:natural"], "wishes": ["bbl", "outfit:lingerie"] },
+      "reputation": 55,
+      "room_preferences": { "studio": 1.15, "bedroom": 1.0, "living_room": 0.9 },
+      "body": { "height_cm": 172, "bust_cm": 92, "waist_cm": 61, "hips_cm": 97, "tone": 0.3 },
+      "contract": { "creator_share": 0.7, "label": "Revenue share" },
+      "living_cost_per_day": 220,
+      "expects": { "room_levels": { "studio": 2 }, "house_followers": 12000, "upgrades": ["house_expansion"] },
+      "schedule": { "sleep_shift_hours": 1 },
+      "starting": { "followers": 7000, "subscribers": 240, "energy": 85, "mood": 72 }
+    },
+    {
+      "id": "mia",
+      "name": "Mia Harper",
+      "age": 22,
+      "archetype": "Girl Next Door",
+      "applicant": true,
+      "bio": "Freckles, coffee and terrible puns. Her fans have been with her since day one and they're not going anywhere.",
+      "strengths": "Very loyal subscribers, great charisma for socials and livestreams, low drama.",
+      "weaknesses": "Strict boundaries, modest looks for glamour, no interest in cosmetic procedures.",
+      "stats": { "looks": 64, "wildness": 25, "adaptability": 55, "charisma": 84, "work_ethic": 66, "stamina": 58, "confidence": 52, "drama": 18 },
+      "traits": ["Girl Next Door", "Loyal Friend"],
+      "content": {
+        "default_focus": "social_media",
+        "accepts": ["social_media", "livestream", "custom_content"],
+        "declines": ["topless_premium", "collab_boy_girl", "collab_girl_girl"]
+      },
+      "appearance": { "skin": "#f7d5bd", "eyes": "#6b8e23", "freckles": true },
+      "look": {
+        "hair_color": "copper", "hair_style": "bob", "outfit": "casual", "makeup": "natural",
+        "bust": "natural", "body": "natural", "lips": "natural", "piercings": [], "tattoos": []
+      },
+      "base_tags": { "natural": 0.7, "wholesome": 0.8, "cute": 0.5 },
+      "appearance_prefs": { "declines": ["breast_augmentation", "bbl", "lip_filler", "nipple_piercing"], "wishes": ["hair_style:curls", "outfit:fitness"] },
+      "reputation": 50,
+      "room_preferences": { "living_room": 1.15, "bedroom": 1.05, "studio": 0.95 },
+      "body": { "height_cm": 163, "bust_cm": 88, "waist_cm": 65, "hips_cm": 94, "tone": 0.3 },
+      "contract": { "creator_share": 0.6, "label": "Revenue share" },
+      "living_cost_per_day": 75,
+      "expects": { "house_followers": 1200 },
+      "schedule": { "sleep_shift_hours": -0.5 },
+      "starting": { "followers": 2600, "subscribers": 150, "energy": 90, "mood": 78 }
+    },
+    {
+      "id": "jade",
+      "name": "Jade Moreau",
+      "age": 25,
+      "archetype": "Alternative creator",
+      "applicant": true,
+      "bio": "Ink, steel and pastel pink. Jade built a devoted alt following on late-night streams and custom sets.",
+      "strengths": "Niche audience that spends big, strong confidence and wildness, shines in alt trends.",
+      "weaknesses": "Mainstream and natural-beauty fans aren't her crowd; a night owl who refuses enhancements.",
+      "stats": { "looks": 66, "wildness": 72, "adaptability": 60, "charisma": 60, "work_ethic": 56, "stamina": 64, "confidence": 74, "drama": 45 },
+      "traits": ["Alt Icon", "Night Owl"],
+      "content": {
+        "default_focus": "solo_premium",
+        "accepts": ["solo_premium", "custom_content", "livestream"],
+        "declines": ["collab_boy_girl"]
+      },
+      "appearance": { "skin": "#f3d0c0", "eyes": "#5a3d8a" },
+      "look": {
+        "hair_color": "pink", "hair_style": "space_buns", "outfit": "alt_punk", "makeup": "smoky_alt",
+        "bust": "natural", "body": "natural", "lips": "natural", "piercings": ["nose", "belly"], "tattoos": ["rose_thigh", "arm_sleeve"]
+      },
+      "base_tags": { "alternative": 0.6, "luxury": 0.1 },
+      "appearance_prefs": { "declines": ["breast_augmentation", "bbl", "hair_color:blonde", "outfit:glamour"], "wishes": ["nipple_piercing", "hair_color:black"] },
+      "reputation": 35,
+      "room_preferences": { "bedroom": 1.15, "studio": 1.0, "living_room": 0.85 },
+      "body": { "height_cm": 165, "bust_cm": 90, "waist_cm": 68, "hips_cm": 97, "tone": 0.25 },
+      "contract": { "creator_share": 0.6, "label": "Revenue share" },
+      "living_cost_per_day": 90,
+      "expects": { "house_followers": 4000, "upgrades": ["pro_camera"] },
+      "schedule": { "sleep_shift_hours": 2.5 },
+      "starting": { "followers": 1500, "subscribers": 110, "energy": 80, "mood": 70 }
+    },
+    {
+      "id": "sienna",
+      "name": "Sienna Brooks",
+      "age": 27,
+      "archetype": "Fitness influencer",
+      "applicant": true,
+      "bio": "Up at dawn, lifting by six. Sienna turned gym reels into a following and never misses a posting day.",
+      "strengths": "Elite stamina and work ethic, big follower reach, athletic build loved by fitness fans.",
+      "weaknesses": "Mostly socials, so lower premium earnings; strict boundaries and few subscribers.",
+      "stats": { "looks": 72, "wildness": 35, "adaptability": 50, "charisma": 64, "work_ethic": 88, "stamina": 92, "confidence": 66, "drama": 24 },
+      "traits": ["Fitness Fanatic", "Early Bird"],
+      "content": {
+        "default_focus": "social_media",
+        "accepts": ["social_media", "livestream", "glamour"],
+        "declines": ["topless_premium", "collab_boy_girl", "collab_girl_girl"]
+      },
+      "appearance": { "skin": "#a9714f", "eyes": "#4a2c1d" },
+      "look": {
+        "hair_color": "honey", "hair_style": "high_ponytail", "outfit": "fitness", "makeup": "natural",
+        "bust": "natural", "body": "natural", "lips": "natural", "piercings": ["belly"], "tattoos": []
+      },
+      "base_tags": { "natural": 0.4, "wholesome": 0.3 },
+      "appearance_prefs": { "declines": ["bbl", "lip_filler"], "wishes": ["outfit:glamour"] },
+      "reputation": 60,
+      "room_preferences": { "living_room": 1.1, "studio": 1.0, "bedroom": 0.95 },
+      "body": { "height_cm": 175, "bust_cm": 88, "waist_cm": 63, "hips_cm": 95, "tone": 0.9 },
+      "contract": { "creator_share": 0.55, "label": "Revenue share" },
+      "living_cost_per_day": 90,
+      "expects": { "house_followers": 3500 },
+      "schedule": { "sleep_shift_hours": -1.5 },
+      "starting": { "followers": 5000, "subscribers": 80, "energy": 95, "mood": 75 }
+    },
+    {
+      "id": "lily",
+      "name": "Lily Tran",
+      "age": 21,
+      "archetype": "Ambitious newcomer",
+      "applicant": true,
+      "bio": "A marketing graduate with a tiny account and a big plan. Learns fast and will try anything within her limits.",
+      "strengths": "Low living costs, the best adaptability in town, strong work ethic and a generous split.",
+      "weaknesses": "Tiny audience to start, shy on camera and low confidence for premium content.",
+      "stats": { "looks": 62, "wildness": 45, "adaptability": 90, "charisma": 58, "work_ethic": 74, "stamina": 60, "confidence": 42, "drama": 28 },
+      "traits": ["Ambitious Hustler", "Shy"],
+      "content": {
+        "default_focus": "social_media",
+        "accepts": ["social_media", "solo_premium"],
+        "declines": ["collab_boy_girl"]
+      },
+      "appearance": { "skin": "#f0caa2", "eyes": "#3a2418" },
+      "look": {
+        "hair_color": "black", "hair_style": "curls", "outfit": "casual", "makeup": "natural",
+        "bust": "natural", "body": "natural", "lips": "natural", "piercings": [], "tattoos": []
+      },
+      "base_tags": { "natural": 0.5, "cute": 0.5, "wholesome": 0.3 },
+      "appearance_prefs": { "declines": ["bbl"], "wishes": ["outfit:glamour", "makeup:glam"] },
+      "reputation": 30,
+      "room_preferences": { "bedroom": 1.1, "studio": 1.0, "living_room": 0.95 },
+      "body": { "height_cm": 155, "bust_cm": 80, "waist_cm": 60, "hips_cm": 86, "tone": 0.4 },
+      "contract": { "creator_share": 0.5, "label": "Revenue share" },
+      "living_cost_per_day": 55,
+      "expects": { "house_followers": 800 },
+      "schedule": { "sleep_shift_hours": 0 },
+      "starting": { "followers": 350, "subscribers": 6, "energy": 95, "mood": 80 }
+    },
+    {
+      "id": "roxy",
+      "name": "Roxy Vega",
+      "age": 23,
+      "archetype": "Wild party girl",
+      "applicant": true,
+      "bio": "Cherry hair, zero chill. Roxy's livestreams are chaos and her fans love every minute. Her housemates may not.",
+      "strengths": "Very wild and charismatic, few boundaries, natural curves, strong premium and stream earnings.",
+      "weaknesses": "Expensive parties, keeps 60%, low work ethic, very high drama (more housemate disagreements) and an erratic late schedule.",
+      "stats": { "looks": 71, "wildness": 92, "adaptability": 62, "charisma": 78, "work_ethic": 34, "stamina": 70, "confidence": 78, "drama": 88 },
+      "traits": ["Party Animal", "Drama Queen"],
+      "content": {
+        "default_focus": "solo_premium",
+        "accepts": ["livestream", "topless_premium", "collab_girl_girl", "collab_boy_girl"],
+        "declines": ["custom_content"]
+      },
+      "appearance": { "skin": "#e3a98a", "eyes": "#7a4b2a" },
+      "look": {
+        "hair_color": "cherry", "hair_style": "long_waves", "outfit": "party_dress", "makeup": "glam",
+        "bust": "natural", "body": "natural", "lips": "natural", "piercings": ["nose"], "tattoos": []
+      },
+      "base_tags": { "bombshell": 0.2 },
+      "appearance_prefs": { "declines": ["makeup:natural"], "wishes": ["breast_augmentation", "rose_tattoo"] },
+      "reputation": 35,
+      "room_preferences": { "living_room": 1.1, "bedroom": 1.05, "studio": 1.0 },
+      "body": { "height_cm": 166, "bust_cm": 100, "waist_cm": 68, "hips_cm": 104, "tone": 0.2 },
+      "contract": { "creator_share": 0.6, "label": "Revenue share" },
+      "living_cost_per_day": 140,
+      "expects": { "room_levels": { "living_room": 2 }, "house_followers": 6000 },
+      "schedule": { "sleep_shift_hours": 3 },
+      "starting": { "followers": 2200, "subscribers": 120, "energy": 80, "mood": 74 }
     }
   ]
 }

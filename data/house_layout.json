@@ -1,5 +1,9 @@
 {
+  "_comment": "Starting room slots. Rooms missing from an older save (matched by id) are added on load, so the house can grow between versions without touching purchased upgrades. Empty lots can be built on (see rooms.json build_options). Rooms with requires_expansion appear once the bigger-house upgrade is bought.",
   "rooms": [
+    { "id": "lot_2", "type": "empty_lot", "storey": 2, "column": 0, "width": 2, "requires_expansion": true },
+    { "id": "stairs_2", "type": "stairs", "storey": 2, "column": 2, "width": 1, "requires_expansion": true },
+    { "id": "lot_3", "type": "empty_lot", "storey": 2, "column": 3, "width": 2, "requires_expansion": true },
     { "id": "bedroom_1", "type": "bedroom", "storey": 1, "column": 0, "width": 2 },
     { "id": "stairs_1", "type": "stairs", "storey": 1, "column": 2, "width": 1 },
     { "id": "lot_1", "type": "empty_lot", "storey": 1, "column": 3, "width": 2 },

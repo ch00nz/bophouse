@@ -333,4 +333,4 @@ func test_idle_progress_does_not_need_photoshoots() -> void:
 	var state: GameState = s[1]
 	state.cash = 0.0
 	Simulation.advance(state, config, 3.0 * 24.0 * 60.0, 5.0)
-	assert_gt(state.cash, 1000.0, "automated production earns on its own")
+	assert_gt(state.cash, 150.0, "automated production earns on its own, after running costs")

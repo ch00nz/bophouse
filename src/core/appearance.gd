@@ -46,7 +46,8 @@ static func refresh(creator: CreatorState, config: GameConfig) -> void:
 	creator.appearance_tags = compute_tags(creator, config)
 
 
-## Tags 0..1 = base tags + age tags + chosen options + applied procedures/modifications.
+## Tags 0..1 = base tags + age tags + chosen options + applied procedures/modifications
+## + body tags derived from measurements (petite, slim, curvy, voluptuous, athletic) and their bonuses.
 static func compute_tags(creator: CreatorState, config: GameConfig) -> Dictionary:
 	var tags := {}
 	for tag_id in config.tag_order:
@@ -64,6 +65,10 @@ static func compute_tags(creator: CreatorState, config: GameConfig) -> Dictionar
 		var item := config.look_item(item_id)
 		if item.has("tags") and is_applied(creator, item):
 			_add_tags(tags, item["tags"])
+	if creator.measurements != null:
+		var body_tags := BodyShape.tags(creator.measurements, config)
+		_add_tags(tags, body_tags)
+		_add_tags(tags, BodyShape.tag_bonus(body_tags, config))
 	for tag_id in tags:
 		tags[tag_id] = clampf(float(tags[tag_id]), 0.0, 1.0)
 	return tags
@@ -151,6 +156,9 @@ static func apply_item(creator: CreatorState, config: GameConfig, item: Dictiona
 		creator.look[slot] = list
 	else:
 		creator.look[slot] = str(item.get("value", ""))
+	# Procedures with measurement deltas permanently change her body (and so her rendered shape).
+	if item.has("measurements") and creator.measurements != null:
+		creator.measurements.apply_delta(item["measurements"])
 	if str(item.get("category", "")) == "styling" and not creator.owned_styles.has(str(item["id"])):
 		creator.owned_styles.append(str(item["id"]))
 	if is_body_change(item):
@@ -181,6 +189,7 @@ static func purchase(state: GameState, config: GameConfig, creator: CreatorState
 		return result
 	var item := config.look_item(item_id)
 	state.cash -= float(result["price"])
+	state.spending["makeovers"] = float(state.spending.get("makeovers", 0.0)) + float(result["price"])
 	apply_item(creator, config, item, state.game_minutes)
 	var wished: bool = creator.appearance_prefs.get("wishes", []).has(item_id)
 	var mood_bonus := config.tuning_f("appearance", "wish_mood_bonus", 15.0) if wished else config.tuning_f("appearance", "change_mood_bonus", 4.0)
@@ -230,8 +239,17 @@ static func recovery_allows(creator: CreatorState, config: GameConfig, content_i
 # ---------------------------------------------------------------------------
 
 ## Everything a renderer needs, resolved from data. Layers read this, never raw slots.
+## Body regions come from her measurements (BodyShape), so numbers and visuals always agree.
 static func render_spec(creator: CreatorState, config: GameConfig) -> Dictionary:
 	var ap := creator.appearance
+	var body := {
+		"bust": float(config.look_option("bust", creator.look_value("bust", "natural")).get("size", 1.0)),
+		"hips": float(config.look_option("body", creator.look_value("body", "natural")).get("hips", 1.0)),
+		"glutes": float(config.look_option("body", creator.look_value("body", "natural")).get("glutes", 1.0)),
+		"waist": 1.0, "shoulders": 1.0, "height_scale": 1.0, "limb_tone": 1.0,
+	}
+	if creator.measurements != null:
+		body = BodyShape.render_params(creator.measurements, config)
 	return {
 		"skin": str(ap.get("skin", "#f1c6a5")),
 		"eyes": str(ap.get("eyes", "#2f5d7c")),
@@ -239,9 +257,14 @@ static func render_spec(creator: CreatorState, config: GameConfig) -> Dictionary
 		"hair_style": creator.look_value("hair_style", "long_waves"),
 		"outfit": config.look_option("outfit", creator.look_value("outfit", "casual")),
 		"makeup": config.look_option("makeup", creator.look_value("makeup", "natural")),
-		"bust": float(config.look_option("bust", creator.look_value("bust", "natural")).get("size", 1.0)),
-		"hips": float(config.look_option("body", creator.look_value("body", "natural")).get("hips", 1.0)),
-		"glutes": float(config.look_option("body", creator.look_value("body", "natural")).get("glutes", 1.0)),
+		"bust": float(body["bust"]),
+		"hips": float(body["hips"]),
+		"glutes": float(body["glutes"]),
+		"waist": float(body["waist"]),
+		"shoulders": float(body["shoulders"]),
+		"height_scale": float(body["height_scale"]),
+		"limb_tone": float(body["limb_tone"]),
+		"freckles": bool(ap.get("freckles", false)),
 		"lip_size": float(config.look_option("lips", creator.look_value("lips", "natural")).get("size", 1.0)),
 		"piercings": creator.look_list("piercings").duplicate(),
 		"tattoos": creator.look_list("tattoos").duplicate(),

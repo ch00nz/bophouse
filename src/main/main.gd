@@ -13,12 +13,13 @@ func _ready() -> void:
 	_hud.name = "Hud"
 	add_child(_hud)
 
-	_house.creator_clicked.connect(_hud.sidebar.show_creator)
+	_house.creator_clicked.connect(func(id: String) -> void: _hud.sidebar.show_creator(id))
 	_house.room_clicked.connect(_hud.sidebar.show_room)
 	_house.background_clicked.connect(_hud.sidebar.show_overview)
 	_hud.sidebar.selection_changed.connect(_house.set_selection)
 	_hud.reserved_width_changed.connect(_house.set_reserved_right)
 	_house.reserved_right = _hud.sidebar.reserved_width()
+	_house.reserved_left = _hud.reserved_left()
 	Game.state_replaced.connect(_house.build)
 	_house.build()
 

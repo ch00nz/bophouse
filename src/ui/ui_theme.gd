@@ -84,6 +84,7 @@ static func tab_button(text: String) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size = Vector2(0, 30)
 	b.add_theme_font_size_override("font_size", 13)
+	b.clip_text = true
 	b.add_theme_stylebox_override("normal", box(PANEL_LIGHT, 8, 4))
 	b.add_theme_stylebox_override("hover", box(PANEL_LIGHT.lightened(0.15), 8, 4))
 	return b

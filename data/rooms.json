@@ -1,5 +1,5 @@
 {
-  "_comment": "Furniture coords: x/w are fractions of room width; h is a fraction of interior height. Items with wall=true use y (fraction from the top). Optional 'texture' on a furniture item or 'background_texture' on a level replaces the placeholder drawing. 'content_support' lists the content each room type can host (fit = how suitable, min_level = level needed, optional visual overrides: spot, anim, face, bubble, label, props, exclusive). Each level's 'production' attributes (0..1) are weighted per content type (content_types.json room_weights). 'private' rooms can only be filmed in by their owner.",
+  "_comment": "Furniture coords: x/w are fractions of room width; h is a fraction of interior height. Items with wall=true use y (fraction from the top). Optional 'texture' on a furniture item or 'background_texture' on a level replaces the placeholder drawing. 'content_support' lists the content each room type can host (fit = how suitable, min_level = level needed, optional visual overrides: spot, anim, face, bubble, label, props, exclusive). Each level's 'production' attributes (0..1) are weighted per content type (content_types.json room_weights). 'private' rooms can only be filmed in by their owner. 'capacity' is how many people can be in the room at once; 'beds' is how many residents can live in it (each creator needs her own bedroom). 'upkeep_per_day' (per level) is equipment and furnishing maintenance. 'build_cost' is the price to build and furnish the room type on an empty lot (it grows with each room built, see balance.json housing); lots list their 'build_options'.",
   "room_types": [
     {
       "id": "bedroom",
@@ -7,6 +7,8 @@
       "description": "Where creators sleep and recharge, and a private, cosy set for premium content. Better bedrooms restore energy faster and look better on camera.",
       "effect_label": "Energy recovery",
       "capacity": 2,
+      "beds": 1,
+      "build_cost": 3500,
       "upgradable": true,
       "private": true,
       "style": "room",
@@ -32,7 +34,7 @@
           ]
         },
         {
-          "level": 2, "cost": 250, "quality": 1.3, "title": "Cosy creator bedroom",
+          "level": 2, "cost": 1200, "upkeep_per_day": 4, "quality": 1.3, "title": "Cosy creator bedroom",
           "wall": "#e3b7d4", "floor": "#a0765a", "pattern": "stripes",
           "production": { "equipment": 0.35, "lighting": 0.55, "decor": 0.6, "privacy": 0.85 },
           "furniture": [
@@ -45,7 +47,7 @@
           ]
         },
         {
-          "level": 3, "cost": 1200, "quality": 1.7, "title": "Boudoir suite",
+          "level": 3, "cost": 5500, "upkeep_per_day": 12, "quality": 1.7, "title": "Boudoir suite",
           "wall": "#d9a0c8", "floor": "#6e4a3a", "pattern": "dots",
           "production": { "equipment": 0.55, "lighting": 0.8, "decor": 0.95, "privacy": 0.9 },
           "furniture": [
@@ -85,7 +87,7 @@
           ]
         },
         {
-          "level": 2, "cost": 300, "quality": 1.3, "title": "Comfy hangout",
+          "level": 2, "cost": 1800, "upkeep_per_day": 5, "quality": 1.3, "title": "Comfy hangout",
           "wall": "#f2c38b", "floor": "#9a6b4b", "pattern": "stripes",
           "production": { "equipment": 0.2, "lighting": 0.55, "decor": 0.6, "privacy": 0.3 },
           "furniture": [
@@ -99,7 +101,7 @@
           ]
         },
         {
-          "level": 3, "cost": 1400, "quality": 1.7, "title": "Influencer lounge",
+          "level": 3, "cost": 7500, "upkeep_per_day": 15, "quality": 1.7, "title": "Influencer lounge",
           "wall": "#9ad0c2", "floor": "#5b4636", "pattern": "dots",
           "production": { "equipment": 0.45, "lighting": 0.75, "decor": 0.95, "privacy": 0.35 },
           "furniture": [
@@ -117,7 +119,7 @@
     {
       "id": "studio",
       "name": "Content Studio",
-      "description": "A dedicated set with real gear. Not required for premium content, but the best equipment and lighting in the house.",
+      "description": "A dedicated set. Not required for premium content; renovating it (Lv 2) adds real gear and the best lighting in the house.",
       "effect_label": "Content earnings & reach",
       "capacity": 2,
       "upgradable": true,
@@ -145,7 +147,7 @@
           ]
         },
         {
-          "level": 2, "cost": 400, "quality": 1.35, "title": "Proper home studio",
+          "level": 2, "cost": 3500, "upkeep_per_day": 8, "quality": 1.35, "title": "Studio renovation",
           "wall": "#d6c4f0", "floor": "#5e5a6e", "pattern": "stripes",
           "production": { "equipment": 0.7, "lighting": 0.8, "decor": 0.5, "privacy": 0.65 },
           "furniture": [
@@ -156,7 +158,7 @@
           ]
         },
         {
-          "level": 3, "cost": 2000, "quality": 1.8, "title": "Pro content studio",
+          "level": 3, "cost": 12000, "upkeep_per_day": 20, "quality": 1.8, "title": "Pro content studio",
           "wall": "#3a2a5c", "floor": "#2f2b3a", "pattern": "dots",
           "production": { "equipment": 1.0, "lighting": 1.0, "decor": 0.8, "privacy": 0.75 },
           "furniture": [
@@ -186,9 +188,10 @@
     {
       "id": "empty_lot",
       "name": "Empty Space",
-      "description": "Room to grow. Building new rooms (gym, livestream room, glam room...) arrives in a later milestone.",
+      "description": "Room to grow. Build a bedroom here to house another creator. More room types (gym, livestream room, glam room...) arrive in a later milestone.",
       "effect_label": "",
       "capacity": 0,
+      "build_options": ["bedroom"],
       "upgradable": false,
       "style": "lot",
       "levels": [

@@ -46,4 +46,5 @@ func test_room_levels_are_ordered_and_priced() -> void:
 
 func test_template_age_is_clamped_to_adult() -> void:
 	var c := CreatorState.from_template({"id": "x", "age": 16})
-	assert_eq(c.age, 18)
+	assert_eq(c.age, 21, "adult content creators are 21 or older")
+	assert_eq(CreatorState.from_dict({"id": "y", "age": 19}).age, 21, "saves are clamped too")

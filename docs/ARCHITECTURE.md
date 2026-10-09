@@ -120,6 +120,38 @@ ActivityResolver.resolve(creator, activity, config, room) ─► label, anim, sp
 * `Photoshoot` is a pure, optional bonus (cooldown, energy cost, reward scales with shot quality). Automated
   production never depends on it.
 
+### Housemates, applications and bodies (milestone 5)
+
+```
+creators.json template ─► CreatorSetup.create ─► CreatorState (+ BodyMeasurements, contract, living cost, schedule)
+                               │                         │
+Applications (expectations,    │                         ├─► BodyShape.render_params ─► Appearance.render_spec ─► CreatorRenderer
+  free bedroom, move_in) ──────┘                         ├─► BodyShape.tags (+ tag_bonus) ─► appearance_tags ─► AudienceModel
+Housing (beds, capacity, build on lots, bedroom swap)    └─► Contracts.credit (split) / charge_living_costs ─► state.cash
+Relationships.step (pairs relaxing together in shared rooms) ─► friendship/trust/rivalry, mood, reaction bubbles, log
+```
+
+* **Measurements are body data, not stats.** `BodyMeasurements` (cm + tone) lives on the creator. `data/body.json`
+  maps metrics (bust-waist, waist, hips, hip-waist, tone, height) through piecewise curves to renderer parameters and
+  defines the body tags. The reference body 168 cm 96/66/99 renders exactly as the old "natural" variant; +10 cm bust
+  and +7 cm hips reproduce the old enhanced/BBL variants, so pre-measurement saves keep their look.
+* **Rendering** bends silhouette control points per region and scales the whole figure uniformly for height; arms
+  anchor to the shoulders, legs to the hips, and garments, hair, tattoos and piercings reuse those curves and joints.
+* **Procedures** carry `measurements` deltas in `appearance.json`; `Appearance.apply_item` applies them (previews on a
+  clone). `BodyShape.derive` rebuilds measurements from a template's natural body plus applied procedures (new
+  creators and save migration use the same path, so numbers always match visuals).
+* **Applications**: no fees. `Applications.check` = applicant, expectations met, free bedroom (Housing). Accepting
+  moves her in on her own terms (`Contracts.make`). Every resident's `living_cost_per_day` is charged each simulation
+  step, including offline, so growth costs money over time instead of up front.
+* **Revenue**: all creator income goes through `Simulation._earn` -> `Contracts.credit`: gross is recorded, her share is
+  hers, the house share is credited. Totals report gross, house cash, living costs and per-creator splits.
+* **Loyalty**: `AudienceModel.unhappiness` (share-weighted dislike of her look) drives slow subscriber churn; the fan
+  mix drifts toward what her look + content attract (slower off camera).
+* **Rooms**: bedrooms have `beds: 1` (residency) and `capacity` (occupancy). Only residents sleep or film in a private
+  room. `Simulation.free_spot` keeps people in the same room apart. Layout rooms missing from a save are added by id.
+* **Social**: data-driven interactions (`social.json`) on a saved seeded RNG; weights scale with charisma, drama,
+  friendship and rivalry; trait bonuses (Loyal Friend, Drama Queen).
+
 ### Saving
 
 * `SaveSystem` writes versioned JSON (`version`, `saved_at_unix`, `state`) to `user://savegame.json`
@@ -155,9 +187,9 @@ build/             Export output (git-ignored)
 | 2 | **Creator management & trends** | Content specialisation and boundaries, unlocks, experience, 5 rotating trends, income breakdown, tabbed profile, collapsible sidebar, save v2 | **Done** |
 | 3 | **Adult focus, appearance & audiences** | Layered appearance, makeovers with recovery, appearance tags, 10 audience segments, fan mix, 8 content types, reputation, save v3 | **Done** |
 | 4 | **Automated multi-room production** | Room content support and production attributes, RoomPlanner (capacity, privacy, exclusivity, stability), bedroom production, props, optional photoshoot, save v4 | **Done** |
-| 5 | Recruitment & capacity | Recruit pool (data), 3+ creators, housemate collabs, room capacity contention, house-wide income overview, camera pan/zoom, money sinks (wages, rent) | Next |
-| 5 | Events | Eligibility rules, weighted selection, cooldowns, choices, event inbox; offline queues events | |
-| 6 | Relationships & storylines | Pairwise friendship/rivalry, first multi-stage arc, journal | |
+| 5 | **Housemates, applications & bodies** | Applications (no fees) with living costs and expectations, bedrooms built on lots, revenue splits, body measurements driving visuals and audiences, loyalty, roster, management and applications screens, basic relationships, save v5 | **Done** |
+| 6 | Collaboration & events | Housemate collabs (consent and chemistry), eligibility rules, weighted events, cooldowns, choices, event inbox; offline queues events | Next |
+| 7 | Relationships & storylines | Deeper relationship consequences, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |
 | 8 | Art pipeline & polish | Layered character sprites, room art, audio, onboarding, accessibility | |
 

@@ -22,14 +22,18 @@ var _before_purchase: Dictionary = {}
 var _list_signature: String = ""
 
 
-func _init(id: String) -> void:
+## `external_preview`: draw before/after in a preview owned by the caller (the management screen's
+## big preview) instead of an embedded one.
+func _init(id: String, external_preview: CreatorPreview = null) -> void:
 	creator_id = id
+	_preview = external_preview
 	add_theme_constant_override("separation", 8)
 
 
 func _ready() -> void:
-	_preview = CreatorPreview.new("full", Vector2(0, 280))
-	add_child(_preview)
+	if _preview == null:
+		_preview = CreatorPreview.new("full", Vector2(0, 280))
+		add_child(_preview)
 
 	_summary = UiTheme.label("", 12, UiTheme.TEXT, true)
 	var summary_card := UiTheme.card()
@@ -66,6 +70,7 @@ func _ready() -> void:
 
 	_show_category(last_category)
 	_show_current()
+	refresh()
 
 
 func refresh() -> void:
@@ -217,6 +222,13 @@ func _show_detail(creator: CreatorState, item_id: String, eval: Dictionary) -> v
 	if not (eval["tag_changes"] as Array).is_empty():
 		body.add_child(tags)
 
+	# Body measurement changes (procedures only; styling never changes measurements).
+	var after_body: BodyMeasurements = (eval["after"] as CreatorState).measurements
+	if after_body != null and after_body.summary() != creator.measurements.summary():
+		var imperial := Game.imperial_units()
+		body.add_child(UiTheme.row("Measurements", UiTheme.value_label("%s -> %s" % [
+			creator.measurements.bwh_text(imperial), after_body.bwh_text(imperial)], UiTheme.GOLD, 12)))
+
 	# Income effect (healed), current content first.
 	body.add_child(UiTheme.header("Estimated income once healed"))
 	for row: Dictionary in eval["content"]:
@@ -335,7 +347,7 @@ func _scroll_to_preview() -> void:
 	var node := get_parent()
 	while node != null and not node is ScrollContainer:
 		node = node.get_parent()
-	if node != null:
+	if node != null and (node as ScrollContainer).is_ancestor_of(_preview):
 		(node as ScrollContainer).ensure_control_visible(_preview)
 
 
@@ -351,6 +363,7 @@ func _summary_text(creator: CreatorState) -> String:
 	parts.append("Hair: %s, %s" % [_opt("hair_color", creator), _opt("hair_style", creator).to_lower()])
 	parts.append("Outfit: %s   |   Makeup: %s" % [_opt("outfit", creator), _opt("makeup", creator)])
 	parts.append("Bust: %s   |   Body: %s   |   Lips: %s" % [_opt("bust", creator), _opt("body", creator), _opt("lips", creator)])
+	parts.append("Measurements: " + creator.measurements.summary(Game.imperial_units()))
 	var mods := PackedStringArray()
 	for item_id in Appearance.items_in_category(config, "modifications"):
 		if Appearance.is_applied(creator, config.look_item(item_id)):

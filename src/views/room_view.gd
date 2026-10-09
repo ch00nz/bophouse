@@ -27,6 +27,18 @@ var upgrade_ready: bool = false:
 			upgrade_ready = value
 			queue_redraw()
 
+## Bedroom resident's first name (shown on the plaque) and, for empty lots, the build prompt.
+var owner_name: String = "":
+	set(value):
+		if owner_name != value:
+			owner_name = value
+			queue_redraw()
+var build_hint: String = "":
+	set(value):
+		if build_hint != value:
+			build_hint = value
+			queue_redraw()
+
 var _flash: float = 0.0
 
 
@@ -162,11 +174,14 @@ func _draw_lot() -> void:
 	draw_rect(Rect2(cone + Vector2(-16, 14), Vector2(32, 5)), Color("ff8c42"))
 	draw_line(cone + Vector2(-7, 2), cone + Vector2(7, 2), Color.WHITE, 3.0)
 	PlaceholderArt.draw_text(self, Vector2(0, interior_h * 0.32), "ROOM TO GROW", 16, Color("8a6d4b"), size.x, HORIZONTAL_ALIGNMENT_CENTER)
-	PlaceholderArt.draw_text(self, Vector2(0, interior_h * 0.32 + 18), "New rooms coming soon", 12, Color("8a6d4b"), size.x, HORIZONTAL_ALIGNMENT_CENTER)
+	PlaceholderArt.draw_text(self, Vector2(0, interior_h * 0.32 + 18), build_hint if not build_hint.is_empty() else "Click to build",
+		12, Color("8a6d4b"), size.x, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 func _draw_plaque(type_def: Dictionary) -> void:
 	var title := str(type_def.get("name", room.type_id))
+	if not owner_name.is_empty():
+		title = "%s's room" % owner_name
 	var plaque := Rect2(8, 8, 150, 22)
 	PlaceholderArt.draw_rounded_rect(self, plaque, Color(0.12, 0.07, 0.15, 0.78), 8)
 	PlaceholderArt.draw_text(self, Vector2(16, 24), title, 13, Color.WHITE)

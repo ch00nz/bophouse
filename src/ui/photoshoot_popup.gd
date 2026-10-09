@@ -138,8 +138,8 @@ func _finish(verdict: String) -> void:
 	score /= maxf(float(_shots.size()), 1.0)
 	var result := Game.complete_photoshoot(creator_id, score)
 	if bool(result.get("ok", false)):
-		_update_status("%s  Shoot quality %d%%: +%s, +%s followers" % [verdict, roundi(score * 100.0),
-			Fmt.money(float(result["cash"])), Fmt.compact(float(result["followers"]))])
+		_update_status("%s  Shoot quality %d%%: +%s to the house (of %s), +%s followers" % [verdict, roundi(score * 100.0),
+			Fmt.money(float(result["cash"])), Fmt.money(float(result["gross"])), Fmt.compact(float(result["followers"]))])
 	else:
 		_update_status(str(result.get("reason", "")))
 	_snap.disabled = true

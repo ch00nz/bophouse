@@ -48,6 +48,10 @@ func _draw() -> void:
 	var count := _specs.size()
 	for i in count:
 		var spec: Dictionary = _specs[i]
+		if framing == "portrait":
+			# Head-and-shoulders framing ignores height so faces line up between creators.
+			spec = spec.duplicate()
+			spec["height_scale"] = 1.0
 		var column_centre := size.x * (i + 0.5) / count
 		var scale := 1.0
 		var origin := Vector2.ZERO
@@ -55,7 +59,8 @@ func _draw() -> void:
 			scale = size.y / 72.0
 			origin = Vector2(column_centre - 2.0 * scale, 6.0 + 120.0 * scale)
 		else:
-			scale = minf((size.y - 26.0) / 124.0, size.x / count / 62.0)
+			# Room for the tallest bodies (height scale up to ~1.1), so real height differences show.
+			scale = minf((size.y - 26.0) / 134.0, size.x / count / 62.0)
 			origin = Vector2(column_centre - 2.0 * scale, size.y - 10.0)
 			PlaceholderArt.draw_ellipse(self, origin, Vector2(20, 4.5) * scale, Color(0, 0, 0, 0.25))
 		var anim := pose if fmod(_t + i * 1.3, 8.0) < 6.0 else "idle"

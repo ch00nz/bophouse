@@ -9,6 +9,10 @@ const TOAST_SECONDS := 4.0
 signal reserved_width_changed(width: float)
 
 var sidebar: Sidebar
+var roster: RosterPanel
+var _overlay: Overlay
+var _residents: Label
+var _was_in_debt: bool = false
 var _trend_strip: Button
 var _sidebar_toggle: Button
 var _toast: PanelContainer
@@ -41,6 +45,14 @@ func _ready() -> void:
 	sidebar = Sidebar.new()
 	_root.add_child(sidebar)
 	sidebar.collapsed_changed.connect(_on_sidebar_collapsed)
+	roster = RosterPanel.new()
+	_root.add_child(roster)
+	roster.creator_selected.connect(func(id: String) -> void: sidebar.show_creator(id))
+	roster.manage_requested.connect(func(id: String) -> void: open_manager(id))
+	roster.applications_requested.connect(open_applications)
+	roster.upgrades_requested.connect(open_upgrades)
+	roster.finances_requested.connect(open_finances)
+	sidebar.selection_changed.connect(func(kind: String, id: String) -> void: roster.select(id if kind == "creator" else ""))
 	_build_trend_strip()
 	_build_sidebar_toggle()
 	_build_toast()
@@ -54,6 +66,8 @@ func _ready() -> void:
 
 	_offline_popup = OfflinePopup.new()
 	_root.add_child(_offline_popup)
+	if DevPanel.enabled():
+		_root.add_child(DevPanel.new())
 
 	Game.saved.connect(_on_saved)
 	Game.speed_changed.connect(_on_speed_changed)
@@ -62,8 +76,48 @@ func _ready() -> void:
 	Game.trends_changed.connect(_on_trends_changed)
 	Game.content_unlocked.connect(_on_content_unlocked)
 	Game.recovery_finished.connect(_on_recovery_finished)
+	Game.social_interaction.connect(_on_social)
+	Game.room_built.connect(func(_id: String) -> void: show_toast("New bedroom built! Check Applications to invite a housemate.", UiTheme.GOOD))
+	Game.state_replaced.connect(func() -> void: _close_overlay())
 	_on_speed_changed(Game.speed, Game.paused)
 	_refresh()
+
+
+## Screen width covered on the left by the roster (the house view centres in the remaining space).
+func reserved_left() -> float:
+	return RosterPanel.WIDTH + 16.0
+
+
+## Opens the full management screen for a creator (optionally at a tab).
+func open_manager(creator_id: String, tab: String = "") -> void:
+	_close_overlay()
+	_overlay = CreatorManager.new(creator_id, tab)
+	_root.add_child(_overlay)
+	sidebar.show_creator(creator_id)
+
+
+func open_upgrades() -> void:
+	_close_overlay()
+	_overlay = UpgradesPanel.new()
+	_root.add_child(_overlay)
+
+
+func open_finances() -> void:
+	_close_overlay()
+	_overlay = FinancesPanel.new()
+	_root.add_child(_overlay)
+
+
+func open_applications() -> void:
+	_close_overlay()
+	_overlay = ApplicationsPanel.new()
+	_root.add_child(_overlay)
+
+
+func _close_overlay() -> void:
+	if _overlay != null and is_instance_valid(_overlay):
+		_overlay.queue_free()
+	_overlay = null
 
 
 func show_offline_summary(summary: Dictionary) -> void:
@@ -100,15 +154,24 @@ func _process(delta: float) -> void:
 func _refresh() -> void:
 	var state := Game.state
 	_cash.text = Fmt.money(state.cash)
-	_rate.text = "+%s/hr" % Fmt.money(Economy.house_cash_per_hour(state, Game.config))
+	var profit := Economy.house_profit_per_hour(state, Game.config)
+	_rate.text = "%s%s/hr" % ["+" if profit >= 0.0 else "", Fmt.money(profit)]
+	_rate.add_theme_color_override("font_color", UiTheme.GOOD if profit >= 0.0 else UiTheme.BAD)
+	_cash.add_theme_color_override("font_color", UiTheme.GOLD if state.cash >= 0.0 else UiTheme.BAD)
+	var in_debt := Expenses.in_debt(state)
+	if in_debt and not _was_in_debt:
+		show_toast("Behind on bills! Purchases are on hold and everyone's stressed until the house is back in the black.", UiTheme.BAD)
+	_was_in_debt = in_debt
 	_followers.text = Fmt.compact(state.total_followers())
 	_subscribers.text = Fmt.compact(state.total_subscribers())
 	_clock.text = Fmt.clock(state)
+	_residents.text = "%d / %d" % [state.creators.size(), Housing.total_beds(state, Game.config)]
 	var parts := PackedStringArray()
 	for entry: Dictionary in state.active_trends:
 		parts.append("%s (%s)" % [Game.config.trend(str(entry["id"])).get("name", entry["id"]), Fmt.game_duration(float(entry["remaining_minutes"]))])
 	_trend_strip.text = "TRENDING:  " + "   |   ".join(parts)
 	sidebar.refresh()
+	roster.refresh()
 
 
 func _build_trend_strip() -> void:
@@ -169,6 +232,12 @@ func _on_sidebar_collapsed(_collapsed: bool) -> void:
 	reserved_width_changed.emit(sidebar.reserved_width())
 
 
+## Only notable moments get a toast; everyday chats show as bubbles in the house.
+func _on_social(event: Dictionary) -> void:
+	if ["celebrate", "disagree"].has(str(event.get("id", ""))):
+		show_toast(str(event.get("text", "")), UiTheme.GOOD if str(event["id"]) == "celebrate" else UiTheme.BAD)
+
+
 func _on_trends_changed(started: Array) -> void:
 	for trend_id in started:
 		var trend := Game.config.trend(str(trend_id))
@@ -211,11 +280,14 @@ func _build_top_bar() -> void:
 
 	_cash = UiTheme.label("", 19, UiTheme.GOLD)
 	_rate = UiTheme.label("", 12, UiTheme.GOOD)
+	UiTheme.tip(_rate, "House profit per hour right now: your share of every creator's income minus running costs (rent, utilities, maintenance, living costs). Open Finances for the breakdown.")
 	row.add_child(_stat_block("CASH", _cash, _rate))
 	_followers = UiTheme.label("", 19)
 	row.add_child(_stat_block("FOLLOWERS", _followers))
 	_subscribers = UiTheme.label("", 19)
 	row.add_child(_stat_block("SUBSCRIBERS", _subscribers))
+	_residents = UiTheme.label("", 19)
+	row.add_child(UiTheme.tip(_stat_block("RESIDENTS", _residents), "Creators living here / bedrooms. Build bedrooms on empty lots to recruit more."))
 	_clock = UiTheme.label("", 19)
 	row.add_child(_stat_block("TIME", _clock))
 
@@ -239,6 +311,13 @@ func _build_top_bar() -> void:
 		button.pressed.connect(_on_speed_pressed.bind(value))
 		speeds.add_child(button)
 		_speed_buttons[value] = button
+
+	var recruit := Button.new()
+	recruit.text = "Applications"
+	recruit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	recruit.tooltip_text = "Creators who'd like to live and work in the house."
+	recruit.pressed.connect(open_applications)
+	row.add_child(recruit)
 
 	var reset := Button.new()
 	reset.text = "New game"
@@ -268,7 +347,7 @@ func _build_footer() -> void:
 	var hint := UiTheme.label("Click a creator or a room to inspect it.", 13, Color(1, 1, 1, 0.85))
 	hint.anchor_top = 1.0
 	hint.anchor_bottom = 1.0
-	hint.offset_left = 14.0
+	hint.offset_left = RosterPanel.WIDTH + 28.0
 	hint.offset_top = -28.0
 	hint.offset_bottom = -8.0
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
@@ -279,7 +358,7 @@ func _build_footer() -> void:
 	_saved = UiTheme.label("Saved", 13, UiTheme.GOOD)
 	_saved.anchor_top = 1.0
 	_saved.anchor_bottom = 1.0
-	_saved.offset_left = 300.0
+	_saved.offset_left = RosterPanel.WIDTH + 330.0
 	_saved.offset_top = -28.0
 	_saved.offset_bottom = -8.0
 	_saved.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))

@@ -45,10 +45,9 @@ static func complete(creator: CreatorState, state: GameState, config: GameConfig
 	if not bool(gate["ok"]):
 		return gate
 	var result := reward(creator, state, config, score)
-	var cash := float(result["cash"])
-	state.cash += cash
-	state.lifetime_earnings += cash
-	creator.lifetime_earnings += cash
+	# The shoot is her content, so the usual contract split applies; "cash" is the house share.
+	result["gross"] = float(result["cash"])
+	result["cash"] = Contracts.credit(state, creator, float(result["gross"]))
 	creator.followers += float(result["followers"])
 	creator.energy = clampf(creator.energy - config.tuning_f("photoshoot", "energy_cost", 12.0), 0.0, 100.0)
 	creator.photoshoot_ready_at = state.game_minutes + config.tuning_f("photoshoot", "cooldown_hours", 12.0) * 60.0

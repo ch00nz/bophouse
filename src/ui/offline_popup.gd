@@ -47,11 +47,22 @@ func _ready() -> void:
 func show_summary(summary: Dictionary) -> void:
 	var config := Game.config
 	_away.text = "While you were away for %s, the house kept working:" % Fmt.duration(float(summary.get("raw_seconds", 0.0)))
-	_results.text = "+%s\n+%s followers\n+%s subscribers" % [
-		Fmt.money(float(summary.get("cash", 0.0))),
+	_results.text = "%s%s house profit\n+%s followers\n+%s subscribers" % [
+		"+" if float(summary.get("cash", 0.0)) >= 0.0 else "", Fmt.money(float(summary.get("cash", 0.0))),
 		Fmt.compact(float(summary.get("followers", 0.0))),
 		Fmt.compact(maxf(0.0, float(summary.get("subscribers", 0.0))))]
-	var note := "Away earnings run at %d%% efficiency, up to %s." % [
+	var lines := PackedStringArray()
+	var by_creator: Dictionary = summary.get("by_creator", {})
+	for creator_id in by_creator:
+		var creator := Game.state.get_creator(str(creator_id))
+		if creator != null:
+			lines.append("%s: %s gross, %s to the house" % [creator.first_name(),
+				Fmt.money(float(by_creator[creator_id]["gross"])), Fmt.money(float(by_creator[creator_id]["house"]))])
+	var breakdown := "\n".join(lines) + "\n" if lines.size() > 1 else ""
+	var living := float(summary.get("living_costs", 0.0))
+	if living > 0.0:
+		breakdown += "Living costs: -%s (already taken off)\n" % Fmt.money(living)
+	var note := breakdown + "Away earnings run at %d%% efficiency, up to %s." % [
 		roundi(config.tuning_f("offline", "efficiency", 0.75) * 100.0),
 		Fmt.duration(config.tuning_f("offline", "max_seconds", 28800.0))]
 	if bool(summary.get("capped", false)):

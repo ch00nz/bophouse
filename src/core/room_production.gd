@@ -21,10 +21,15 @@ static func supports(config: GameConfig, room: RoomState, content_id: String) ->
 	return not entry.is_empty() and room.level >= int(entry.get("min_level", 1))
 
 
+## The room level's production attributes plus equipment upgrade bonuses, each capped at 1.0.
 static func attributes(config: GameConfig, room: RoomState) -> Dictionary:
 	if room == null:
 		return {}
-	return config.room_level_def(room.type_id, room.level).get("production", {})
+	var attrs: Dictionary = config.room_level_def(room.type_id, room.level).get("production", {}).duplicate()
+	for attr in room.bonus:
+		if attrs.has(attr):
+			attrs[attr] = minf(1.0, float(attrs[attr]) + float(room.bonus[attr]))
+	return attrs
 
 
 ## Weighted 0..1 score of the room's attributes for this content.

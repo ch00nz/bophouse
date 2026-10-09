@@ -205,7 +205,7 @@ func test_offline_progress_earns_and_advances_clock() -> void:
 	assert_almost(float(summary["real_seconds"]), 3600.0)
 	assert_gt(float(summary["cash"]), 0.0)
 	assert_almost(state.cash, cash_before + float(summary["cash"]), 0.01)
-	var expected_minutes := 3600.0 * config.tuning_f("time", "game_minutes_per_real_second", 2.0)
+	var expected_minutes := 3600.0 * config.tuning_f("time", "game_minutes_per_real_second", 2.0) * config.tuning_f("offline", "time_scale", 1.0)
 	assert_almost(state.game_minutes, minutes_before + expected_minutes, 0.01)
 	assert_almost(state.last_seen_unix, 13_600.0)
 
@@ -242,3 +242,120 @@ func test_clock_rollback_grants_nothing_twice() -> void:
 	assert_almost(state.cash, cash_after_first)
 	OfflineProgress.apply(state, config, 13_600.0) # forward again to same moment
 	assert_almost(state.cash, cash_after_first, 0.0001, "same hour must not be paid twice")
+
+
+# ---------------------------------------------------------------------------
+# Milestone: multiple creators (save v5)
+# ---------------------------------------------------------------------------
+
+func test_v4_single_creator_save_migrates_without_losing_progress() -> void:
+	var config := load_config()
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v4.json"))
+	assert_eq(int(data["version"]), 4, "fixture is a genuine v4 save")
+	var old_ava: Dictionary = data["state"]["creators"][0]
+	var state := SaveSystem.from_save_dict(data)
+	assert_true(state != null)
+	SaveSystem.post_load(state, config)
+	assert_true(SaveSystem.is_compatible(state, config))
+	assert_eq(state.creators.size(), 1, "Ava is not duplicated")
+	var ava := state.creators[0]
+	assert_eq(ava.id, "ava")
+	# Measurements derived from her natural body plus the procedures she already had.
+	assert_eq(ava.look_value("bust"), "enhanced")
+	assert_eq(ava.look_value("body"), "curvy")
+	assert_eq(ava.measurements.summary(), "168 cm  -  106 / 66 / 106 cm")
+	var spec := Appearance.render_spec(ava, config)
+	assert_almost(float(spec["bust"]), 1.75, 0.001, "same visible bust as before")
+	assert_almost(float(spec["hips"]), 1.25, 0.001, "same visible hips as before")
+	assert_eq(ava.look, old_ava["look"], "look kept")
+	assert_eq(ava.owned_styles, old_ava["owned_styles"], "purchases kept")
+	assert_true(ava.is_recovering(), "recovery kept")
+	# Founding contract and ledger seeded from what she already earned for the house.
+	assert_almost(ava.creator_share(), 0.3, 0.0001)
+	assert_almost(ava.house_earnings, float(old_ava["lifetime_earnings"]), 0.001)
+	assert_almost(state.cash, float(data["state"]["cash"]), 0.001, "cash preserved")
+	assert_eq(state.get_room("studio_1").level, 2, "upgrades kept")
+	assert_eq(state.get_room("bedroom_1").level, 2, "upgrades kept")
+	assert_eq(ava.home_room_id, "bedroom_1")
+	assert_true(state.get_room("lot_1") != null, "a lot to build her first housemate's bedroom")
+	assert_true(state.get_room("lot_2") == null, "the top floor comes with the bigger-house upgrade")
+	assert_false(Housing.buildable_lots(state, config, "bedroom").is_empty())
+	# And it keeps playing: tight while she recovers from her procedure, profitable once healed.
+	var cash := state.cash
+	Simulation.advance(state, config, 7.0 * 24.0 * 60.0, 5.0)
+	assert_false(ava.is_recovering())
+	assert_gt(state.cash, cash)
+
+
+func test_duplicate_creators_in_a_save_are_ignored() -> void:
+	var config := load_config()
+	var state := GameState.new_game(config, 3)
+	var data := SaveSystem.to_save_dict(state, 1.0)
+	var creators: Array = data["state"]["creators"]
+	creators.append(creators[0].duplicate(true))
+	var loaded := SaveSystem.from_save_dict(JSON.parse_string(JSON.stringify(data)))
+	SaveSystem.post_load(loaded, config)
+	assert_eq(loaded.creators.size(), 1)
+
+
+func test_all_creators_survive_a_round_trip() -> void:
+	var config := load_config()
+	var state := house_with(config, ["chloe", "jade"], 8)
+	state.cash = 100_000.0
+	var jade := state.get_creator("jade")
+	Appearance.purchase(state, config, state.get_creator("chloe"), "bbl")
+	Appearance.purchase(state, config, jade, "nipple_piercing")
+	Simulation.advance(state, config, 20.0 * 60.0, 5.0)
+	state.settings["imperial"] = true
+	var loaded := SaveSystem.from_save_dict(JSON.parse_string(JSON.stringify(SaveSystem.to_save_dict(state, 1.0))))
+	SaveSystem.post_load(loaded, config)
+	assert_eq(loaded.creators.size(), 3)
+	for original in state.creators:
+		var copy := loaded.get_creator(original.id)
+		assert_true(copy != null, original.id + " loaded")
+		assert_eq(copy.measurements.to_dict(), original.measurements.to_dict(), original.id + " measurements")
+		assert_eq(copy.look, original.look, original.id + " look")
+		assert_eq(_json(copy.contract), _json(original.contract), original.id + " contract")
+		assert_eq(copy.home_room_id, original.home_room_id, original.id + " bedroom")
+		assert_eq(copy.age, original.age)
+		assert_eq(copy.traits, original.traits)
+		assert_eq(_json(copy.procedure_history), _json(original.procedure_history), original.id + " procedures")
+		assert_eq(_json(copy.recovery), _json(original.recovery), original.id + " recovery")
+		assert_almost(copy.followers, original.followers, 0.001)
+		assert_almost(copy.subscribers, original.subscribers, 0.001)
+		assert_almost(copy.mood, original.mood, 0.001)
+		assert_almost(copy.energy, original.energy, 0.001)
+		assert_almost(copy.house_earnings, original.house_earnings, 0.001)
+		assert_almost(copy.creator_earnings, original.creator_earnings, 0.001)
+		for segment_id in original.fan_mix:
+			assert_almost(float(copy.fan_mix[segment_id]), float(original.fan_mix[segment_id]), 0.0001)
+	assert_eq(loaded.relationships, state.relationships, "relationships")
+	assert_almost(loaded.living_costs, state.living_costs, 0.001)
+	assert_eq(loaded.rooms_built, state.rooms_built)
+	assert_true(bool(loaded.settings["imperial"]))
+	for room in state.rooms:
+		assert_eq(loaded.get_room(room.id).type_id, room.type_id, "built rooms persist")
+
+
+func test_offline_credits_only_house_profit_once() -> void:
+	var config := load_config()
+	var state := house_with(config, ["roxy", "sienna"], 4)
+	state.last_seen_unix = 10_000.0
+	var house_before := state.total_house_earnings()
+	var gross_before := state.total_gross_earnings()
+	var summary := OfflineProgress.apply(state, config, 10_000.0 + 8.0 * 3600.0)
+	assert_almost(state.cash, float(summary["cash"]), 0.01, "cash = reported house profit")
+	assert_almost(state.total_house_earnings() - house_before, float(summary["house"]), 0.01, "every creator's house share")
+	assert_almost(float(summary["house"]) - float(summary["expenses"]), float(summary["cash"]), 0.01, "minus running costs")
+	assert_gt(float(summary["living_costs"]), 0.0, "housemates' living costs charged")
+	assert_almost(state.total_gross_earnings() - gross_before, float(summary["gross"]), 0.01)
+	assert_lt(float(summary["cash"]), float(summary["gross"]), "creators kept their cut")
+	assert_eq((summary["by_creator"] as Dictionary).size(), 3, "all three earned offline")
+	var cash := state.cash
+	OfflineProgress.apply(state, config, 10_000.0 + 8.0 * 3600.0)
+	assert_almost(state.cash, cash, 0.0001, "not double-counted")
+
+
+## Canonical JSON text (JSON turns ints into floats, so compare normalised values).
+func _json(value: Variant) -> String:
+	return JSON.stringify(JSON.parse_string(JSON.stringify(value)), "", true)

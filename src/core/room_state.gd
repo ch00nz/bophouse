@@ -9,6 +9,8 @@ var storey: int = 0
 var column: int = 0
 var width: int = 1
 var level: int = 1
+## Production attribute bonuses from owned equipment upgrades (derived by Upgrades.refresh, not saved).
+var bonus: Dictionary = {}
 
 
 static func create(room_id: String, room_type: String, room_storey: int, room_column: int, room_width: int, room_level: int = 1) -> RoomState:

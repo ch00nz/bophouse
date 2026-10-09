@@ -1,0 +1,38 @@
+{
+  "_comment": "Body measurement rules. Measurements are permanent body data (cm) kept separate from personality stats and styling. Metrics: height_cm, bust_cm, waist_cm, hips_cm, tone (0..1 muscle tone), bust_diff (bust - waist), hip_diff (hips - waist), curve_cm (average of both), fullness_cm ((bust + hips) / 2), frame (average circumference / height). 'render' maps metrics to renderer body-region parameters with piecewise-linear 'points' [metric, value]; the reference body (168 cm, 96/66/99) renders exactly like the original 'natural' variant, +10 cm bust like 'enhanced' and +7 cm hips like the BBL variant. 'tags' derive body appearance tags (0..1): each condition ramps from 'from' to 'to' and the tag is the product of its conditions. 'tag_bonus' feeds body tags into styling tags.",
+  "limits": {
+    "height_cm": [148, 186],
+    "bust_cm": [74, 124],
+    "waist_cm": [54, 84],
+    "hips_cm": [80, 124],
+    "tone": [0.0, 1.0]
+  },
+  "plausibility": {
+    "min_bust_diff": 12,
+    "min_hip_diff": 18,
+    "max_frame": 0.6
+  },
+  "render": {
+    "height_scale": { "metric": "height_cm", "points": [[148, 0.87], [168, 1.0], [186, 1.1]] },
+    "bust": { "metric": "bust_diff", "points": [[10, 0.35], [20, 0.55], [30, 1.0], [40, 1.75], [52, 2.35]] },
+    "waist": { "metric": "waist_cm", "points": [[54, 0.78], [66, 1.0], [84, 1.36]] },
+    "hips": { "metric": "hips_cm", "points": [[80, 0.72], [99, 1.0], [106, 1.25], [124, 1.6]] },
+    "glutes": { "metric": "hip_diff", "points": [[16, 0.6], [33, 1.0], [40, 1.8], [54, 2.35]] },
+    "shoulders": { "metric": "tone", "points": [[0.0, 0.97], [0.35, 1.0], [1.0, 1.1]] },
+    "glute_tone": 0.25,
+    "limb_tone": 0.35
+  },
+  "tags": {
+    "petite": [ { "metric": "height_cm", "from": 164, "to": 155 } ],
+    "slim": [ { "metric": "frame", "from": 0.51, "to": 0.465 } ],
+    "curvy": [ { "metric": "curve_cm", "from": 24, "to": 36 } ],
+    "voluptuous": [ { "metric": "fullness_cm", "from": 98, "to": 108 } ],
+    "athletic": [ { "metric": "tone", "from": 0.35, "to": 0.85 }, { "metric": "fullness_cm", "from": 108, "to": 100 } ]
+  },
+  "tag_bonus": {
+    "voluptuous": { "bombshell": 0.25 },
+    "curvy": { "bombshell": 0.1 },
+    "athletic": { "fitness": 0.35 },
+    "petite": { "cute": 0.2 }
+  }
+}

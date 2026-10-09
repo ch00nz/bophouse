@@ -46,7 +46,9 @@ func refresh() -> void:
 		trend_label.visible = trend_mult > 1.005
 		trend_label.text = "Trending: %s income" % Fmt.percent_change(trend_mult)
 		var exp_value := creator.experience(content_id)
-		(refs["experience"] as Label).text = "Experience %d%%" % roundi(exp_value * 100.0) if exp_value < 0.995 else "Experienced"
+		var fresh := creator.freshness(content_id)
+		(refs["experience"] as Label).text = ("Experience %d%%" % roundi(exp_value * 100.0) if exp_value < 0.995 else "Experienced") \
+			+ ("" if fresh >= 0.995 else "  |  freshness %d%%" % roundi(fresh * 100.0))
 
 
 func _build_card(creator: CreatorState, content_id: String) -> Control:
