@@ -12,10 +12,21 @@ var lifetime_earnings: float = 0.0
 var last_seen_unix: float = 0.0
 var creators: Array[CreatorState] = []
 var rooms: Array[RoomState] = []
+## Content categories the house has unlocked (e.g. livestreaming once the studio has the gear).
+var unlocked_content: Array = []
+
+## Trend state, managed by TrendSystem.
+## active_trends: [{id, remaining_minutes, duration_minutes}]
+var active_trends: Array = []
+var next_trend_id: String = ""
+var trend_rng_seed: int = 0
+var trend_rng_state: int = 0
 
 
-static func new_game(config: GameConfig) -> GameState:
+## `seed` makes trend rolls reproducible (tests); 0 picks a random seed.
+static func new_game(config: GameConfig, seed: int = 0) -> GameState:
 	var state := GameState.new()
+	state.trend_rng_seed = seed if seed != 0 else randi() + 1
 	state.cash = config.tuning_f("economy", "starting_cash", 0.0)
 	state.game_minutes = config.tuning_f("time", "start_minute_of_day", 480.0)
 	for slot in config.house_layout:
@@ -34,6 +45,8 @@ static func new_game(config: GameConfig) -> GameState:
 			creator.room_id = bedroom.id
 			creator.position = bedroom.spot_position(0.7)
 		state.creators.append(creator)
+	ContentRules.refresh_unlocks(state, config)
+	TrendSystem.ensure_initialized(state, config)
 	return state
 
 
@@ -106,6 +119,14 @@ func to_dict() -> Dictionary:
 		"last_seen_unix": last_seen_unix,
 		"creators": creator_data,
 		"rooms": room_data,
+		"unlocked_content": unlocked_content,
+		"trends": {
+			"active": active_trends,
+			"next_id": next_trend_id,
+			# 64-bit RNG values are stored as strings: JSON numbers are doubles and would lose precision.
+			"rng_seed": str(trend_rng_seed),
+			"rng_state": str(trend_rng_state),
+		},
 	}
 
 
@@ -121,4 +142,16 @@ static func from_dict(data: Dictionary) -> GameState:
 	for room_data in data.get("rooms", []):
 		if typeof(room_data) == TYPE_DICTIONARY:
 			state.rooms.append(RoomState.from_dict(room_data))
+	state.unlocked_content = data.get("unlocked_content", []).duplicate()
+	var trend_data: Dictionary = data.get("trends", {})
+	for entry in trend_data.get("active", []):
+		if typeof(entry) == TYPE_DICTIONARY:
+			state.active_trends.append({
+				"id": str(entry.get("id", "")),
+				"remaining_minutes": float(entry.get("remaining_minutes", 0)),
+				"duration_minutes": float(entry.get("duration_minutes", 0)),
+			})
+	state.next_trend_id = str(trend_data.get("next_id", ""))
+	state.trend_rng_seed = str(trend_data.get("rng_seed", "0")).to_int()
+	state.trend_rng_state = str(trend_data.get("rng_state", "0")).to_int()
 	return state

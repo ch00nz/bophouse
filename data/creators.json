@@ -17,8 +17,9 @@
       },
       "traits": ["Girl Next Door", "Ambitious Hustler"],
       "content": {
-        "accepts": ["social_media", "glamour", "solo_subscription"],
-        "declines": ["premium", "collab_boy_girl", "collab_girl_girl"]
+        "default_focus": "glamour",
+        "accepts": ["social_media", "glamour", "solo_premium"],
+        "declines": ["topless_premium", "collab_boy_girl", "collab_girl_girl"]
       },
       "appearance": {
         "skin": "#f1c6a5",

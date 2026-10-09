@@ -4,15 +4,29 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: First playable
+## Current milestone: 2, Creator Management & Content Trends
 
+**Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
 * One creator (Ava, 24) who autonomously works, socialises and sleeps, walking between floors.
 * Game clock with day/night sky, pause and 1x/3x/10x speed.
-* Passive income: content sales, audience-scaled earnings, recurring subscriptions; follower and subscriber growth.
-* Clickable creator profile (stats, needs, activity, audience, boundaries) and room panels.
 * Room upgrades (3 levels each) that visibly change the room and boost its effect.
 * Autosave, save on exit, and capped offline earnings with a "welcome back" summary.
+
+**Milestone 2:**
+* **Content specialisation:** Instagram & socials, glamour, solo premium, topless premium and livestreaming.
+  Each has its own room, pose, earnings, follower growth, subscriber conversion, energy cost and stat requirements.
+* **Boundaries:** creators' declined content can never be assigned. Content she loves is less draining on mood.
+* **Unlocks:** livestreaming (and topless premium, for creators who choose it) need Studio level 2.
+* **Experience:** new content starts at 70% effectiveness and improves while working; adaptability speeds it up.
+* **Five rotating trends:** two active at once plus a forecast. Each favours content categories and creator stats;
+  adaptability amplifies the effect. Shown in a ticker, a Trends panel with strategy advice, and toasts.
+* **Explainable income:** the Income tab itemises sales, audience earnings and subscriptions, and every multiplier
+  (content fit, room, energy & mood, each trend, experience). Follower growth is polynomial with a soft cap,
+  so there is no runaway exponential growth.
+* **Creator panel tabs** (Profile / Content / Income) with tooltips on stats, traits and every income line.
+* **Collapsible sidebar**; the house re-centres.
+* **Save v2** with automatic migration of v1 prototype saves.
 
 ## Running
 

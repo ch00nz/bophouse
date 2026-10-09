@@ -3,8 +3,17 @@ extends CanvasLayer
 ## Screen-space UI: resource bar, speed controls, sidebar, hints and popups.
 
 const REFRESH_INTERVAL := 0.2
+const TOAST_SECONDS := 4.0
+
+## Emitted when the screen area covered by the sidebar changes (collapse/expand).
+signal reserved_width_changed(width: float)
 
 var sidebar: Sidebar
+var _trend_strip: Button
+var _sidebar_toggle: Button
+var _toast: PanelContainer
+var _toast_label: Label
+var _toast_time: float = 0.0
 
 var _root: Control
 var _cash: Label
@@ -30,6 +39,10 @@ func _ready() -> void:
 	_build_top_bar()
 	sidebar = Sidebar.new()
 	_root.add_child(sidebar)
+	sidebar.collapsed_changed.connect(_on_sidebar_collapsed)
+	_build_trend_strip()
+	_build_sidebar_toggle()
+	_build_toast()
 	_build_footer()
 
 	_reset_dialog = ConfirmationDialog.new()
@@ -45,12 +58,22 @@ func _ready() -> void:
 	Game.speed_changed.connect(_on_speed_changed)
 	Game.offline_progress_applied.connect(show_offline_summary)
 	Game.state_replaced.connect(sidebar.show_overview)
+	Game.trends_changed.connect(_on_trends_changed)
+	Game.content_unlocked.connect(_on_content_unlocked)
 	_on_speed_changed(Game.speed, Game.paused)
 	_refresh()
 
 
 func show_offline_summary(summary: Dictionary) -> void:
 	_offline_popup.show_summary(summary)
+
+
+func show_toast(text: String, color: Color = UiTheme.GOLD) -> void:
+	_toast_label.text = text
+	_toast_label.add_theme_color_override("font_color", color)
+	_toast.visible = true
+	_toast.modulate.a = 1.0
+	_toast_time = TOAST_SECONDS
 
 
 func _process(delta: float) -> void:
@@ -61,6 +84,10 @@ func _process(delta: float) -> void:
 	if _saved_fade > 0.0:
 		_saved_fade = maxf(0.0, _saved_fade - delta)
 		_saved.modulate.a = minf(1.0, _saved_fade)
+	if _toast_time > 0.0:
+		_toast_time = maxf(0.0, _toast_time - delta)
+		_toast.modulate.a = minf(1.0, _toast_time)
+		_toast.visible = _toast_time > 0.0
 
 
 func _refresh() -> void:
@@ -70,7 +97,86 @@ func _refresh() -> void:
 	_followers.text = Fmt.compact(state.total_followers())
 	_subscribers.text = Fmt.compact(state.total_subscribers())
 	_clock.text = Fmt.clock(state)
+	var parts := PackedStringArray()
+	for entry: Dictionary in state.active_trends:
+		parts.append("%s (%s)" % [Game.config.trend(str(entry["id"])).get("name", entry["id"]), Fmt.game_duration(float(entry["remaining_minutes"]))])
+	_trend_strip.text = "TRENDING:  " + "   |   ".join(parts)
 	sidebar.refresh()
+
+
+func _build_trend_strip() -> void:
+	_trend_strip = Button.new()
+	_trend_strip.offset_left = 8.0
+	_trend_strip.offset_top = 72.0
+	_trend_strip.offset_bottom = 100.0
+	_trend_strip.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_trend_strip.add_theme_font_size_override("font_size", 13)
+	_trend_strip.add_theme_color_override("font_color", UiTheme.GOLD)
+	_trend_strip.add_theme_color_override("font_hover_color", Color.WHITE)
+	_trend_strip.add_theme_stylebox_override("normal", UiTheme.box(UiTheme.PANEL, 8, 6))
+	_trend_strip.add_theme_stylebox_override("hover", UiTheme.box(UiTheme.PANEL_LIGHT, 8, 6))
+	_trend_strip.add_theme_stylebox_override("pressed", UiTheme.box(UiTheme.PANEL_LIGHT, 8, 6))
+	_trend_strip.tooltip_text = "Social media trends. Click for details and content strategy."
+	_trend_strip.pressed.connect(sidebar.show_trends)
+	_root.add_child(_trend_strip)
+
+
+func _build_sidebar_toggle() -> void:
+	_sidebar_toggle = Button.new()
+	_sidebar_toggle.anchor_left = 1.0
+	_sidebar_toggle.anchor_right = 1.0
+	_sidebar_toggle.offset_top = 80.0
+	_sidebar_toggle.offset_bottom = 128.0
+	_sidebar_toggle.add_theme_stylebox_override("normal", UiTheme.box(UiTheme.PANEL, 8, 4, UiTheme.ACCENT.darkened(0.2), 2))
+	_sidebar_toggle.add_theme_stylebox_override("hover", UiTheme.box(UiTheme.PANEL_LIGHT, 8, 4, UiTheme.ACCENT, 2))
+	_sidebar_toggle.pressed.connect(func() -> void: sidebar.set_collapsed(not sidebar.collapsed))
+	_root.add_child(_sidebar_toggle)
+	_place_sidebar_toggle()
+
+
+func _place_sidebar_toggle() -> void:
+	var right := -sidebar.reserved_width() + (Sidebar.MARGIN if not sidebar.collapsed else 0.0) - 8.0
+	_sidebar_toggle.offset_right = right
+	_sidebar_toggle.offset_left = right - 28.0
+	_sidebar_toggle.text = ">" if not sidebar.collapsed else "<"
+	_sidebar_toggle.tooltip_text = "Hide the side panel" if not sidebar.collapsed else "Show the side panel"
+
+
+func _build_toast() -> void:
+	_toast = PanelContainer.new()
+	_toast.anchor_left = 0.5
+	_toast.anchor_right = 0.5
+	_toast.offset_top = 108.0
+	_toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_toast.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.PANEL, 12, 12, UiTheme.GOLD, 2))
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast_label = UiTheme.label("", 16, UiTheme.GOLD)
+	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast.add_child(_toast_label)
+	_toast.visible = false
+	_root.add_child(_toast)
+
+
+func _on_sidebar_collapsed(_collapsed: bool) -> void:
+	_place_sidebar_toggle()
+	reserved_width_changed.emit(sidebar.reserved_width())
+
+
+func _on_trends_changed(started: Array) -> void:
+	for trend_id in started:
+		var trend := Game.config.trend(str(trend_id))
+		show_toast("New trend: %s!  %s" % [trend.get("name", trend_id), _boost_summary(trend)])
+
+
+func _on_content_unlocked(content_id: String) -> void:
+	show_toast("%s unlocked! Assign it from a creator's Content tab." % Game.config.content_label(content_id), UiTheme.GOOD)
+
+
+func _boost_summary(trend: Dictionary) -> String:
+	var names := PackedStringArray()
+	for content_id in trend.get("content", {}):
+		names.append(Game.config.content(str(content_id)).get("short", content_id))
+	return "Boosts " + ", ".join(names)
 
 
 func _build_top_bar() -> void:

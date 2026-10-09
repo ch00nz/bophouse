@@ -2,7 +2,9 @@ class_name CreatorBrain
 extends RefCounted
 ## Simple need-driven state machine that picks a creator's next activity.
 ## Uses hysteresis (start/stop thresholds) so creators don't flicker between activities.
-## Later milestones extend this with schedules, preferences, boundaries and relationships.
+## "work" is content-driven: where she works depends on her chosen content specialisation.
+
+const WORK := "work"
 
 
 ## Returns {"activity_id", "room_id"} for a change of activity, or {} to keep going.
@@ -10,10 +12,10 @@ static func decide(creator: CreatorState, state: GameState, config: GameConfig) 
 	if creator.is_travelling():
 		return {}
 	var desired := desired_activity(creator, state, config)
-	if desired == creator.activity_id:
+	if desired == creator.activity_id and _in_right_room(creator, state, config):
 		return {}
 	var room := find_room_for(desired, creator, state, config)
-	if room == null and not str(config.activity(desired).get("room_type", "")).is_empty():
+	if room == null and not ActivityResolver.room_type(creator, desired, config).is_empty():
 		return {}
 	return {"activity_id": desired, "room_id": room.id if room != null else creator.room_id}
 
@@ -45,12 +47,16 @@ static func desired_activity(creator: CreatorState, state: GameState, config: Ga
 	if mood <= config.tuning_f("brain", "relax_when_mood_below", 30.0):
 		return "socialise"
 
+	# No valid content to make (e.g. everything outside her boundaries): just relax.
+	if creator.content_focus.is_empty():
+		return "socialise"
+
 	# Long work sessions end with a break.
-	if current == "film_content":
+	if current == WORK:
 		var max_work := float(current_def.get("max_minutes", 0))
 		if max_work > 0.0 and minutes >= max_work:
 			return "socialise"
-	return "film_content"
+	return WORK
 
 
 ## Energy level at which a creator stops working. Higher work ethic pushes on longer.
@@ -62,7 +68,7 @@ static func work_stop_energy(creator: CreatorState, config: GameConfig) -> float
 
 ## Nearest room of the activity's type with free capacity (the creator's current room always counts).
 static func find_room_for(activity_id: String, creator: CreatorState, state: GameState, config: GameConfig) -> RoomState:
-	var room_type := str(config.activity(activity_id).get("room_type", ""))
+	var room_type := ActivityResolver.room_type(creator, activity_id, config)
 	if room_type.is_empty():
 		return null
 	var best: RoomState = null
@@ -82,6 +88,15 @@ static func find_room_for(activity_id: String, creator: CreatorState, state: Gam
 			best_distance = distance
 			best = room
 	return best
+
+
+## False when the player switched content and the work now happens in a different room.
+static func _in_right_room(creator: CreatorState, state: GameState, config: GameConfig) -> bool:
+	var needed := ActivityResolver.room_type(creator, creator.activity_id, config)
+	if needed.is_empty():
+		return true
+	var room := state.get_room(creator.room_id)
+	return room != null and room.type_id == needed
 
 
 static func _is_night(hour: int, config: GameConfig) -> bool:

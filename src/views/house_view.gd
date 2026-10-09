@@ -11,7 +11,9 @@ const CELL_W := 170.0
 const STOREY_H := 200.0
 const FLOOR_H := 14.0
 const ROOF_H := 92.0
-const SIDEBAR_W := 340.0
+
+## Screen width on the right covered by UI (the sidebar); the house centres in what's left.
+var reserved_right: float = 340.0
 const GROUND_H := 64.0
 
 var config: GameConfig
@@ -74,12 +76,17 @@ func build() -> void:
 func _layout() -> void:
 	var viewport := get_viewport_rect().size
 	var house_width := _columns * CELL_W
-	var area_width := maxf(viewport.x - SIDEBAR_W, house_width + 40.0)
+	var area_width := maxf(viewport.x - reserved_right, house_width + 40.0)
 	_base = Vector2(floor((area_width - house_width) * 0.5), floor(viewport.y - GROUND_H))
 	for room_id in _room_views:
 		var view: RoomView = _room_views[room_id]
 		view.position = room_rect(view.room).position
 	queue_redraw()
+
+
+func set_reserved_right(width: float) -> void:
+	reserved_right = width
+	_layout()
 
 
 ## Converts a logical (column, storey) position to the pixel where feet touch the floor.
@@ -238,7 +245,7 @@ func _draw_shell(daylight: float) -> void:
 func _draw_sun_and_moon(viewport: Vector2, daylight: float) -> void:
 	var day_fraction := fmod(state.game_minutes, GameState.MINUTES_PER_DAY) / GameState.MINUTES_PER_DAY
 	var sun_angle := (day_fraction - 0.5) * TAU # noon at the top, 06:00 on the left horizon
-	var arc_centre := Vector2((viewport.x - SIDEBAR_W) * 0.5, _base.y)
+	var arc_centre := Vector2((viewport.x - reserved_right) * 0.5, _base.y)
 	var radius := Vector2(viewport.x * 0.45, _base.y - 90)
 	var sun := arc_centre + Vector2(sin(sun_angle) * radius.x, -cos(sun_angle) * radius.y)
 	var moon := arc_centre + Vector2(-sin(sun_angle) * radius.x, cos(sun_angle) * radius.y)

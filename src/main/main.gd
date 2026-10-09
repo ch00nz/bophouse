@@ -17,6 +17,8 @@ func _ready() -> void:
 	_house.room_clicked.connect(_hud.sidebar.show_room)
 	_house.background_clicked.connect(_hud.sidebar.show_overview)
 	_hud.sidebar.selection_changed.connect(_house.set_selection)
+	_hud.reserved_width_changed.connect(_house.set_reserved_right)
+	_house.reserved_right = _hud.sidebar.reserved_width()
 	Game.state_replaced.connect(_house.build)
 	_house.build()
 

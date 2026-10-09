@@ -299,6 +299,15 @@ static func _draw_figure(ci: CanvasItem, ap: Dictionary, anim: String, t: float)
 			hand_front = Vector2(10.0, -80.0)
 			hand_back = Vector2(-11.0, -64.0)
 			holding_phone = true
+		"selfie":
+			# Phone held up at arm's length, free hand alternating between hip and a wave.
+			hand_front = Vector2(17.0, -104.0)
+			hand_back = Vector2(-12.0, -67.0) if fmod(t, 4.0) < 2.5 else Vector2(-14.0, -100.0)
+			holding_phone = true
+		"stream":
+			# Chatting to camera: animated wave and gestures.
+			hand_front = Vector2(15.0 + sin(t * 6.0) * 3.0, -96.0 + cos(t * 6.0) * 3.0)
+			hand_back = Vector2(-12.0, -66.0) if fmod(t, 3.0) < 2.0 else Vector2(10.0, -78.0)
 		"sleep":
 			hand_front = Vector2(9.0, -60.0)
 			hand_back = Vector2(-9.0, -60.0)

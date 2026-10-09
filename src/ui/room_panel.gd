@@ -69,6 +69,13 @@ func _build() -> void:
 	var current_q := float(level_def.get("quality", 1.0))
 	var next_q := float(next.get("quality", 1.0))
 	add_child(UiTheme.label("%s x%.2f -> x%.2f (+%d%%)" % [effect, current_q, next_q, roundi((next_q / current_q - 1.0) * 100.0)], 14, UiTheme.GOOD, true))
+	var unlocks := PackedStringArray()
+	for content_id in ContentRules.assignable_ids(config):
+		var room_req: Dictionary = config.content(content_id).get("requirements", {}).get("room", {})
+		if str(room_req.get("type", "")) == room.type_id and int(room_req.get("level", 0)) == room.level + 1:
+			unlocks.append(config.content_label(content_id))
+	if not unlocks.is_empty():
+		add_child(UiTheme.label("Unlocks content: " + ", ".join(unlocks), 14, UiTheme.GOLD, true))
 	_upgrade_button = Button.new()
 	_upgrade_button.custom_minimum_size = Vector2(0, 40)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)

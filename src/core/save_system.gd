@@ -2,7 +2,11 @@ class_name SaveSystem
 extends RefCounted
 ## Versioned JSON persistence. On the web, user:// is backed by IndexedDB.
 
-const SAVE_VERSION := 1
+## v1: first prototype. v2: content specialisation, experience, unlocks, trends.
+const SAVE_VERSION := 2
+
+## Content ids renamed in v2.
+const V2_CONTENT_RENAMES := {"solo_subscription": "solo_premium", "premium": "topless_premium"}
 
 
 static func to_save_dict(state: GameState, now_unix: float) -> Dictionary:
@@ -30,12 +34,48 @@ static func from_save_dict(data: Variant) -> GameState:
 ## Upgrades older save formats step by step. Add a branch per version bump.
 static func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 	var migrated := data.duplicate(true)
-	var _version := from_version
-	# Example for the future:
-	# if _version == 1:
-	#     migrated["state"]["trends"] = []
-	#     _version = 2
+	var version := from_version
+	if version == 1:
+		_migrate_v1_to_v2(migrated)
+		version = 2
+	migrated["version"] = version
 	return migrated
+
+
+static func _migrate_v1_to_v2(data: Dictionary) -> void:
+	var state_data: Variant = data.get("state", null)
+	if typeof(state_data) != TYPE_DICTIONARY:
+		return
+	for creator_data in state_data.get("creators", []):
+		if typeof(creator_data) != TYPE_DICTIONARY:
+			continue
+		# The prototype's generic studio activity became content-driven work.
+		for key in ["activity_id", "target_activity_id"]:
+			if str(creator_data.get(key, "")) == "film_content":
+				creator_data[key] = "work"
+		for key in ["content_accepts", "content_declines"]:
+			var renamed: Array = []
+			for content_id in creator_data.get(key, []):
+				renamed.append(V2_CONTENT_RENAMES.get(str(content_id), str(content_id)))
+			creator_data[key] = renamed
+		# v1 creators were effectively shooting glamour in the studio and were good at it.
+		if not creator_data.has("content_focus"):
+			creator_data["content_focus"] = "glamour"
+			creator_data["content_experience"] = {"glamour": 1.0}
+	# Trends and unlocks are created by post_load().
+
+
+## Repairs a loaded state against current data: unlocks, trends, invalid choices.
+## Call after loading (needs config, so it isn't part of from_save_dict).
+static func post_load(state: GameState, config: GameConfig) -> void:
+	ContentRules.refresh_unlocks(state, config)
+	TrendSystem.ensure_initialized(state, config)
+	for creator in state.creators:
+		creator.content_focus = ContentRules.valid_focus(creator, state, config)
+		if config.activity(creator.activity_id).is_empty():
+			creator.activity_id = "idle"
+		if creator.is_travelling() and config.activity(creator.target_activity_id).is_empty():
+			creator.target_activity_id = "idle"
 
 
 static func write(path: String, state: GameState, now_unix: float) -> Error:

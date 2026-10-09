@@ -1,0 +1,119 @@
+{
+	"saved_at_unix": 1791503945.749,
+	"state": {
+		"cash": 1959.1869450502,
+		"creators": [
+			{
+				"activity_id": "film_content",
+				"activity_minutes": 20.0233333333331,
+				"age": 24,
+				"appearance": {
+					"eyes": "#2f5d7c",
+					"hair": "#6b3b2a",
+					"hair_style": "long",
+					"lips": "#c2185b",
+					"outfit": "#e0457b",
+					"outfit_accent": "#ffd166",
+					"portrait": "res://assets/characters/ava/portrait.png",
+					"skin": "#f1c6a5",
+					"sprite_frames": "res://assets/characters/ava/ava_frames.tres"
+				},
+				"bio": "Former retail manager turned full-time creator. Bubbly on camera, fiercely organised off it.",
+				"content_accepts": [
+					"social_media",
+					"glamour",
+					"solo_subscription"
+				],
+				"content_declines": [
+					"premium",
+					"collab_boy_girl",
+					"collab_girl_girl"
+				],
+				"energy": 90.8140848282857,
+				"followers": 950.892966084799,
+				"id": "ava",
+				"lifetime_earnings": 2809.18694505099,
+				"mood": 63.9835602741252,
+				"name": "Ava Monroe",
+				"position": [
+					4.23999977111816,
+					0.0
+				],
+				"room_id": "studio_1",
+				"stats": {
+					"adaptability": 55.0,
+					"charisma": 62.0,
+					"confidence": 55.0,
+					"drama": 30.0,
+					"looks": 68.0,
+					"stamina": 60.0,
+					"wildness": 40.0,
+					"work_ethic": 58.0
+				},
+				"subscribers": 53.2528167009777,
+				"target_activity_id": "",
+				"target_room_id": "",
+				"traits": [
+					"Girl Next Door",
+					"Ambitious Hustler"
+				],
+				"travel_path": [],
+				"travel_progress": 0.0
+			}
+		],
+		"game_minutes": 4413.56556128664,
+		"last_seen_unix": 1791503945.749,
+		"lifetime_earnings": 2809.18694505099,
+		"rooms": [
+			{
+				"column": 0,
+				"id": "bedroom_1",
+				"level": 2,
+				"storey": 1,
+				"type_id": "bedroom",
+				"width": 2
+			},
+			{
+				"column": 2,
+				"id": "stairs_1",
+				"level": 1,
+				"storey": 1,
+				"type_id": "stairs",
+				"width": 1
+			},
+			{
+				"column": 3,
+				"id": "lot_1",
+				"level": 1,
+				"storey": 1,
+				"type_id": "empty_lot",
+				"width": 2
+			},
+			{
+				"column": 0,
+				"id": "living_1",
+				"level": 2,
+				"storey": 0,
+				"type_id": "living_room",
+				"width": 2
+			},
+			{
+				"column": 2,
+				"id": "stairs_0",
+				"level": 1,
+				"storey": 0,
+				"type_id": "stairs",
+				"width": 1
+			},
+			{
+				"column": 3,
+				"id": "studio_1",
+				"level": 2,
+				"storey": 0,
+				"type_id": "studio",
+				"width": 2
+			}
+		]
+	},
+	"version": 1
+}

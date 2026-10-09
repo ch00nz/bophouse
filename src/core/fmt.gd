@@ -32,6 +32,23 @@ static func duration(seconds: float) -> String:
 	return "%ds" % s
 
 
+## In-game duration, e.g. "1d 4h" or "5h 20m".
+static func game_duration(minutes: float) -> String:
+	var m := int(maxf(minutes, 0.0))
+	var days := m / 1440
+	var hours := (m % 1440) / 60
+	if days > 0:
+		return "%dd %dh" % [days, hours]
+	if hours > 0:
+		return "%dh %dm" % [hours, m % 60]
+	return "%dm" % m
+
+
+static func percent_change(multiplier: float) -> String:
+	var pct := roundi((multiplier - 1.0) * 100.0)
+	return ("+%d%%" % pct) if pct >= 0 else ("%d%%" % pct)
+
+
 static func clock(state: GameState) -> String:
 	return "Day %d  %02d:%02d" % [state.day(), state.hour_of_day(), state.minute_of_hour()]
 

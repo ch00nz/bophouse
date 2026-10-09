@@ -22,9 +22,12 @@ data/*.json ──► GameConfig (read-only)
                     │
                     ▼
                GameState  ◄── Simulation.advance(state, config, minutes, step, efficiency)
-   (cash, clock,             ├─ Economy        (pure formulas: appeal, productivity, rates)
-    creators, rooms)         ├─ CreatorBrain   (need-driven state machine with hysteresis)
-                    ▲        └─ HouseNavigator (grid paths through stairwells)
+   (cash, clock,             ├─ TrendSystem      (seeded rotation; modifiers per creator+content)
+    creators, rooms,         ├─ Economy          (work_breakdown: every income component + multiplier)
+    trends, unlocks)         ├─ CreatorBrain     (need-driven state machine with hysteresis)
+                    ▲        ├─ ActivityResolver ("work" -> room/pose/label of chosen content)
+                    │        ├─ ContentRules     (boundaries, stat requirements, room unlocks)
+                    │        └─ HouseNavigator   (grid paths through stairwells)
                     │
    Game (autoload) ─┤  real-time clock, speed/pause, autosave, offline progress, signals
                     │  RoomUpgrades, SaveSystem, OfflineProgress
@@ -55,12 +58,28 @@ never touches game logic. Offline catch-up handles travel the same way.
   credited as offline time instead of fast-forwarding at full efficiency.
 * **Future rule:** major story events must be *queued* during offline simulation, never resolved silently.
 
+### Content, boundaries and trends (milestone 2)
+
+* `content_types.json` defines each category: room/pose/bubble (`activity`), `stat_weights` (content fit),
+  `requirements` (stats and room level), and `rates_per_hour`.
+* The brain only ever wants `work`; `ActivityResolver` turns that into the creator's chosen content, so
+  switching content automatically moves her to the right room with the right animation.
+* `ContentRules.check()` is the single gate used by both the UI and `Game.set_content_focus()`.
+  Declines are hard boundaries and are checked before anything else, so no unlock or stat can override them.
+* `Economy.work_breakdown()` returns every component and multiplier. The simulation and the Income tab
+  use the same numbers, and a test asserts that the displayed multipliers multiply out to the actual income.
+* `TrendSystem` keeps `active_count` trends with countdowns and a pre-rolled forecast. The RNG seed and state are saved
+  (as strings, because JSON doubles can't hold 64-bit integers), so rotations are reproducible across reloads.
+* Trend strength = content match x favoured-stat fit x adaptability factor (0.6 to 1.4).
+
 ### Saving
 
 * `SaveSystem` writes versioned JSON (`version`, `saved_at_unix`, `state`) to `user://savegame.json`
   using write-then-rename. On the web, `user://` is IndexedDB.
 * Autosave every `save.autosave_seconds`, on upgrade, on focus loss and on window close.
-* `SaveSystem._migrate()` is the place to add format upgrades when `SAVE_VERSION` increases.
+* `SaveSystem._migrate()` upgrades old formats step by step (v1 to v2 renames content ids, maps `film_content` to `work`
+  and sets a default focus). `SaveSystem.post_load()` then repairs the state against current data (unlocks,
+  trends, invalid choices). `tests/fixtures/save_v1.json` is a real prototype save that must keep loading.
 
 ## Folder structure
 
@@ -85,9 +104,8 @@ build/             Export output (git-ignored)
 | # | Milestone | Highlights | Status |
 |---|-----------|-----------|--------|
 | 1 | **First playable** | 3-room house, 1 creator, walking, idle/walk/film/sleep/socialise, clock, income, profile, room upgrades, autosave, offline progress, tests, web export | **Done** |
-| 2 | Recruitment & capacity | Recruit pool (data), 3+ creators, room capacity contention, income breakdown panel, camera pan/zoom | Next |
-| 3 | Content & boundaries | Content types per activity, creators accept/decline, subscriber churn, per-content equipment | |
-| 4 | Trends | `data/trends.json`, weekly rotation, trend panel; plugs into `Economy.activity_rates(trend_multiplier)` | |
+| 2 | **Creator management & trends** | Content specialisation and boundaries, unlocks, experience, 5 rotating trends, income breakdown, tabbed profile, collapsible sidebar, save v2 | **Done** |
+| 3 | Recruitment & capacity | Recruit pool (data), 3+ creators, room capacity contention, house-wide income overview, camera pan/zoom, money sinks (wages, rent) | Next |
 | 5 | Events | Eligibility rules, weighted selection, cooldowns, choices, event inbox; offline queues events | |
 | 6 | Relationships & storylines | Pairwise friendship/rivalry, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |

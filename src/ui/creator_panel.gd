@@ -1,31 +1,31 @@
 class_name CreatorPanel
 extends VBoxContainer
-## Sidebar profile for one creator: identity, live activity, needs, audience and stats.
+## Sidebar profile for one creator, split into tabs: Profile, Content and Income.
 
 signal navigate(kind: String, id: String)
 
-const STAT_ORDER := ["looks", "wildness", "adaptability", "charisma", "work_ethic", "stamina", "confidence", "drama"]
+const TABS := ["Profile", "Content", "Income"]
+
+static var last_tab: String = "Profile" # remembered across selections for convenience
 
 var creator_id: String = ""
 
+var _tab_buttons: Dictionary = {}
+var _body: VBoxContainer
+var _focus_label: Label
 var _activity: Label
-var _energy: ProgressBar
-var _energy_value: Label
-var _mood: ProgressBar
-var _mood_value: Label
-var _followers: Label
-var _subscribers: Label
-var _rate: Label
-var _lifetime: Label
+var _section: Control
 
 
-func _init(id: String) -> void:
+func _init(id: String, initial_tab: String = "") -> void:
 	creator_id = id
+	if not initial_tab.is_empty():
+		last_tab = initial_tab
 	add_theme_constant_override("separation", 8)
 
 
 func _ready() -> void:
-	var creator := Game.state.get_creator(creator_id)
+	var creator := _creator()
 	if creator == null:
 		return
 	var back := Button.new()
@@ -41,91 +41,92 @@ func _ready() -> void:
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity.add_child(UiTheme.label(creator.display_name, 20, UiTheme.TEXT, true))
 	identity.add_child(UiTheme.label("Age %d" % creator.age, 14, UiTheme.MUTED))
-	identity.add_child(UiTheme.label(", ".join(PackedStringArray(creator.traits)), 13, UiTheme.GOLD, true))
+	var traits := HFlowContainer.new()
+	traits.add_theme_constant_override("h_separation", 4)
+	traits.add_theme_constant_override("v_separation", 4)
+	for trait_name in creator.traits:
+		traits.add_child(_trait_chip(str(trait_name)))
+	identity.add_child(traits)
 	header.add_child(identity)
 	add_child(header)
 
-	_activity = UiTheme.label("", 15, UiTheme.GOLD, true)
+	# Fixed heights so live text changes never shift the buttons below under the cursor.
+	_focus_label = UiTheme.label("", 14, UiTheme.ACCENT)
+	_focus_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_focus_label.clip_text = true
+	add_child(_focus_label)
+	_activity = UiTheme.label("", 14, UiTheme.GOLD, true)
+	_activity.custom_minimum_size = Vector2(0, 40)
+	_activity.max_lines_visible = 2
+	_activity.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	add_child(_activity)
 
-	_energy_value = UiTheme.label("", 13)
-	_energy = UiTheme.bar(0, Color("4cc9f0"))
-	add_child(_need_row("Energy", _energy, _energy_value))
-	_mood_value = UiTheme.label("", 13)
-	_mood = UiTheme.bar(0, Color("f72585"))
-	add_child(_need_row("Mood", _mood, _mood_value))
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 4)
+	for tab_name: String in TABS:
+		var button := UiTheme.tab_button(tab_name)
+		button.pressed.connect(_show_tab.bind(tab_name))
+		tabs.add_child(button)
+		_tab_buttons[tab_name] = button
+	add_child(tabs)
 
-	add_child(HSeparator.new())
-	_followers = UiTheme.label("", 15)
-	_subscribers = UiTheme.label("", 15)
-	_rate = UiTheme.label("", 15, UiTheme.GOOD)
-	_lifetime = UiTheme.label("", 15)
-	add_child(UiTheme.row("Followers", _followers))
-	add_child(UiTheme.row("Paying subscribers", _subscribers))
-	add_child(UiTheme.row("Earning now", _rate))
-	add_child(UiTheme.row("Lifetime earnings", _lifetime))
+	_body = VBoxContainer.new()
+	_body.add_theme_constant_override("separation", 8)
+	add_child(_body)
 
-	add_child(HSeparator.new())
-	add_child(UiTheme.label("Stats", 16, UiTheme.TEXT))
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 8)
-	for stat_name: String in STAT_ORDER:
-		var caption := UiTheme.label(stat_name.capitalize(), 13, UiTheme.MUTED)
-		caption.custom_minimum_size = Vector2(96, 0)
-		grid.add_child(caption)
-		grid.add_child(UiTheme.bar(creator.stat(stat_name), UiTheme.ACCENT, 10))
-		var value := UiTheme.label(str(int(creator.stat(stat_name))), 13)
-		value.custom_minimum_size = Vector2(26, 0)
-		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		grid.add_child(value)
-	add_child(grid)
-
-	add_child(HSeparator.new())
-	add_child(UiTheme.label("Content she's happy to make", 14, UiTheme.MUTED))
-	add_child(UiTheme.label(_content_list(creator.content_accepts), 14, UiTheme.GOOD, true))
-	add_child(UiTheme.label("Not for her", 14, UiTheme.MUTED))
-	add_child(UiTheme.label(_content_list(creator.content_declines), 14, UiTheme.BAD, true))
-	add_child(UiTheme.label("Creators set their own boundaries; you can't override them.", 12, UiTheme.MUTED, true))
-
-	if not creator.bio.is_empty():
-		add_child(HSeparator.new())
-		add_child(UiTheme.label(creator.bio, 13, UiTheme.TEXT, true))
-	refresh()
+	Game.content_focus_changed.connect(_on_content_changed)
+	Game.content_unlocked.connect(_on_content_unlocked)
+	_show_tab(last_tab)
 
 
 func refresh() -> void:
-	var creator := Game.state.get_creator(creator_id)
+	var creator := _creator()
 	if creator == null or _activity == null:
 		return
 	_activity.text = Game.describe_activity(creator)
-	_energy.value = creator.energy
-	_energy_value.text = "%d" % roundi(creator.energy)
-	_mood.value = creator.mood
-	_mood_value.text = "%d" % roundi(creator.mood)
-	_followers.text = Fmt.compact(creator.followers)
-	_subscribers.text = Fmt.compact(creator.subscribers)
-	_rate.text = "%s / hr" % Fmt.money(Economy.creator_cash_per_hour(creator, Game.state, Game.config))
-	_lifetime.text = Fmt.money(creator.lifetime_earnings)
+	_focus_label.text = "Specialising in: " + Game.config.content_label(creator.content_focus) \
+		if not creator.content_focus.is_empty() else "No content specialisation"
+	if _section != null and _section.has_method("refresh"):
+		_section.call("refresh")
 
 
-func _need_row(caption: String, bar: ProgressBar, value: Label) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	var cap := UiTheme.label(caption, 14, UiTheme.MUTED)
-	cap.custom_minimum_size = Vector2(56, 0)
-	h.add_child(cap)
-	h.add_child(bar)
-	value.custom_minimum_size = Vector2(28, 0)
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	h.add_child(value)
-	return h
+func _show_tab(tab_name: String) -> void:
+	last_tab = tab_name
+	for key: String in _tab_buttons:
+		(_tab_buttons[key] as Button).set_pressed_no_signal(key == tab_name)
+	for child in _body.get_children():
+		_body.remove_child(child)
+		child.queue_free()
+	match tab_name:
+		"Content":
+			_section = CreatorContentSection.new(creator_id)
+		"Income":
+			_section = CreatorIncomeSection.new(creator_id)
+		_:
+			_section = CreatorProfileSection.new(creator_id)
+	_body.add_child(_section)
+	refresh()
 
 
-func _content_list(ids: Array) -> String:
-	if ids.is_empty():
-		return "-"
-	var labels := PackedStringArray()
-	for content_id in ids:
-		labels.append(Game.config.content_label(str(content_id)))
-	return ", ".join(labels)
+func _on_content_unlocked(_content_id: String) -> void:
+	_show_tab(last_tab)
+
+
+func _on_content_changed(changed_id: String, _content_id: String) -> void:
+	if changed_id == creator_id:
+		_show_tab(last_tab)
+
+
+func _trait_chip(trait_name: String) -> Control:
+	var chip := PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_PASS
+	chip.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.GOLD.darkened(0.55), 6, 3))
+	chip.add_child(UiTheme.label(trait_name, 12, UiTheme.GOLD))
+	var description := str(Game.config.trait_defs.get(trait_name, {}).get("description", ""))
+	if not description.is_empty():
+		UiTheme.tip(chip, trait_name + ": " + description)
+	return chip
+
+
+func _creator() -> CreatorState:
+	return Game.state.get_creator(creator_id)

@@ -10,6 +10,11 @@ var room_types: Dictionary = {}        # type_id -> definition
 var activities: Dictionary = {}        # activity_id -> definition
 var creator_templates: Dictionary = {} # creator_id -> template
 var content_types: Dictionary = {}     # content_type_id -> definition
+var content_order: Array[String] = []  # content ids in data-file order (for UI lists)
+var trends: Dictionary = {}            # trend_id -> definition
+var trend_order: Array[String] = []    # trend ids in data-file order (deterministic rolls)
+var stat_defs: Dictionary = {}         # stat_id -> {label, description}
+var trait_defs: Dictionary = {}        # trait name -> {description}
 var house_layout: Array = []           # starting room slots
 
 
@@ -19,7 +24,17 @@ static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
 	config.room_types = _index_by_id(_read_json(dir.path_join("rooms.json")).get("room_types", []))
 	config.activities = _index_by_id(_read_json(dir.path_join("activities.json")).get("activities", []))
 	config.creator_templates = _index_by_id(_read_json(dir.path_join("creators.json")).get("creators", []))
-	config.content_types = _index_by_id(_read_json(dir.path_join("content_types.json")).get("content_types", []))
+	var content_list: Array = _read_json(dir.path_join("content_types.json")).get("content_types", [])
+	config.content_types = _index_by_id(content_list)
+	for item in content_list:
+		config.content_order.append(str(item.get("id", "")))
+	var trend_list: Array = _read_json(dir.path_join("trends.json")).get("trends", [])
+	config.trends = _index_by_id(trend_list)
+	for item in trend_list:
+		config.trend_order.append(str(item.get("id", "")))
+	var stats_file := _read_json(dir.path_join("stats.json"))
+	config.stat_defs = _index_by_id(stats_file.get("stats", []))
+	config.trait_defs = _index_by_id(stats_file.get("traits", []))
 	config.house_layout = _read_json(dir.path_join("house_layout.json")).get("rooms", [])
 	return config
 
@@ -57,6 +72,18 @@ func activity(activity_id: String) -> Dictionary:
 
 func content_label(content_id: String) -> String:
 	return str(content_types.get(content_id, {}).get("label", content_id.capitalize()))
+
+
+func content(content_id: String) -> Dictionary:
+	return content_types.get(content_id, {})
+
+
+func trend(trend_id: String) -> Dictionary:
+	return trends.get(trend_id, {})
+
+
+func stat_label(stat_id: String) -> String:
+	return str(stat_defs.get(stat_id, {}).get("label", stat_id.capitalize()))
 
 
 static func _read_json(path: String) -> Dictionary:

@@ -1,0 +1,20 @@
+{
+  "stats": [
+    { "id": "looks", "label": "Looks", "description": "Broad visual appeal. Key for glamour and premium content." },
+    { "id": "wildness", "label": "Wildness", "description": "Impulsive, attention-grabbing energy. Helps with bolder premium content; future source of chaos." },
+    { "id": "adaptability", "label": "Adaptability", "description": "How quickly she settles into new content and how much she gains from trends." },
+    { "id": "charisma", "label": "Charisma", "description": "Engagement and chemistry. Key for socials and livestream tips." },
+    { "id": "work_ethic", "label": "Work Ethic", "description": "How long she keeps working before needing to stop and rest." },
+    { "id": "stamina", "label": "Stamina", "description": "Slows energy drain while working. Helps with draining content like livestreams." },
+    { "id": "confidence", "label": "Confidence", "description": "Comfort on camera. Needed for premium content; boosts glamour." },
+    { "id": "drama", "label": "Drama", "description": "Propensity for gossip and disputes. No effect yet; used by future events." }
+  ],
+  "traits": [
+    { "id": "Girl Next Door", "description": "Relatable and warm. Audiences trust her." },
+    { "id": "Ambitious Hustler", "description": "Driven to grow her brand. Always looking for the next opportunity." },
+    { "id": "Party Animal", "description": "Loves a night out. Fun, but sometimes unreliable." },
+    { "id": "Drama Queen", "description": "Never a dull moment. Gossip follows her around." },
+    { "id": "Fitness Fanatic", "description": "Lives in the gym. Fitness trends suit her." },
+    { "id": "Shy", "description": "Takes time to warm up on camera." }
+  ]
+}

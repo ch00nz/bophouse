@@ -36,6 +36,47 @@ func test_round_trip_preserves_state() -> void:
 	assert_eq(b.stats, a.stats)
 
 
+func test_round_trip_preserves_content_choices_and_trends() -> void:
+	var config := load_config()
+	var state := _played_state(config)
+	var ava := state.creators[0]
+	ava.content_focus = "social_media"
+	ava.content_experience = {"glamour": 1.0, "social_media": 0.42}
+	state.unlocked_content = ["livestream"]
+	var loaded := SaveSystem.from_save_dict(JSON.parse_string(JSON.stringify(SaveSystem.to_save_dict(state, 1.0))))
+	var b := loaded.creators[0]
+	assert_eq(b.content_focus, "social_media")
+	assert_almost(b.experience("social_media"), 0.42)
+	assert_eq(loaded.unlocked_content, ["livestream"])
+	assert_eq(TrendSystem.active_ids(loaded), TrendSystem.active_ids(state))
+	assert_eq(loaded.next_trend_id, state.next_trend_id)
+	assert_eq(loaded.trend_rng_state, state.trend_rng_state, "64-bit RNG state survives JSON")
+	assert_almost(float(loaded.active_trends[0]["remaining_minutes"]), float(state.active_trends[0]["remaining_minutes"]))
+
+
+func test_v1_prototype_save_still_loads() -> void:
+	var config := load_config()
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v1.json"))
+	assert_eq(int(data["version"]), 1, "fixture is a genuine v1 save")
+	var state := SaveSystem.from_save_dict(data)
+	assert_true(state != null, "v1 save loads")
+	SaveSystem.post_load(state, config)
+	assert_true(SaveSystem.is_compatible(state, config))
+	var ava := state.creators[0]
+	assert_eq(ava.activity_id, "work", "film_content migrated to work")
+	assert_eq(ava.content_focus, "glamour")
+	assert_almost(ava.experience("glamour"), 1.0)
+	assert_true(ava.content_accepts.has("solo_premium"), "content ids renamed")
+	assert_true(ava.content_declines.has("topless_premium"), "boundaries carried over")
+	assert_false(ava.content_declines.has("premium"))
+	assert_eq(state.active_trends.size(), 2, "trends initialised")
+	assert_true(state.unlocked_content.has("livestream"), "studio was level 2 in the fixture")
+	assert_almost(state.cash, float(data["state"]["cash"]), 0.001, "cash preserved")
+	# And it keeps running happily.
+	Simulation.advance(state, config, 24.0 * 60.0, 5.0)
+	assert_gt(state.cash, float(data["state"]["cash"]))
+
+
 func test_round_trip_through_file() -> void:
 	var config := load_config()
 	var state := _played_state(config)

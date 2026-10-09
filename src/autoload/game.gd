@@ -9,6 +9,9 @@ signal room_upgraded(room_id: String)
 signal offline_progress_applied(summary: Dictionary)
 signal saved
 signal speed_changed(speed: int, paused: bool)
+signal content_focus_changed(creator_id: String, content_id: String)
+signal content_unlocked(content_id: String)
+signal trends_changed(started_ids: Array)
 
 var config: GameConfig
 var state: GameState
@@ -35,6 +38,7 @@ func _load_or_create() -> void:
 	var loaded := SaveSystem.read(save_path)
 	if loaded != null and SaveSystem.is_compatible(loaded, config):
 		state = loaded
+		SaveSystem.post_load(state, config)
 		var summary := OfflineProgress.apply(state, config, now)
 		if float(summary["real_seconds"]) >= config.tuning_f("offline", "min_seconds_for_popup", 30.0):
 			pending_offline_summary = summary
@@ -52,9 +56,10 @@ func _process(delta: float) -> void:
 	_check_frame_gap(now)
 	_last_frame_unix = now
 	if not paused:
-		var real_delta := minf(delta, config.tuning_f("time", "max_frame_delta_seconds", 0.25))
-		var minutes := real_delta * config.tuning_f("time", "game_minutes_per_real_second", 2.0) * speed
-		Simulation.advance(state, config, minutes, config.tuning_f("time", "max_sim_step_minutes", 1.0))
+		var minutes := TimeControl.frame_minutes(delta, speed, paused, config)
+		var totals := Simulation.advance(state, config, minutes, config.tuning_f("time", "max_sim_step_minutes", 1.0))
+		if totals.has("trends_started"):
+			trends_changed.emit(totals["trends_started"])
 		ticked.emit()
 	_autosave_elapsed += delta
 	if _autosave_elapsed >= config.tuning_f("save", "autosave_seconds", 15.0):
@@ -70,6 +75,7 @@ func _check_frame_gap(now: float) -> void:
 	var summary := OfflineProgress.apply(state, config, now)
 	if float(summary["real_seconds"]) >= config.tuning_f("offline", "min_seconds_for_popup", 30.0):
 		offline_progress_applied.emit(summary)
+	trends_changed.emit([])
 	save_game()
 
 
@@ -87,8 +93,24 @@ func upgrade_room(room_id: String) -> bool:
 	if not RoomUpgrades.try_upgrade(state, config, room_id):
 		return false
 	room_upgraded.emit(room_id)
+	for content_id in ContentRules.refresh_unlocks(state, config):
+		content_unlocked.emit(content_id)
 	save_game()
 	return true
+
+
+## Assigns a creator's content specialisation. Returns ContentRules.check() so the UI can
+## explain refusals; boundaries are enforced here, not just hidden in the UI.
+func set_content_focus(creator_id: String, content_id: String) -> Dictionary:
+	var creator := state.get_creator(creator_id)
+	if creator == null:
+		return {"ok": false, "reason": "Unknown creator"}
+	var result := ContentRules.check(creator, content_id, state, config)
+	if bool(result["ok"]) and creator.content_focus != content_id:
+		creator.content_focus = content_id
+		content_focus_changed.emit(creator_id, content_id)
+		save_game()
+	return result
 
 
 func set_speed(new_speed: int) -> void:
@@ -117,9 +139,10 @@ func describe_activity(creator: CreatorState) -> String:
 		var target := state.get_room(creator.target_room_id)
 		var room_name := str(config.room_type(target.type_id).get("name", "")) if target != null else ""
 		return "Walking to the %s" % room_name if not room_name.is_empty() else "Walking"
-	var label := str(config.activity(creator.activity_id).get("label", creator.activity_id))
+	var activity := ActivityResolver.resolve(creator, creator.activity_id, config)
+	var label := str(activity.get("label", creator.activity_id))
 	var room := state.get_room(creator.room_id)
-	if room != null and not str(config.activity(creator.activity_id).get("room_type", "")).is_empty():
+	if room != null and not str(activity.get("room_type", "")).is_empty():
 		return "%s in the %s" % [label, config.room_type(room.type_id).get("name", "")]
 	return label
 

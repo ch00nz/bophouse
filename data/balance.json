@@ -17,7 +17,21 @@
     "subscription_cash_per_sub_hour": 0.4,
     "min_energy_efficiency": 0.4,
     "min_mood_efficiency": 0.6,
-    "stamina_drain_base": 1.5
+    "stamina_drain_base": 1.5,
+    "follower_soft_cap": 250000,
+    "subscriber_churn_speed": 0.04,
+    "loved_content_mood_per_hour": 2
+  },
+  "content": {
+    "ramp_floor": 0.7,
+    "ramp_base_per_hour": 0.08,
+    "ramp_adaptability_per_hour": 0.22
+  },
+  "trends": {
+    "active_count": 2,
+    "min_adaptability_factor": 0.6,
+    "max_adaptability_factor": 1.4,
+    "stat_fit_floor": 0.5
   },
   "offline": {
     "max_seconds": 28800,

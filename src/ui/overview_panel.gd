@@ -6,6 +6,7 @@ signal navigate(kind: String, id: String)
 
 var _income: Label
 var _audience: Label
+var _trends: Label
 var _creator_buttons: Dictionary = {} # creator_id -> Button
 var _room_buttons: Dictionary = {}    # room_id -> Button
 
@@ -20,6 +21,15 @@ func _ready() -> void:
 	add_child(_income)
 	_audience = UiTheme.label("", 14, UiTheme.MUTED, true)
 	add_child(_audience)
+
+	add_child(HSeparator.new())
+	add_child(UiTheme.label("Trending now", 16))
+	_trends = UiTheme.label("", 13, UiTheme.GOLD, true)
+	add_child(_trends)
+	var trends_button := _list_button()
+	trends_button.text = "View trends & strategy"
+	trends_button.pressed.connect(func() -> void: navigate.emit("trends", ""))
+	add_child(trends_button)
 
 	add_child(HSeparator.new())
 	add_child(UiTheme.label("Residents", 16))
@@ -56,9 +66,15 @@ func refresh() -> void:
 	var config := Game.config
 	_income.text = "Earning %s / hour" % Fmt.money(Economy.house_cash_per_hour(state, config))
 	_audience.text = "%s followers  |  %s paying subscribers" % [Fmt.compact(state.total_followers()), Fmt.compact(state.total_subscribers())]
+	var trend_lines := PackedStringArray()
+	for entry: Dictionary in state.active_trends:
+		trend_lines.append("%s  (%s left)" % [config.trend(str(entry["id"])).get("name", entry["id"]), Fmt.game_duration(float(entry["remaining_minutes"]))])
+	_trends.text = "\n".join(trend_lines)
 	for creator_id in _creator_buttons:
 		var creator := state.get_creator(creator_id)
-		(_creator_buttons[creator_id] as Button).text = "%s  -  %s" % [creator.display_name, Game.describe_activity(creator)]
+		var button: Button = _creator_buttons[creator_id]
+		button.text = "%s  -  %s" % [creator.display_name, Game.describe_activity(creator)]
+		button.tooltip_text = "Content focus: %s" % config.content_label(creator.content_focus)
 	for room_id in _room_buttons:
 		var room := state.get_room(room_id)
 		var button: Button = _room_buttons[room_id]

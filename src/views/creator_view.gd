@@ -32,10 +32,14 @@ func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 		add_child(_sprite)
 
 
+func current_activity() -> Dictionary:
+	return ActivityResolver.resolve(creator, creator.activity_id, house.config)
+
+
 func current_anim() -> String:
 	if creator.is_travelling():
 		return "walk"
-	return str(house.config.activity(creator.activity_id).get("anim", "idle"))
+	return str(current_activity().get("anim", "idle"))
 
 
 func hit_rect() -> Rect2:
@@ -57,7 +61,7 @@ func _process(delta: float) -> void:
 		if absf(target.x - position.x) > 0.01:
 			_facing = signf(target.x - position.x)
 	else:
-		var face := float(house.config.activity(creator.activity_id).get("face", 0))
+		var face := float(current_activity().get("face", 0))
 		if face != 0.0:
 			_facing = signf(face)
 	position = target
@@ -105,15 +109,28 @@ func _draw_bubble(anim: String, lift: float) -> void:
 	draw_colored_polygon(PackedVector2Array([centre + Vector2(-5, 9), centre + Vector2(3, 10), centre + Vector2(-6, 18)]), Color.WHITE)
 	draw_circle(centre, 13.0, Color.WHITE)
 	draw_arc(centre, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.25), 1.5, true)
-	match anim:
-		"film":
+	# Bubble icon comes from data (activity or content), so new content types need no code.
+	match str(current_activity().get("bubble", "dots")):
+		"camera":
 			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-8, -5), Vector2(13, 10)), Color("333333"), 2)
 			draw_colored_polygon(PackedVector2Array([centre + Vector2(5, -2), centre + Vector2(9, -5), centre + Vector2(9, 5), centre + Vector2(5, 2)]), Color("333333"))
 			if fmod(_t, 1.0) < 0.6:
 				draw_circle(centre + Vector2(-4, -1), 2.0, Color("ff3b3b"))
-		"sleep":
+		"phone":
+			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-5, -8), Vector2(10, 16)), Color("333333"), 2)
+			draw_rect(Rect2(centre + Vector2(-3.5, -6), Vector2(7, 11)), Color("7fd3ff"))
+			PlaceholderArt.draw_heart(self, centre + Vector2(0, -0.5), 7.0 + sin(_t * 5.0), Color("ff4f8b"))
+		"star":
+			PlaceholderArt.draw_star(self, centre, 9.0 + sin(_t * 4.0), Color("ffb703"))
+		"lock":
+			draw_arc(centre + Vector2(0, -2), 4.5, PI, TAU, 10, Color("6a4c93"), 2.5)
+			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-6, -2), Vector2(12, 9)), Color("6a4c93"), 2)
+		"live":
+			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-12, -6), Vector2(24, 12)), Color("e63946"), 3)
+			PlaceholderArt.draw_text(self, centre + Vector2(-12, 4), "LIVE", 9, Color.WHITE, 24, HORIZONTAL_ALIGNMENT_CENTER)
+		"zz":
 			PlaceholderArt.draw_text(self, centre + Vector2(-9, 6), "Zz", 15, Color("5b6ee1"))
-		"socialise":
+		"heart":
 			PlaceholderArt.draw_heart(self, centre + Vector2(0, 1), 18.0 + sin(_t * 5.0) * 2.0, Color("ff4f8b"))
 		_:
 			PlaceholderArt.draw_text(self, centre + Vector2(-9, 4), "...", 15, Color("555555"))

@@ -34,7 +34,54 @@ static func build() -> Theme:
 	theme.set_stylebox("background", "ProgressBar", box(Color(0, 0, 0, 0.35), 5, 0))
 	theme.set_stylebox("fill", "ProgressBar", box(ACCENT, 5, 0))
 	theme.set_stylebox("separator", "HSeparator", line_box(Color(1, 1, 1, 0.15)))
+	theme.set_stylebox("panel", "TooltipPanel", box(Color("1d1330"), 8, 8, GOLD.darkened(0.3), 1))
+	theme.set_color("font_color", "TooltipLabel", TEXT)
+	theme.set_font_size("font_size", "TooltipLabel", 13)
 	return theme
+
+
+## Adds a hover tooltip. Labels ignore the mouse by default, so let events through.
+static func tip(control: Control, text: String) -> Control:
+	control.tooltip_text = text
+	if control.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+		control.mouse_filter = Control.MOUSE_FILTER_PASS
+	return control
+
+
+static func header(text: String) -> Label:
+	var l := label(text.to_upper(), 12, GOLD)
+	return l
+
+
+## A rounded card with a vertical layout; returns the card (content goes in card.get_child(0)).
+static func card(bg: Color = PANEL_LIGHT, border: Color = Color.TRANSPARENT) -> PanelContainer:
+	var panel := PanelContainer.new()
+	# PanelContainer defaults to MOUSE_FILTER_STOP, which would swallow scroll-wheel events.
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.add_theme_stylebox_override("panel", box(bg, 10, 10, border, 2 if border.a > 0.0 else 0))
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 4)
+	panel.add_child(content)
+	return panel
+
+
+## Segmented tab button.
+static func tab_button(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.toggle_mode = true
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 30)
+	b.add_theme_stylebox_override("normal", box(PANEL_LIGHT, 8, 4))
+	b.add_theme_stylebox_override("hover", box(PANEL_LIGHT.lightened(0.15), 8, 4))
+	return b
+
+
+## Right-aligned value label for breakdown rows.
+static func value_label(text: String = "", font_color: Color = TEXT, size: int = 14) -> Label:
+	var l := label(text, size, font_color)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	return l
 
 
 static func box(bg: Color, radius: int, margin: int, border: Color = Color.TRANSPARENT, border_width: int = 0) -> StyleBoxFlat:

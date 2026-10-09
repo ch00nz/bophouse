@@ -1,4 +1,5 @@
 {
+  "_comment": "Activities a creator can perform. 'content_driven' activities take their room, spot, animation, label and rates from the creator's chosen content type (content_types.json).",
   "activities": [
     {
       "id": "idle",
@@ -6,41 +7,31 @@
       "room_type": "",
       "spot": 0.5,
       "anim": "idle",
+      "bubble": "dots",
       "min_minutes": 0,
       "max_minutes": 0,
       "rates_per_hour": {}
     },
     {
-      "id": "film_content",
-      "label": "Filming content",
-      "room_type": "studio",
-      "spot": 0.62,
-      "face": -1,
-      "anim": "film",
+      "id": "work",
+      "label": "Making content",
+      "content_driven": true,
       "min_minutes": 60,
-      "max_minutes": 240,
-      "rates_per_hour": {
-        "cash": 40,
-        "audience_cash": 0.15,
-        "followers": 14,
-        "viral_rate": 0.004,
-        "subscriber_conversion_rate": 0.25,
-        "energy": -12,
-        "mood": -4
-      }
+      "max_minutes": 240
     },
     {
       "id": "socialise",
-      "label": "Chilling & posting to socials",
+      "label": "Chilling & chatting with fans",
       "room_type": "living_room",
       "spot": 0.42,
       "anim": "socialise",
+      "bubble": "heart",
       "min_minutes": 45,
       "max_minutes": 120,
       "rates_per_hour": {
         "cash": 4,
-        "followers": 6,
-        "viral_rate": 0.001,
+        "followers": 5,
+        "viral": 0.1,
         "energy": 3,
         "mood": 14
       }
@@ -51,6 +42,7 @@
       "room_type": "bedroom",
       "spot": 0.33,
       "anim": "sleep",
+      "bubble": "zz",
       "min_minutes": 120,
       "max_minutes": 0,
       "rates_per_hour": {

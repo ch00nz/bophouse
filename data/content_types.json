@@ -1,11 +1,82 @@
 {
+  "_comment": "Content categories. 'assignable' ones can be chosen as a creator's specialisation. Production is always implied: room activity, icons and income only. rates_per_hour are base values before multipliers (content fit, room, energy/mood, trends, settling-in). 'viral' scales with sqrt(followers) so growth stays polynomial, not exponential.",
   "content_types": [
-    { "id": "social_media", "label": "Social media" },
-    { "id": "glamour", "label": "Glamour" },
-    { "id": "solo_subscription", "label": "Solo subscription" },
-    { "id": "premium", "label": "Premium sets" },
-    { "id": "livestream", "label": "Livestreaming" },
-    { "id": "collab_boy_girl", "label": "Boy/girl collabs" },
-    { "id": "collab_girl_girl", "label": "Girl/girl collabs" }
+    {
+      "id": "social_media",
+      "label": "Instagram & socials",
+      "short": "Socials",
+      "assignable": true,
+      "description": "Mainstream posts, reels and stories. Huge reach, modest pay. Shot in the living room.",
+      "activity": { "label": "Shooting socials content", "room_type": "living_room", "spot": 0.74, "face": -1, "anim": "selfie", "bubble": "phone" },
+      "stat_weights": { "charisma": 0.45, "adaptability": 0.3, "looks": 0.25 },
+      "requirements": { "stats": {}, "room": {} },
+      "rates_per_hour": {
+        "cash": 18, "audience_cash": 0.07, "followers": 30, "viral": 0.6,
+        "subscriber_conversion": 0.02, "conversion_speed": 0.25,
+        "energy": -8, "mood": -1
+      }
+    },
+    {
+      "id": "glamour",
+      "label": "Glamour photography",
+      "short": "Glamour",
+      "assignable": true,
+      "description": "Styled photo sets and modelling. Balanced reach and earnings. Shot in the studio.",
+      "activity": { "label": "Shooting a glamour set", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "camera" },
+      "stat_weights": { "looks": 0.5, "confidence": 0.3, "charisma": 0.2 },
+      "requirements": { "stats": { "looks": 50 }, "room": {} },
+      "rates_per_hour": {
+        "cash": 32, "audience_cash": 0.12, "followers": 16, "viral": 0.35,
+        "subscriber_conversion": 0.05, "conversion_speed": 0.25,
+        "energy": -11, "mood": -3
+      }
+    },
+    {
+      "id": "solo_premium",
+      "label": "Solo premium content",
+      "short": "Solo premium",
+      "assignable": true,
+      "description": "Subscriber-only solo sets. Strong subscriber conversion, slower public growth. Shot in the studio.",
+      "activity": { "label": "Creating premium content", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "star" },
+      "stat_weights": { "looks": 0.4, "confidence": 0.35, "charisma": 0.25 },
+      "requirements": { "stats": { "confidence": 40 }, "room": {} },
+      "rates_per_hour": {
+        "cash": 42, "audience_cash": 0.18, "followers": 7, "viral": 0.15,
+        "subscriber_conversion": 0.09, "conversion_speed": 0.25,
+        "energy": -12, "mood": -4
+      }
+    },
+    {
+      "id": "topless_premium",
+      "label": "Topless premium content",
+      "short": "Topless premium",
+      "assignable": true,
+      "description": "Top-tier subscriber sets (non-explicit, closed set). Highest conversion but small public reach and more draining. Only for creators who choose it.",
+      "activity": { "label": "Closed-set premium shoot", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "lock" },
+      "stat_weights": { "looks": 0.4, "confidence": 0.4, "wildness": 0.2 },
+      "requirements": { "stats": { "confidence": 50 }, "room": { "type": "studio", "level": 2 } },
+      "rates_per_hour": {
+        "cash": 44, "audience_cash": 0.19, "followers": 4, "viral": 0.08,
+        "subscriber_conversion": 0.1, "conversion_speed": 0.25,
+        "energy": -13, "mood": -5
+      }
+    },
+    {
+      "id": "livestream",
+      "label": "Livestreaming",
+      "short": "Livestream",
+      "assignable": true,
+      "description": "Live chats and streams. Tips reward charisma; very tiring. Needs a proper studio setup (Studio level 2).",
+      "activity": { "label": "Livestreaming", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "stream", "bubble": "live" },
+      "stat_weights": { "charisma": 0.5, "stamina": 0.25, "confidence": 0.25 },
+      "requirements": { "stats": { "charisma": 55 }, "room": { "type": "studio", "level": 2 } },
+      "rates_per_hour": {
+        "cash": 22, "audience_cash": 0.2, "followers": 14, "viral": 0.3,
+        "subscriber_conversion": 0.06, "conversion_speed": 0.3,
+        "energy": -16, "mood": -1
+      }
+    },
+    { "id": "collab_boy_girl", "label": "Boy/girl collabs", "short": "B/G collab", "assignable": false, "description": "Arrives in a later milestone." },
+    { "id": "collab_girl_girl", "label": "Girl/girl collabs", "short": "G/G collab", "assignable": false, "description": "Arrives in a later milestone." }
   ]
 }

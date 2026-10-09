@@ -21,6 +21,11 @@ static func advance(state: GameState, config: GameConfig, minutes: float, max_st
 static func _step(state: GameState, config: GameConfig, dt: float, output_multiplier: float, totals: Dictionary) -> void:
 	state.game_minutes += dt
 	totals["minutes"] += dt
+	var started := TrendSystem.advance(state, config, dt)
+	if not started.is_empty():
+		var all_started: Array = totals.get("trends_started", [])
+		all_started.append_array(started)
+		totals["trends_started"] = all_started
 	for creator in state.creators:
 		_step_creator(state, config, creator, dt, output_multiplier, totals)
 
@@ -34,8 +39,7 @@ static func _step_creator(state: GameState, config: GameConfig, creator: Creator
 		_advance_travel(creator, config, dt)
 		return
 
-	var room := state.get_room(creator.room_id)
-	var rates := Economy.activity_rates(creator, config.activity(creator.activity_id), Economy.room_quality(config, room), config)
+	var rates := Economy.current_rates(creator, state, config)
 	_earn(state, creator, float(rates["cash"]) * hours * output_multiplier, totals)
 
 	var follower_gain := float(rates["followers"]) * hours * output_multiplier
@@ -49,6 +53,9 @@ static func _step_creator(state: GameState, config: GameConfig, creator: Creator
 	creator.energy = clampf(creator.energy + float(rates["energy"]) * hours, 0.0, 100.0)
 	creator.mood = clampf(creator.mood + float(rates["mood"]) * hours, 0.0, 100.0)
 	creator.activity_minutes += dt
+	if ActivityResolver.is_content_driven(config.activity(creator.activity_id)) and not creator.content_focus.is_empty():
+		var gained := Economy.experience_rate_per_hour(creator, config) * hours
+		creator.content_experience[creator.content_focus] = minf(1.0, creator.experience(creator.content_focus) + gained)
 
 	var decision := CreatorBrain.decide(creator, state, config)
 	if not decision.is_empty():
@@ -60,7 +67,7 @@ static func start_activity(state: GameState, config: GameConfig, creator: Creato
 	var room := state.get_room(room_id)
 	var target := creator.position
 	if room != null:
-		target = room.spot_position(float(config.activity(activity_id).get("spot", 0.5)))
+		target = room.spot_position(float(ActivityResolver.resolve(creator, activity_id, config).get("spot", 0.5)))
 	creator.target_activity_id = activity_id
 	creator.target_room_id = room_id
 	var path := HouseNavigator.find_path(state.rooms, config, creator.position, target)

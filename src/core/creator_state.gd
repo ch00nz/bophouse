@@ -9,8 +9,15 @@ var bio: String = ""
 var stats: Dictionary = {}
 var traits: Array = []
 var appearance: Dictionary = {}
+## Content she loves making (small mood bonus). Not a whitelist: anything not declined is allowed.
 var content_accepts: Array = []
+## Her hard boundaries. The player can never assign these.
 var content_declines: Array = []
+## The player's chosen content specialisation (must be within her boundaries).
+var content_focus: String = ""
+## content_id -> 0..1 experience. Rises while making that content, faster with adaptability.
+## New content starts at 0, so switching strategy has a short settling-in cost.
+var content_experience: Dictionary = {}
 
 var energy: float = 100.0
 var mood: float = 70.0
@@ -43,6 +50,9 @@ static func from_template(template: Dictionary) -> CreatorState:
 	var content: Dictionary = template.get("content", {})
 	c.content_accepts = content.get("accepts", []).duplicate()
 	c.content_declines = content.get("declines", []).duplicate()
+	c.content_focus = str(content.get("default_focus", ""))
+	if not c.content_focus.is_empty():
+		c.content_experience[c.content_focus] = 1.0
 	var start: Dictionary = template.get("starting", {})
 	c.followers = float(start.get("followers", 0))
 	c.subscribers = float(start.get("subscribers", 0))
@@ -53,6 +63,10 @@ static func from_template(template: Dictionary) -> CreatorState:
 
 func stat(stat_name: String) -> float:
 	return float(stats.get(stat_name, 50))
+
+
+func experience(content_id: String) -> float:
+	return float(content_experience.get(content_id, 0.0))
 
 
 func is_travelling() -> bool:
@@ -72,6 +86,7 @@ func to_dict() -> Dictionary:
 		"id": id, "name": display_name, "age": age, "bio": bio,
 		"stats": stats, "traits": traits, "appearance": appearance,
 		"content_accepts": content_accepts, "content_declines": content_declines,
+		"content_focus": content_focus, "content_experience": content_experience,
 		"energy": energy, "mood": mood, "followers": followers, "subscribers": subscribers,
 		"lifetime_earnings": lifetime_earnings,
 		"activity_id": activity_id, "activity_minutes": activity_minutes, "room_id": room_id,
@@ -92,6 +107,10 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	c.appearance = data.get("appearance", {})
 	c.content_accepts = data.get("content_accepts", [])
 	c.content_declines = data.get("content_declines", [])
+	c.content_focus = str(data.get("content_focus", ""))
+	var experience: Dictionary = data.get("content_experience", {})
+	for content_id in experience:
+		c.content_experience[str(content_id)] = clampf(float(experience[content_id]), 0.0, 1.0)
 	c.energy = float(data.get("energy", 100))
 	c.mood = float(data.get("mood", 70))
 	c.followers = float(data.get("followers", 0))
