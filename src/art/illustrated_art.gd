@@ -61,7 +61,8 @@ static func sprite(spec: Dictionary, anim: String, on_stairs: bool = false) -> D
 	var poses: Dictionary = def.get("sprites", {}).get(outfit(spec), {})
 	var key := "stairs" if on_stairs and poses.has("stairs") else anim
 	var name := str(poses.get(key, poses.get("*", "")))
-	if anim == "sleep" or anim == "recline":
+	# Lying poses need an explicit painting (a standing figure must never be laid on a bed).
+	if (anim == "sleep" or anim == "recline") and not poses.has(anim):
 		name = ""
 	return _asset(def, name, true)
 
@@ -81,7 +82,7 @@ static func face(spec: Dictionary) -> Dictionary:
 	return {"centre": Vector2(float(c[0]), float(c[1])), "radius": float(f.get("radius", 0.27))}
 
 
-## {texture, anchor (px), units_per_px, name, walk} for a manifest asset; {} if missing.
+## {texture, anchor (px), units_per_px, name, pose, kind, full_size} for a manifest asset; {} if missing.
 static func _asset(def: Dictionary, name: String, as_sprite: bool) -> Dictionary:
 	if name.is_empty():
 		return {}
@@ -94,9 +95,11 @@ static func _asset(def: Dictionary, name: String, as_sprite: bool) -> Dictionary
 	if texture == null:
 		return {}
 	var anchor: Array = source.get("anchor", [float(texture.get_width()) * 0.5, float(texture.get_height())])
+	var full_size: Array = entry.get("size", [texture.get_width(), texture.get_height()])
 	return {
 		"texture": texture, "anchor": Vector2(float(anchor[0]), float(anchor[1])),
 		"units_per_px": float(source.get("units_per_px", 0.15)), "name": name, "pose": str(entry.get("pose", "")),
+		"kind": str(entry.get("kind", "")), "full_size": Vector2(float(full_size[0]), float(full_size[1])),
 	}
 
 

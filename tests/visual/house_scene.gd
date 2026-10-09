@@ -33,6 +33,7 @@ func _run() -> void:
 	state.last_seen_unix = game.now_unix()
 	game.state = state
 	game.set_paused(true)
+	game.set("pending_offline_summary", {}) # a previous tool run's save must not show "welcome back"
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await _frames(10)

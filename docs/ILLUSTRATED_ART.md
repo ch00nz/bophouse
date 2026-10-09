@@ -1,4 +1,4 @@
-# Illustrated character art (milestone 5B)
+# Illustrated character art (milestones 5B and 5C)
 
 Painted Western-cartoon art for Ava, used as the new visual benchmark. This covers the asset
 pipeline, how the game uses the paintings today, the plan for full customisation, and exactly which
@@ -151,3 +151,106 @@ All requests use the same style as `ava_master.png`, with these rules:
 11. **Overlays:** rose thigh tattoo, floral half-sleeve split per arm segment, nose stud, belly ring.
 12. **The same package for each housemate** (Chloe, Mia, Jade, Sienna, Lily, Roxy) once Ava's rig is
     proven.
+
+## 5. Milestone 5C: transparency cleanup and skeletal animation
+
+### Transparency (pipeline v2, `art_pipeline/cutout.py`)
+
+What was wrong in 5B, and how v2 fixes it:
+
+| Problem | Fix |
+|---|---|
+| White and beige streaks between hair strands | Enclosed pockets are removed when they're paper-coloured and large. Small or near-white ones are removed only when **ringed by dark hair** (judged on the non-background ring) and either thin (3 px half-width or less) or touching the outside. Teeth, eye whites, sneakers and highlights fail those tests and stay. |
+| A lighter-than-paper rim that AI art paints around outlines | Paper-**hued** light pixels count as background only within 3 px of real background, so large light areas (white soles, fabric) are never eaten. |
+| Hard, stair-stepped edges and paper contamination | A trimap with a 3 px unknown band and closed-form matting: each edge pixel is unmixed between its nearest solid colour F and the local background B (paper, or the floor shadow under the feet), then decontaminated. Then subpixel alpha smoothing, and fully transparent pixels take the nearest visible colour so mipmaps never bleed paper. |
+| A blotchy sheer cover-up with holes | The cloth's silhouette is closed, and each pixel is unmixed between white fabric and paper with an opacity floor. Fold shading is kept as neutral grey, since the beige came from the paper behind it. |
+| A light band along the busts' cut edge | Removed by the rim rule. |
+
+* Review: `tools/artenv/Scripts/python art_pipeline/inspect_edges.py assets/characters/ava/illustrated --preview out.png`
+  reports the paper-coloured, light and partial edge pixels per PNG, and writes zoomed crops on dark purple and
+  bright green.
+* Regression test: `test_cutout_edges_have_no_paper_halo` scans every cut-out's edges. The limit is 3% at full
+  size and 8% for downscaled sprites (sheer-fabric folds average into beige-ish pixels).
+
+### Animation (`IllustratedRig`, `data/illustrated_rigs.json`)
+
+Godot 2D skeletal animation on the flattened paintings:
+* **Skeleton2D and Bone2D:** a hierarchy per painted pose (pelvis root, chest, head, arm segments, lower legs).
+* **Polygon2D:** a 4 px grid mesh over the painting's opaque pixels. Each vertex is skinned to the bone whose
+  region (a polygon in the data) contains it, and weights are smoothed along mesh edges. Smoothing never crosses
+  empty space between limbs, so joints bend instead of tearing.
+* **AnimationPlayer:** looping sine tracks built from data, with 0.2 s blending between animations. The root
+  bone never animates, so the feet stay planted.
+
+| Game animation | Painted pose | Motion |
+|---|---|---|
+| idle, chat, argue | standing | Breathing, upper-body sway, head tilt, free-arm sway |
+| walk | walking | Alternating lower-leg strides, opposite arm swing, upper-body bob. Mirrored to the walking direction; speed follows the game speed |
+| film | filming | Waving hand, camera bob, head tilt, sway |
+| stream, celebrate | filming | Faster wave, talking nod, bounce |
+| selfie, socialise | selfie | Peace-sign wiggle, phone hand, head tilt |
+| stairs | back view | Static, with a step bounce |
+| sleep | the painted sleeper, bedding removed and turned to lie along the bed | Slow breathing; rests on the mattress |
+| recline, collabs | (procedural) | No suitable painting |
+
+**What this can't do with flattened art.** Nothing is painted behind a limb, so limbs only swing about
+10 degrees. The legs keep the drawn crossing at the knee; a walk can't show a full stride, a turn, or a side
+view; arms can't cross the body; and outfits other than casual have one standing painting each (no rig,
+static). This is a convincing stand-in, not a walk cycle.
+
+### Artwork needed for full skeletal animation (precise spec)
+
+Deliver as transparent PNG layers (a layered PSD is ideal). Shared rules for every layer:
+* **Style:** the same as `ava_master.png`.
+* **Canvas:** 2048 x 2048, feet on y = 1950, body centred on x = 1024.
+* **Scale:** 168 cm = 1500 px from crown to sole.
+* **Content:** no shadows, text or real logos.
+* **Overlaps:** each part extends **25 to 40 px past its joint**, painted as if the neighbouring part weren't
+  there (e.g. the shoulder painted under where the arm attaches). This is what lets limbs rotate without gaps.
+* **Pivots:** list each joint's pixel position in a text file.
+
+**1. Three-quarter front rig (facing right), A-pose, arms 20 degrees from the body, legs slightly apart.**
+
+Parts, one layer each:
+
+| Part | Notes |
+|---|---|
+| hair_back | Everything behind the head and shoulders |
+| head | Face without hair, neutral expression; with neck stub |
+| hair_front | Fringe and front locks |
+| torso | Neck base to waist, natural bust; includes shoulders |
+| pelvis | Waist to upper thighs; includes the crotch |
+| upper_arm_near, upper_arm_far | |
+| forearm_near, forearm_far | |
+| hand_near, hand_far | 4 grips each: relaxed, open/wave, holding a phone, on hip |
+| thigh_near, thigh_far | |
+| shin_near, shin_far | |
+| foot_near, foot_far | Bare foot, plus a separate sneaker and heel layer per foot |
+
+**2. Side view rig (facing right)** with the same part list, for walking.
+
+**3. Expression parts** for the rig head:
+* eyes: open, half-lidded, closed, wink, happy-closed;
+* brows: neutral, raised, angry, sad;
+* mouths: smile, laugh/open, O, frown, pout, plus talk A/E/O.
+
+**4. Body variants** (same pivots):
+* torso: 4 bust sizes (small, natural, full, augmented);
+* pelvis and thighs: 4 hip/seat sizes (slim, natural, curvy, BBL).
+
+**5. Clothing layers** fitted per body variant, cut along the same part boundaries:
+* tops: casual crop tee, glamour dress top, sports bra, bikini top, lace bustier, party dress top;
+* bottoms: denim shorts, glamour dress skirt, leggings, bikini bottoms, lace briefs + stockings, party mini,
+  plaid skirt.
+
+**6. Hair** (front and back layers) for long waves, ponytail, bob, curls and space buns, painted in
+greyscale for tinting.
+
+**7. Overlays:**
+* rose thigh tattoo (on thigh_near);
+* floral sleeve, split across upper arm and forearm;
+* nose stud, belly ring.
+
+**8. Lying poses** without a bed, as separate full images until the rig can lie down:
+* sleeping on her back with her head to the left, side view;
+* reclining propped on one elbow, side view.

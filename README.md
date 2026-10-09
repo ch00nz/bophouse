@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 5B, Illustrated Artwork Integration
+## Current milestone: 5C, Character Graphics Cleanup & Animation
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -127,6 +127,19 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
 * **Wardrobe preview** (casual, glamour, fitness, swimwear) on the profile hero: display only. An **Art** mode
   button (Auto / Always / Off) is saved in settings; old saves default to Auto.
 
+**Milestone 5C (character graphics cleanup and animation):** see [docs/ILLUSTRATED_ART.md](docs/ILLUSTRATED_ART.md) section 5.
+* **Clean cut-outs:** the pipeline now matts edges properly (trimap and colour unmixing against the local
+  paper or shadow colour), removes paper streaks between hair strands and the light rim AI art leaves around
+  outlines, and keeps teeth, eyes, white shoes and highlights. The sheer cover-up is clean white fabric.
+  `art_pipeline/inspect_edges.py` previews halos on dark and bright backgrounds, and a unit test guards edges.
+* **Skeletal animation** for painted poses with Godot's Skeleton2D, Bone2D, a skinned Polygon2D mesh and
+  AnimationPlayer (`IllustratedRig`, `data/illustrated_rigs.json`): idle breathing, a walk with alternating legs
+  and arm swing, filming, livestream waves and selfies, with blending. Feet stay planted, the walk is mirrored to
+  her direction, and its speed follows the game speed.
+* **Painted sleeping pose** on the bed (bedding removed from the reference and turned to lie along the bed).
+* Flattened paintings only allow small limb swings; the exact layered rig art needed for full animation is
+  specified in the docs. The procedural renderer remains the fallback for every look the paintings don't show.
+
 **Economy rebalance:** start with $250, 350 followers and 8 subscribers (~$18 gross per productive hour).
 Running costs (rent, utilities, equipment maintenance, residents' living costs) are charged continuously and shown
 line by line in **Finances** (yesterday / today / lifetime). **Upgrades** (`data/upgrades.json`: ring light $150,
@@ -139,6 +152,7 @@ economy inspector (F9) to skip time and adjust cash. Balance report:
 
 Art review: `tests/visual/illustrated_sheet.gd -- out.png` (painted vs procedural sprites, expressions, outfits),
 `tests/visual/house_walk.gd -- out.png` (a creator walking upstairs to bed in the real house),
+`tests/visual/rig_sheet.gd -- out.png [creator] [anim]` (skeletal rig weights and animation frames),
 `tests/visual/character_sheet.gd -- out.png ava [items]` renders one creator in hero poses and every
 gameplay animation (with a 3x zoom of the sprites); `tests/visual/render_benchmark.gd` measures draw cost;
 `godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]` renders a grid of looks

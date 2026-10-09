@@ -46,8 +46,8 @@
         { "name": "outfit_fitness", "box": [730, 0, 1084, 1086], "kind": "full_body", "view": "front", "outfit": "fitness", "pose": "standing" },
         { "name": "outfit_swimwear", "box": [1084, 0, 1448, 1086], "kind": "full_body", "view": "front", "outfit": "swimwear", "pose": "standing",
           "sheer": [
-            { "_comment": "Sheer cover-up hanging on her right (box in item coordinates).", "box": [0, 280, 95, 1000], "close": 14, "opacity": 0.82 },
-            { "_comment": "Cover-up on her left.", "box": [250, 260, 364, 1000], "close": 16, "opacity": 0.82 }
+            { "_comment": "Sheer cover-up hanging on her right (box in item coordinates).", "box": [0, 280, 95, 1000], "close": 14, "opacity": 0.72 },
+            { "_comment": "Cover-up on her left.", "box": [250, 260, 364, 1000], "close": 16, "opacity": 0.72 }
           ] }
       ]
     },
@@ -59,7 +59,10 @@
         { "name": "pose_selfie", "box": [280, 0, 560, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "selfie" },
         { "name": "pose_filming", "box": [560, 0, 842, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "filming" },
         { "name": "pose_walking", "box": [842, 0, 1105, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "walking" },
-        { "name": "pose_sleeping", "box": [1095, 120, 1448, 880], "kind": "scene", "pose": "sleeping" }
+        { "name": "pose_sleeping", "box": [1095, 120, 1448, 880], "kind": "scene", "pose": "sleeping" },
+        { "name": "pose_lying", "box": [1120, 120, 1448, 880], "kind": "lying", "pose": "sleeping", "outfit": "casual",
+          "_comment": "The curled side-sleeper with the painted bedding removed, turned to lie along a side-view bed (head left, front facing up).",
+          "strip_white_props": true, "rotate": -96, "mirror": true }
       ]
     }
   ]

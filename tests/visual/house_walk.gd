@@ -20,6 +20,7 @@ func _run() -> void:
 	var state := GameState.new_game(config, 7)
 	state.last_seen_unix = game.now_unix()
 	game.state = state
+	game.set("pending_offline_summary", {}) # a previous tool run's save must not show "welcome back"
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	for i in 10:

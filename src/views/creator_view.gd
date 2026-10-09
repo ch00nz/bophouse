@@ -27,6 +27,14 @@ var _drawn_state: String = ""
 ## On the stairs (moving between storeys): painted creators show their back view.
 var _on_stairs: bool = false
 var _last_logical: Vector2 = Vector2.INF
+## Skeletal rigs for painted poses (milestone 5C), created on demand per painted asset.
+var _rigs: Dictionary = {}
+var _rig_active: IllustratedRig = null
+## Painted sleepers sink this far into the mattress (model units) so they rest on it, not float.
+const LYING_SINK := 6.0
+## Game animation -> painted rig animation (rigs fall back to their own default motion).
+const RIG_ANIMS := {"walk": "walk", "film": "film", "stream": "stream", "celebrate": "stream", "selfie": "selfie",
+	"socialise": "selfie", "idle": "idle", "chat": "idle", "argue": "idle"}
 
 
 func setup(creator_state: CreatorState, house_view: HouseView) -> void:
@@ -112,6 +120,7 @@ func _process(delta: float) -> void:
 	else:
 		_on_stairs = false
 	_last_logical = creator.position
+	_update_rig(anim, rate)
 
 	if _sprite != null:
 		if _sprite.sprite_frames.has_animation(anim) and _sprite.animation != anim:
@@ -147,7 +156,7 @@ func _draw() -> void:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2(-4, -lift - 12), Vector2(66, 22), Color("ffd166"), 2.5)
 		else:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2.ZERO, Vector2(22, 6), Color("ffd166"), 2.5)
-	if _sprite == null and not _draw_painted(anim, props):
+	if _sprite == null and not _draw_painted(anim, props, lift):
 		CreatorRenderer.draw_with_props(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift, props,
 			house.config.look_option("outfit", "glamour"))
 	_draw_bubble(anim, lift)
@@ -156,25 +165,69 @@ func _draw() -> void:
 		Color.WHITE, 120, HORIZONTAL_ALIGNMENT_CENTER, 4)
 
 
-## Painted sprite prototype (milestone 5B): standing, walking, filming, selfie and the back view on
-## the stairs. Returns false (procedural renderer) when there's no painted pose for this moment:
-## sleeping, reclining, collabs with props, or a look the paintings don't show.
-## The painted walk is a single pose with a step bounce, not an animated walk cycle.
-func _draw_painted(anim: String, props: Array) -> bool:
-	if not props.is_empty() or not IllustratedArt.use_art(_spec):
+## Painted art for this moment ({} = use the procedural renderer): no props (collabs, closed sets),
+## a look the paintings show, and a painted pose for the animation.
+func _painted_art(anim: String) -> Dictionary:
+	if _sprite != null or not IllustratedArt.use_art(_spec):
+		return {}
+	if not creator.is_travelling() and not (current_activity().get("props", []) as Array).is_empty():
+		return {}
+	return IllustratedArt.sprite(_spec, anim, _on_stairs)
+
+
+func _painted_scale() -> float:
+	var house_scale := float((_spec.get("illustrated", {}) as Dictionary).get("house_scale", 1.0))
+	return float(_spec.get("height_scale", 1.0)) * house_scale
+
+
+## Shows the skeletal rig for the current painted pose (idle breathing, walking strides, filming,
+## livestream waves, selfies), hiding the others. Rigs animate every frame on their own.
+func _update_rig(anim: String, rate: float) -> void:
+	var art := _painted_art(anim)
+	var name := str(art.get("name", ""))
+	var rig: IllustratedRig = null
+	if not name.is_empty() and IllustratedRig.has_rig(name):
+		rig = _rigs.get(name)
+		if rig == null:
+			rig = IllustratedRig.create(art, art["full_size"])
+			add_child(rig)
+			_rigs[name] = rig
+		var s := float(art["units_per_px"]) * _painted_scale()
+		var mirror := false
+		if anim == "walk" and not _on_stairs:
+			mirror = _facing * float((_spec.get("illustrated", {}) as Dictionary).get("walk_facing", 1)) < 0.0
+		rig.scale = Vector2(-s if mirror else s, s)
+		rig.play(str(RIG_ANIMS.get(anim, "idle")), rate if anim == "walk" else 1.0)
+	for key: String in _rigs:
+		(_rigs[key] as IllustratedRig).visible = _rigs[key] == rig
+	if rig != _rig_active:
+		_rig_active = rig
+		queue_redraw()
+
+
+## Painted art without a rig: the back view on the stairs (with a step bounce), the sleeping pose on
+## the bed, and painted outfits standing in for unpainted poses. Returns false when the procedural
+## renderer should draw instead (no painting for this moment). Rigged poses are drawn by their rig.
+func _draw_painted(anim: String, props: Array, lift: float) -> bool:
+	if not props.is_empty():
 		return false
-	var art := IllustratedArt.sprite(_spec, anim, _on_stairs)
+	if _rig_active != null and _rig_active.visible:
+		return true
+	var art := _painted_art(anim)
 	if art.is_empty():
 		return false
+	var scale := _painted_scale()
+	if str(art.get("kind", "")) == "lying":
+		# Resting on the mattress, centred on the bed spot like the procedural sleeper; slow breathing.
+		IllustratedArt.draw(self, art, Vector2(-4.0, -lift + LYING_SINK), scale, false, sin(_t * 1.4) * 0.012)
+		return true
 	var origin := Vector2.ZERO
 	var mirror := false
 	if anim == "walk":
 		origin.y = -absf(sin(_t * 9.0)) * 1.6
 		if not _on_stairs:
-			var walk_facing := float((_spec.get("illustrated", {}) as Dictionary).get("walk_facing", 1))
-			mirror = _facing * walk_facing < 0.0
-	var house_scale := float((_spec.get("illustrated", {}) as Dictionary).get("house_scale", 1.0))
-	IllustratedArt.draw(self, art, origin, float(_spec.get("height_scale", 1.0)) * house_scale, mirror, sin(_t * 2.0) * 0.004 if anim != "walk" else 0.0)
+			mirror = _facing * float((_spec.get("illustrated", {}) as Dictionary).get("walk_facing", 1)) < 0.0
+	IllustratedArt.draw(self, art, origin, scale, mirror, sin(_t * 2.0) * 0.004 if anim != "walk" else 0.0)
 	return true
 
 
@@ -191,6 +244,8 @@ func _draw_bubble(anim: String, lift: float) -> void:
 	if creator.has_reaction(house.state.game_minutes):
 		bubble = str(creator.reaction.get("kind", bubble))
 	var centre := Vector2(10, -140) if not is_lying(anim) else Vector2(-30, -lift - 58)
+	if anim == "sleep" and str(_painted_art(anim).get("kind", "")) == "lying":
+		centre = Vector2(-46, -lift - 70) # clear of the painted sleeper's face
 	centre.y += sin(_t * 2.0) * 1.5
 	draw_colored_polygon(PackedVector2Array([centre + Vector2(-5, 9), centre + Vector2(3, 10), centre + Vector2(-6, 18)]), Color.WHITE)
 	draw_circle(centre, 13.0, Color.WHITE)

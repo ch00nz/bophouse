@@ -11,20 +11,20 @@
       "source": {
         "sheet": "ava_master.png",
         "rect": [
-          290,
-          30,
-          443,
-          1390
+          291,
+          32,
+          442,
+          1388
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/master_front.png",
       "size": [
-        443,
-        1390
+        442,
+        1388
       ],
       "anchor": [
-        239.9,
-        1384.0
+        239.1,
+        1382.0
       ],
       "figure_height_px": 1376.0,
       "units_per_px": 0.090116,
@@ -32,11 +32,11 @@
         "file": "res://assets/characters/ava/illustrated/sprite/master_front.png",
         "size": [
           82,
-          259
+          258
         ],
         "anchor": [
-          44.6,
-          257.5
+          44.5,
+          257.1
         ],
         "units_per_px": 0.484375
       }
@@ -61,11 +61,11 @@
         993
       ],
       "anchor": [
-        183.8,
-        987.0
+        184.2,
+        986.0
       ],
-      "figure_height_px": 981.0,
-      "units_per_px": 0.126402,
+      "figure_height_px": 980.0,
+      "units_per_px": 0.126531,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/turn_front.png",
         "size": [
@@ -73,7 +73,7 @@
           259
         ],
         "anchor": [
-          48.0,
+          48.1,
           257.6
         ],
         "units_per_px": 0.484375
@@ -99,11 +99,11 @@
         984
       ],
       "anchor": [
-        154.8,
+        154.9,
         978.0
       ],
       "figure_height_px": 972.0,
-      "units_per_px": 0.126402,
+      "units_per_px": 0.126531,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/turn_side.png",
         "size": [
@@ -111,8 +111,8 @@
           257
         ],
         "anchor": [
-          40.4,
-          255.2
+          40.5,
+          255.5
         ],
         "units_per_px": 0.484375
       }
@@ -137,20 +137,20 @@
         987
       ],
       "anchor": [
-        154.5,
+        154.4,
         981.0
       ],
       "figure_height_px": 975.0,
-      "units_per_px": 0.126402,
+      "units_per_px": 0.126531,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/turn_back34.png",
         "size": [
-          81,
+          82,
           258
         ],
         "anchor": [
           40.3,
-          256.0
+          256.3
         ],
         "units_per_px": 0.484375
       }
@@ -175,19 +175,19 @@
         979
       ],
       "anchor": [
-        151.4,
-        973.0
+        151.7,
+        972.0
       ],
-      "figure_height_px": 967.0,
-      "units_per_px": 0.126402,
+      "figure_height_px": 966.0,
+      "units_per_px": 0.126531,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/turn_back.png",
         "size": [
           81,
-          255
+          256
         ],
         "anchor": [
-          39.5,
+          39.6,
           253.9
         ],
         "units_per_px": 0.484375
@@ -200,15 +200,15 @@
         "sheet": "ava_expressions.png",
         "rect": [
           26,
-          10,
+          11,
           469,
-          513
+          512
         ]
       },
       "file": "res://assets/characters/ava/illustrated/portrait/expr_confident.png",
       "size": [
         469,
-        513
+        512
       ]
     },
     "expr_happy": {
@@ -218,15 +218,15 @@
         "sheet": "ava_expressions.png",
         "rect": [
           495,
-          14,
+          15,
           475,
-          511
+          510
         ]
       },
       "file": "res://assets/characters/ava/illustrated/portrait/expr_happy.png",
       "size": [
         475,
-        511
+        510
       ]
     },
     "expr_surprised": {
@@ -236,15 +236,15 @@
         "sheet": "ava_expressions.png",
         "rect": [
           970,
-          11,
-          455,
-          517
+          13,
+          454,
+          515
         ]
       },
       "file": "res://assets/characters/ava/illustrated/portrait/expr_surprised.png",
       "size": [
-        455,
-        517
+        454,
+        515
       ]
     },
     "expr_angry": {
@@ -255,13 +255,13 @@
         "rect": [
           15,
           528,
-          489,
+          487,
           524
         ]
       },
       "file": "res://assets/characters/ava/illustrated/portrait/expr_angry.png",
       "size": [
-        489,
+        487,
         524
       ]
     },
@@ -273,13 +273,13 @@
         "rect": [
           506,
           530,
-          462,
+          461,
           528
         ]
       },
       "file": "res://assets/characters/ava/illustrated/portrait/expr_sad.png",
       "size": [
-        462,
+        461,
         528
       ]
     },
@@ -310,22 +310,22 @@
         "sheet": "ava_outfits.png",
         "rect": [
           22,
-          23,
+          24,
           371,
-          992
+          991
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/outfit_casual.png",
       "size": [
         371,
-        992
+        991
       ],
       "anchor": [
-        240.7,
-        986.0
+        240.6,
+        984.0
       ],
-      "figure_height_px": 979.0,
-      "units_per_px": 0.12666,
+      "figure_height_px": 978.0,
+      "units_per_px": 0.126789,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/outfit_casual.png",
         "size": [
@@ -333,8 +333,8 @@
           259
         ],
         "anchor": [
-          62.9,
-          257.8
+          63.0,
+          257.6
         ],
         "units_per_px": 0.484375
       }
@@ -348,22 +348,22 @@
         "sheet": "ava_outfits.png",
         "rect": [
           393,
-          24,
+          25,
           337,
-          1004
+          1003
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/outfit_glamour.png",
       "size": [
         337,
-        1004
+        1003
       ],
       "anchor": [
-        135.8,
-        998.0
+        135.9,
+        997.0
       ],
       "figure_height_px": 991.0,
-      "units_per_px": 0.12666,
+      "units_per_px": 0.126789,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/outfit_glamour.png",
         "size": [
@@ -371,7 +371,7 @@
           263
         ],
         "anchor": [
-          35.5,
+          35.6,
           261.0
         ],
         "units_per_px": 0.484375
@@ -386,22 +386,22 @@
         "sheet": "ava_outfits.png",
         "rect": [
           730,
-          24,
+          25,
           354,
-          999
+          998
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/outfit_fitness.png",
       "size": [
         354,
-        999
+        998
       ],
       "anchor": [
-        214.3,
-        993.0
+        213.8,
+        992.0
       ],
       "figure_height_px": 986.0,
-      "units_per_px": 0.12666,
+      "units_per_px": 0.126789,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/outfit_fitness.png",
         "size": [
@@ -409,7 +409,7 @@
           261
         ],
         "anchor": [
-          56.1,
+          56.0,
           259.7
         ],
         "units_per_px": 0.484375
@@ -430,7 +430,7 @@
             1000
           ],
           "close": 14,
-          "opacity": 0.82
+          "opacity": 0.72
         },
         {
           "_comment": "Cover-up on her left.",
@@ -441,29 +441,29 @@
             1000
           ],
           "close": 16,
-          "opacity": 0.82
+          "opacity": 0.72
         }
       ],
       "source": {
         "sheet": "ava_outfits.png",
         "rect": [
           1084,
-          24,
+          25,
           343,
-          1011
+          1010
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/outfit_swimwear.png",
       "size": [
         343,
-        1011
+        1010
       ],
       "anchor": [
-        228.1,
-        1005.0
+        232.2,
+        1004.0
       ],
       "figure_height_px": 998.0,
-      "units_per_px": 0.12666,
+      "units_per_px": 0.126789,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/outfit_swimwear.png",
         "size": [
@@ -471,7 +471,7 @@
           264
         ],
         "anchor": [
-          59.6,
+          60.8,
           262.8
         ],
         "units_per_px": 0.484375
@@ -486,22 +486,22 @@
         "sheet": "ava_poses.png",
         "rect": [
           3,
-          84,
+          85,
           277,
-          792
+          791
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/pose_standing.png",
       "size": [
         277,
-        792
+        791
       ],
       "anchor": [
-        185.9,
-        786.0
+        186.0,
+        785.0
       ],
-      "figure_height_px": 780.0,
-      "units_per_px": 0.158974,
+      "figure_height_px": 779.0,
+      "units_per_px": 0.159178,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/pose_standing.png",
         "size": [
@@ -509,7 +509,7 @@
           260
         ],
         "anchor": [
-          61.0,
+          61.1,
           258.0
         ],
         "units_per_px": 0.484375
@@ -524,22 +524,22 @@
         "sheet": "ava_poses.png",
         "rect": [
           280,
-          85,
+          86,
           280,
-          789
+          788
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/pose_selfie.png",
       "size": [
         280,
-        789
+        788
       ],
       "anchor": [
         130.9,
-        783.0
+        782.0
       ],
-      "figure_height_px": 777.0,
-      "units_per_px": 0.158974,
+      "figure_height_px": 776.0,
+      "units_per_px": 0.159178,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/pose_selfie.png",
         "size": [
@@ -547,7 +547,7 @@
           259
         ],
         "anchor": [
-          42.9,
+          43.0,
           257.0
         ],
         "units_per_px": 0.484375
@@ -562,22 +562,22 @@
         "sheet": "ava_poses.png",
         "rect": [
           560,
-          85,
+          86,
           282,
-          791
+          790
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/pose_filming.png",
       "size": [
         282,
-        791
+        790
       ],
       "anchor": [
-        137.6,
-        785.0
+        137.5,
+        784.0
       ],
       "figure_height_px": 778.0,
-      "units_per_px": 0.158974,
+      "units_per_px": 0.159178,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/pose_filming.png",
         "size": [
@@ -600,22 +600,22 @@
         "sheet": "ava_poses.png",
         "rect": [
           842,
-          78,
+          79,
           263,
-          799
+          798
         ]
       },
       "file": "res://assets/characters/ava/illustrated/full/pose_walking.png",
       "size": [
         263,
-        799
+        798
       ],
       "anchor": [
-        181.8,
-        793.0
+        181.6,
+        791.0
       ],
-      "figure_height_px": 786.0,
-      "units_per_px": 0.158974,
+      "figure_height_px": 785.0,
+      "units_per_px": 0.159178,
       "sprite": {
         "file": "res://assets/characters/ava/illustrated/sprite/pose_walking.png",
         "size": [
@@ -624,7 +624,7 @@
         ],
         "anchor": [
           59.7,
-          260.3
+          259.9
         ],
         "units_per_px": 0.484375
       }
@@ -636,16 +636,57 @@
         "sheet": "ava_poses.png",
         "rect": [
           1095,
-          124,
-          353,
-          734
+          126,
+          351,
+          719
         ]
       },
       "file": "res://assets/characters/ava/illustrated/reference/pose_sleeping.png",
       "size": [
-        353,
-        734
+        351,
+        719
       ]
+    },
+    "pose_lying": {
+      "kind": "lying",
+      "pose": "sleeping",
+      "outfit": "casual",
+      "_comment": "The curled side-sleeper with the painted bedding removed, turned to lie along a side-view bed (head left, front facing up).",
+      "strip_white_props": true,
+      "rotate": -96,
+      "mirror": true,
+      "source": {
+        "sheet": "ava_poses.png",
+        "rect": [
+          1125,
+          135,
+          692,
+          292
+        ]
+      },
+      "file": "res://assets/characters/ava/illustrated/full/pose_lying.png",
+      "size": [
+        692,
+        292
+      ],
+      "anchor": [
+        345.5,
+        291.0
+      ],
+      "length_px": 692,
+      "units_per_px": 0.159178,
+      "sprite": {
+        "file": "res://assets/characters/ava/illustrated/sprite/pose_lying.png",
+        "size": [
+          227,
+          96
+        ],
+        "anchor": [
+          113.5,
+          95.6
+        ],
+        "units_per_px": 0.484375
+      }
     }
   }
 }

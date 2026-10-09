@@ -54,6 +54,8 @@ def apply_patches(rgb: np.ndarray, patches: list) -> np.ndarray:
 
 
 def isolate(alpha: np.ndarray, kind: str) -> np.ndarray:
+    if kind == "lying":
+        kind = "full_body"
     """Keep the main figure in a box: the largest blob, plus smaller blobs touching its bounds."""
     solid = alpha > 0.5
     labels, count = ndimage.label(solid)
@@ -81,27 +83,52 @@ def isolate(alpha: np.ndarray, kind: str) -> np.ndarray:
     return np.where(near, alpha, 0.0).astype(np.float32)
 
 
-def sheer(rgb: np.ndarray, alpha: np.ndarray, bg: np.ndarray, regions: list) -> tuple[np.ndarray, np.ndarray]:
-    """Translucent fabric (e.g. a beach cover-up) drawn over the paper: inside each region, paper
-    showing through the closed silhouette becomes semi-transparent white fabric instead of holes."""
+def sheer(rgb: np.ndarray, raw: np.ndarray, alpha: np.ndarray, bg: np.ndarray, regions: list) -> tuple[np.ndarray, np.ndarray]:
+    """Translucent fabric (e.g. a beach cover-up) painted over the paper. Inside each region's closed
+    silhouette, every pixel is unmixed between white fabric and the paper, so the sheer cloth keeps
+    its painted folds as varying opacity instead of turning into holes (with a minimum opacity)."""
     for region in regions:
         x0, y0, x1, y1 = region["box"]
-        solid = alpha[y0:y1, x0:x1] > 0.5
+        a = alpha[y0:y1, x0:x1]
+        c = rgb[y0:y1, x0:x1]
+        raw_c = raw[y0:y1, x0:x1]
+        solid = a > 0.5
         n = int(region.get("close", 10))
-        # Pad by replicating the edges so the closing isn't eaten away at the region border.
         padded = np.pad(solid, n + 1, mode="edge")
         closed = ndimage.binary_closing(padded, iterations=n)[n + 1:-n - 1, n + 1:-n - 1]
         closed = ndimage.binary_fill_holes(closed)
-        gaps = closed & (alpha[y0:y1, x0:x1] < 0.95)
-        a = alpha[y0:y1, x0:x1]
-        c = rgb[y0:y1, x0:x1]
-        opacity = float(region.get("opacity", 0.5))
-        tint = np.array(region.get("tint", [250, 248, 247]), dtype=np.float32)
-        new_alpha = np.maximum(a, opacity)
-        # Composite the fabric under whatever partial pixel was there.
-        c[gaps] = (c[gaps] * a[gaps, None] + tint * (new_alpha[gaps, None] - a[gaps, None])) / np.maximum(new_alpha[gaps, None], 1e-3)
-        a[gaps] = new_alpha[gaps]
+        # Gaps, plus painted fabric pixels that are really paper seen through the sheer cloth.
+        near_paper = np.linalg.norm(raw[y0:y1, x0:x1] - bg, axis=2) < 26.0
+        gaps = closed & ((a < 0.95) | near_paper)
+        fabric = np.array(region.get("tint", [253, 251, 249]), dtype=np.float32)
+        fb = fabric - bg
+        sheer_a = np.clip(((raw_c - bg) * fb).sum(axis=2) / max(float((fb * fb).sum()), 1e-3), 0.0, 1.0)
+        sheer_a = np.maximum(sheer_a, float(region.get("opacity", 0.45)))
+        new_a = np.maximum(a, sheer_a)
+        # Fabric colour: white cloth, keeping a little of the painted fold shading.
+        unmixed = np.clip((raw_c - (1.0 - new_a[..., None]) * bg) / np.maximum(new_a[..., None], 1e-3), 0, 255)
+        # Fold shading is kept as neutral grey: the painting's beige came from the paper behind it.
+        shade = float(region.get("shading", 0.35))
+        neutral = np.repeat(unmixed.mean(axis=2, keepdims=True), 3, axis=2) * np.array([0.98, 0.99, 1.0])
+        c[gaps] = fabric * (1.0 - shade) + neutral[gaps] * shade
+        a[gaps] = new_a[gaps]
     return rgb, alpha
+
+
+def strip_white_props(rgb: np.ndarray, alpha: np.ndarray) -> np.ndarray:
+    """Removes painted props in neutral white (pillows, sheets) that touch the transparent area.
+    Only for items that have no large white parts of their own (e.g. the sleeping pose)."""
+    lum = rgb.mean(axis=2)
+    sat = rgb.max(axis=2) - rgb.min(axis=2)
+    white = (alpha > 0.02) & (lum > 195) & (sat < 34)
+    labels, count = ndimage.label(white)
+    if count:
+        outside = ndimage.binary_dilation(alpha < 0.05, iterations=2)
+        touching = np.unique(labels[outside & white])
+        drop = np.isin(labels, touching[touching > 0])
+        drop = ndimage.binary_dilation(drop, iterations=1) & (lum > 170) & (sat < 40)
+        alpha = np.where(drop, 0.0, alpha).astype(np.float32)
+    return isolate(alpha, "full_body")
 
 
 def trim(img_rgb: np.ndarray, alpha: np.ndarray) -> tuple[np.ndarray, np.ndarray, tuple[int, int]]:
@@ -148,8 +175,10 @@ def run(manifest_path: str, preview: str | None) -> None:
             x0, y0, x1, y1 = item["box"]
             a = isolate(alpha[y0:y1, x0:x1], item["kind"])
             c = clean[y0:y1, x0:x1].copy()
+            if item.get("strip_white_props"):
+                a = strip_white_props(c, a)
             if item.get("sheer"):
-                c, a = sheer(c, a, bg, item["sheer"])
+                c, a = sheer(c, rgb[y0:y1, x0:x1], a, bg, item["sheer"])
             c, a, offset = trim(c, a)
             extracted[item["name"]] = (item, c, a, (offset[0] + x0, offset[1] + y0))
         ref_height = None
@@ -158,13 +187,33 @@ def run(manifest_path: str, preview: str | None) -> None:
         for name, (item, c, a, origin) in extracted.items():
             image = rgba(c, a)
             kind = item["kind"]
+            if item.get("rotate"):
+                # Turn a figure (e.g. a top-down sleeper) to lie along the bed; optionally mirrored.
+                image = image.convert("RGBa").rotate(float(item["rotate"]), resample=Image.BICUBIC, expand=True).convert("RGBA")
+                if item.get("mirror"):
+                    image = image.transpose(Image.FLIP_LEFT_RIGHT)
+                image = image.crop(image.getchannel("A").point(lambda v: 255 if v > 5 else 0).getbbox())
+                a = np.asarray(image.getchannel("A")).astype(np.float32) / 255.0
             entry = {k: v for k, v in item.items() if k not in ("box", "name")}
             entry["source"] = {"sheet": sheet["file"], "rect": [int(origin[0]), int(origin[1]), image.width, image.height]}
-            folder = {"full_body": "full", "bust": "portrait", "scene": "reference"}[kind]
+            folder = {"full_body": "full", "lying": "full", "bust": "portrait", "scene": "reference"}[kind]
             file_path = os.path.join(out_dir, folder, name + ".png")
             image.save(file_path, optimize=True)
             entry["file"] = "res://" + file_path.replace(os.sep, "/")
             entry["size"] = [image.width, image.height]
+            if kind == "lying" and ref_height:
+                # Rests on its lowest edge; the game fits its length to the bed.
+                ys, xs = np.nonzero(a > 0.5)
+                ax, ay = float(xs.min() + xs.max()) * 0.5, float(ys.max() + 1)
+                factor = sprite_height / ref_height
+                entry["anchor"] = [round(ax, 1), round(ay, 1)]
+                entry["length_px"] = int(xs.max() - xs.min() + 1)
+                entry["units_per_px"] = round(figure_units / ref_height, 6)
+                sprite = downscale(image, factor)
+                sprite_path = os.path.join(out_dir, "sprite", name + ".png")
+                sprite.save(sprite_path, optimize=True)
+                entry["sprite"] = {"file": "res://" + sprite_path.replace(os.sep, "/"), "size": [sprite.width, sprite.height],
+                    "anchor": [round(ax * factor, 1), round(ay * factor, 1)], "units_per_px": round(figure_units / sprite_height, 6)}
             if kind == "full_body" and ref_height:
                 ax, ay, height = feet_anchor(a)
                 entry["anchor"] = [round(ax, 1), round(ay, 1)]

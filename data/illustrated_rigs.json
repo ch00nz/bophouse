@@ -1,0 +1,92 @@
+{
+  "_comment": "Skeletal rigs for painted poses (milestone 5C, Skeleton2D + Polygon2D proof of concept). Coordinates are pixels of the full-size cut-out (assets/characters/<id>/illustrated/full/<asset>.png). Bones: 'at' is the pivot (joint); 'parent' another bone; 'region' a polygon of the painting the bone moves (first matching bone in list order wins; unmatched pixels follow 'pelvis'). Weights are smoothed across the mesh so joints bend instead of tearing. Animations: tracks of sine motion added to each bone's rest pose: prop rotation (radians), x / y (full-size px), scale_y; 'freq' cycles per loop, 'phase' radians, 'abs' = |sin| (bobs). Limits of flattened paintings: limbs can only swing a little (nothing is painted behind them), so these are subtle, honest motions, not a full walk cycle (see docs/ILLUSTRATED_ART.md).",
+  "rigs": {
+    "pose_standing": {
+      "bones": [
+        { "name": "pelvis", "at": [140, 390] },
+        { "name": "forearm_r", "parent": "arm_r", "at": [226, 300], "region": [[219, 300], [277, 300], [277, 470], [208, 470], [208, 405], [219, 405]] },
+        { "name": "arm_r", "parent": "chest", "at": [208, 185], "region": [[211, 172], [277, 172], [277, 300], [214, 300]] },
+        { "name": "head", "parent": "chest", "at": [140, 152], "region": [[0, 0], [277, 0], [277, 150], [0, 150]] },
+        { "name": "chest", "parent": "pelvis", "at": [140, 300], "region": [[0, 150], [277, 150], [277, 300], [0, 300]] }
+      ],
+      "animations": {
+        "idle": { "length": 3.2, "tracks": [
+          { "bone": "chest", "prop": "scale_y", "amp": 0.012 },
+          { "bone": "chest", "prop": "x", "amp": 1.2, "phase": 1.2 },
+          { "bone": "head", "prop": "rotation", "amp": 0.03, "phase": 0.6 },
+          { "bone": "arm_r", "prop": "rotation", "amp": 0.035, "phase": 1.2 },
+          { "bone": "forearm_r", "prop": "rotation", "amp": 0.05, "phase": 1.8 }
+        ] }
+      }
+    },
+    "pose_walking": {
+      "bones": [
+        { "name": "pelvis", "at": [122, 380] },
+        { "name": "forearm_l", "parent": "arm_l", "at": [35, 322], "region": [[0, 326], [48, 326], [40, 490], [0, 490]] },
+        { "name": "arm_l", "parent": "chest", "at": [62, 200], "region": [[0, 192], [72, 192], [64, 262], [50, 326], [0, 326]] },
+        { "name": "forearm_r", "parent": "arm_r", "at": [232, 305], "region": [[214, 305], [263, 305], [263, 430], [224, 430]] },
+        { "name": "arm_r", "parent": "chest", "at": [192, 205], "region": [[203, 196], [263, 196], [263, 305], [214, 305]] },
+        { "name": "shin_l", "parent": "pelvis", "at": [130, 560], "region": [[0, 552], [131, 552], [129, 800], [0, 800]] },
+        { "name": "shin_r", "parent": "pelvis", "at": [130, 560], "region": [[131, 552], [263, 552], [263, 800], [129, 800]] },
+        { "name": "head", "parent": "chest", "at": [127, 157], "region": [[0, 0], [263, 0], [263, 152], [0, 152]] },
+        { "name": "chest", "parent": "pelvis", "at": [124, 300], "region": [[0, 152], [263, 152], [263, 300], [0, 300]] }
+      ],
+      "animations": {
+        "walk": { "length": 0.7, "tracks": [
+          { "bone": "shin_l", "prop": "rotation", "amp": 0.17 },
+          { "bone": "shin_r", "prop": "rotation", "amp": -0.17 },
+          { "bone": "arm_l", "prop": "rotation", "amp": -0.16 },
+          { "bone": "forearm_l", "prop": "rotation", "amp": -0.08, "phase": 0.4 },
+          { "bone": "arm_r", "prop": "rotation", "amp": 0.12 },
+          { "bone": "forearm_r", "prop": "rotation", "amp": 0.06, "phase": 0.4 },
+          { "bone": "chest", "prop": "y", "amp": -5.0, "abs": true },
+          { "bone": "chest", "prop": "rotation", "amp": 0.02 },
+          { "bone": "head", "prop": "rotation", "amp": 0.02, "freq": 2 }
+        ] }
+      }
+    },
+    "pose_filming": {
+      "bones": [
+        { "name": "pelvis", "at": [140, 385] },
+        { "name": "cam_arm", "parent": "chest", "at": [78, 196], "region": [[0, 40], [72, 40], [84, 200], [72, 292], [0, 292]] },
+        { "name": "wave_fore", "parent": "wave_arm", "at": [243, 282], "region": [[230, 100], [282, 100], [282, 278], [236, 278]] },
+        { "name": "wave_arm", "parent": "chest", "at": [212, 196], "region": [[206, 184], [282, 184], [282, 304], [216, 304]] },
+        { "name": "head", "parent": "chest", "at": [140, 152], "region": [[72, 0], [230, 0], [230, 150], [72, 150]] },
+        { "name": "chest", "parent": "pelvis", "at": [140, 300], "region": [[0, 150], [282, 150], [282, 300], [0, 300]] }
+      ],
+      "animations": {
+        "film": { "length": 1.6, "tracks": [
+          { "bone": "wave_fore", "prop": "rotation", "amp": 0.2, "freq": 2 },
+          { "bone": "cam_arm", "prop": "rotation", "amp": 0.03 },
+          { "bone": "head", "prop": "rotation", "amp": 0.035, "phase": 0.8 },
+          { "bone": "chest", "prop": "x", "amp": 1.5, "phase": 1.6 },
+          { "bone": "chest", "prop": "scale_y", "amp": 0.01, "freq": 2 }
+        ] },
+        "stream": { "length": 0.9, "tracks": [
+          { "bone": "wave_fore", "prop": "rotation", "amp": 0.26, "freq": 2 },
+          { "bone": "cam_arm", "prop": "rotation", "amp": 0.025, "freq": 1 },
+          { "bone": "head", "prop": "rotation", "amp": 0.045, "freq": 2, "phase": 0.5 },
+          { "bone": "chest", "prop": "y", "amp": -2.5, "abs": true }
+        ] }
+      }
+    },
+    "pose_selfie": {
+      "bones": [
+        { "name": "pelvis", "at": [140, 385] },
+        { "name": "phone_arm", "parent": "chest", "at": [70, 192], "region": [[0, 30], [86, 30], [90, 200], [62, 262], [0, 262]] },
+        { "name": "peace_fore", "parent": "chest", "at": [262, 246], "region": [[206, 96], [280, 96], [280, 262], [222, 240]] },
+        { "name": "head", "parent": "chest", "at": [140, 152], "region": [[86, 0], [206, 0], [206, 150], [86, 150]] },
+        { "name": "chest", "parent": "pelvis", "at": [140, 300], "region": [[0, 150], [280, 150], [280, 300], [0, 300]] }
+      ],
+      "animations": {
+        "selfie": { "length": 2.0, "tracks": [
+          { "bone": "peace_fore", "prop": "rotation", "amp": 0.07, "freq": 2 },
+          { "bone": "phone_arm", "prop": "rotation", "amp": 0.02 },
+          { "bone": "head", "prop": "rotation", "amp": 0.04, "phase": 0.9 },
+          { "bone": "chest", "prop": "scale_y", "amp": 0.01 },
+          { "bone": "chest", "prop": "x", "amp": 1.2, "phase": 1.4 }
+        ] }
+      }
+    }
+  }
+}

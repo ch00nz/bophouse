@@ -41,8 +41,40 @@ func test_extracted_assets_exist_with_transparent_backgrounds() -> void:
 			assert_almost(image.get_pixel(0, 0).a, 0.0, 0.01, name + " corner is transparent")
 			assert_almost(image.get_pixel(image.get_width() - 1, image.get_height() - 1).a, 0.0, 0.01, name + " corner is transparent")
 			var centre := image.get_pixel(image.get_width() / 2, int(image.get_height() * 0.35)) # torso / hair
-			if str(entry["kind"]) != "scene":
+			if str(entry["kind"]) == "full_body" or str(entry["kind"]) == "bust":
 				assert_gt(centre.a, 0.9, name + " figure is opaque in the middle")
+
+
+## Walks in from both sides of every third row to the first solid pixel and checks the edge isn't
+## the paper colour (a light halo). Painted fabrics like the white cover-up are far from paper.
+func test_cutout_edges_have_no_paper_halo() -> void:
+	var paper := Color8(229, 220, 214)
+	var assets: Dictionary = IllustratedArt.manifest(ART).get("assets", {})
+	for name: String in assets:
+		var entry: Dictionary = assets[name]
+		if str(entry["kind"]) == "scene":
+			continue
+		for path: String in [str(entry["file"]), str((entry.get("sprite", entry) as Dictionary)["file"])]:
+			var image := Image.load_from_file(ProjectSettings.globalize_path(path))
+			var edges := 0
+			var halo := 0
+			for y in range(0, image.get_height(), 3):
+				for dir: int in [1, -1]:
+					var x := 0 if dir > 0 else image.get_width() - 1
+					while x >= 0 and x < image.get_width() and image.get_pixel(x, y).a < 0.5:
+						x += dir
+					if x < 0 or x >= image.get_width():
+						continue
+					edges += 1
+					var c := image.get_pixel(x, y)
+					var d := Vector3(c.r - paper.r, c.g - paper.g, c.b - paper.b).length() * 255.0
+					var paper_hue := absf((c.r - c.g) - (paper.r - paper.g)) * 255.0 < 6.0 and c.b < c.g
+					if d < 18.0 and paper_hue:
+						halo += 1
+			# Downscaled sprites average sheer fabric folds (grey) with highlights into beige-ish edge
+			# pixels on the swimwear cover-up, so they get a looser limit than the full-size art.
+			var limit := 0.03 if path.contains("/full/") or path.contains("/portrait/") else 0.08
+			assert_lt(float(halo) / maxf(edges, 1.0), limit, "%s edge is clean (%d of %d paper-coloured)" % [path, halo, edges])
 
 
 func test_figures_share_a_consistent_house_scale() -> void:
@@ -119,8 +151,11 @@ func test_house_poses_map_to_paintings() -> void:
 	assert_eq(str(IllustratedArt.sprite(spec, "walk", true)["name"]), "turn_back", "back view on the stairs")
 	assert_eq(str(IllustratedArt.sprite(spec, "film")["name"]), "pose_filming")
 	assert_eq(str(IllustratedArt.sprite(spec, "selfie")["name"]), "pose_selfie")
-	assert_true(IllustratedArt.sprite(spec, "sleep").is_empty(), "sleep keeps the procedural animation")
+	assert_eq(str(IllustratedArt.sprite(spec, "sleep")["name"]), "pose_lying", "painted sleeper on the bed")
+	assert_eq(str(IllustratedArt.sprite(spec, "sleep")["kind"]), "lying")
 	assert_true(IllustratedArt.sprite(spec, "recline").is_empty(), "recline keeps the procedural animation")
+	var glamour := _spec(_with(_ava(config), config, "outfit:glamour"), config)
+	assert_true(IllustratedArt.sprite(glamour, "sleep").is_empty(), "a standing outfit painting is never laid on the bed")
 	var fitness := _spec(_with(_ava(config), config, "outfit:fitness"), config)
 	assert_eq(str(IllustratedArt.sprite(fitness, "film")["name"]), "outfit_fitness", "painted outfit stands in for unpainted poses")
 
