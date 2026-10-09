@@ -18,6 +18,7 @@ var _tags: HFlowContainer
 var _status: Label
 var _focus_label: Label
 var _activity: Label
+var _photoshoot: Button
 var _section: Control
 
 
@@ -78,6 +79,16 @@ func _ready() -> void:
 	_activity.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	add_child(_activity)
 
+	_photoshoot = Button.new()
+	_photoshoot.custom_minimum_size = Vector2(0, 32)
+	_photoshoot.clip_text = true
+	_photoshoot.tooltip_text = "Optional mini-game: direct a quick photoshoot for bonus income and followers. She produces content automatically either way."
+	_photoshoot.pressed.connect(func() -> void:
+		var hud := get_tree().get_first_node_in_group("hud")
+		if hud != null:
+			hud.call("open_photoshoot", creator_id))
+	add_child(_photoshoot)
+
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 3)
 	for tab_name: String in TABS:
@@ -114,6 +125,9 @@ func refresh() -> void:
 	else:
 		_status.text = "Status: healthy  |  Reputation %d" % roundi(creator.reputation)
 		_status.add_theme_color_override("font_color", UiTheme.MUTED)
+	var shoot := Photoshoot.check(creator, Game.state, Game.config)
+	_photoshoot.disabled = not bool(shoot["ok"])
+	_photoshoot.text = "Direct a bonus photoshoot" if bool(shoot["ok"]) else "Photoshoot: " + str(shoot["reason"])
 	if _section != null and _section.has_method("refresh"):
 		_section.call("refresh")
 

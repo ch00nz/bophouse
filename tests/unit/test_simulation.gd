@@ -39,19 +39,32 @@ func test_working_earns_cash_and_followers() -> void:
 	assert_almost(float(totals["cash"]), state.cash - cash_before, 0.001)
 
 
-func test_switching_to_socials_moves_her_to_the_living_room() -> void:
+func test_switching_to_content_the_room_cant_host_moves_her() -> void:
+	var config := load_config()
+	var state := GameState.new_game(config)
+	var c := state.creators[0]
+	c.content_focus = "social_media"
+	Simulation.start_activity(state, config, c, "work", "living_1")
+	Simulation.advance(state, config, 60.0)
+	assert_eq(state.get_room(c.room_id).type_id, "living_room")
+	c.content_focus = "solo_premium" # the lounge can't host premium sets
+	Simulation.advance(state, config, 1.0)
+	assert_true(c.is_travelling(), "should walk to a room that hosts the new content")
+	Simulation.advance(state, config, 60.0)
+	assert_eq(c.activity_id, "work")
+	assert_true(RoomProduction.supports(config, state.get_room(c.room_id), "solo_premium"))
+
+
+func test_switching_to_content_the_room_can_host_keeps_her_there() -> void:
 	var config := load_config()
 	var state := GameState.new_game(config)
 	var c := state.creators[0]
 	Simulation.start_activity(state, config, c, "work", "studio_1")
 	Simulation.advance(state, config, 60.0)
-	assert_eq(state.get_room(c.room_id).type_id, "studio")
-	c.content_focus = "social_media"
-	Simulation.advance(state, config, 1.0)
-	assert_true(c.is_travelling(), "should walk to the new content's room")
-	Simulation.advance(state, config, 60.0)
-	assert_eq(c.activity_id, "work")
-	assert_eq(state.get_room(c.room_id).type_id, "living_room")
+	c.content_focus = "social_media" # the studio hosts socials too: no pointless walk mid-session
+	Simulation.advance(state, config, 5.0)
+	assert_false(c.is_travelling())
+	assert_eq(c.room_id, "studio_1")
 
 
 func test_new_content_gains_experience_while_working() -> void:

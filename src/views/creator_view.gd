@@ -47,7 +47,7 @@ func _on_appearance_changed(creator_id: String, _item_id: String) -> void:
 
 
 func current_activity() -> Dictionary:
-	return ActivityResolver.resolve(creator, creator.activity_id, house.config)
+	return ActivityResolver.resolve(creator, creator.activity_id, house.config, house.state.get_room(creator.room_id))
 
 
 func current_anim() -> String:
@@ -56,8 +56,13 @@ func current_anim() -> String:
 	return str(current_activity().get("anim", "idle"))
 
 
+## Poses performed lying on a bed or sofa (lifted onto the sleep surface).
+static func is_lying(anim: String) -> bool:
+	return anim == "sleep" or anim == "recline"
+
+
 func hit_rect() -> Rect2:
-	if current_anim() == "sleep":
+	if is_lying(current_anim()):
 		var lift := house.sleep_surface_height(creator.room_id)
 		return Rect2(-62, -lift - 30, 120, 40)
 	return STANDING_HIT
@@ -99,18 +104,21 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var anim := current_anim()
-	var lift := house.sleep_surface_height(creator.room_id) if anim == "sleep" else 0.0
-	if anim != "sleep":
+	var lying := is_lying(anim)
+	var lift := house.sleep_surface_height(creator.room_id) if lying else 0.0
+	var props: Array = [] if creator.is_travelling() else current_activity().get("props", [])
+	if not lying:
 		PlaceholderArt.draw_ellipse(self, Vector2.ZERO, Vector2(17, 4), Color(0, 0, 0, 0.2))
 	if selected:
-		if anim == "sleep":
+		if lying:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2(-4, -lift - 12), Vector2(66, 22), Color("ffd166"), 2.5)
 		else:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2.ZERO, Vector2(22, 6), Color("ffd166"), 2.5)
 	if _sprite == null:
-		CreatorRenderer.draw(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift)
+		CreatorRenderer.draw_with_props(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift, props,
+			house.config.look_option("outfit", "glamour"))
 	_draw_bubble(anim, lift)
-	var name_y := 18.0 if anim != "sleep" else 14.0
+	var name_y := 18.0 if not lying else 14.0
 	PlaceholderArt.draw_text(self, Vector2(-60, name_y), creator.display_name.get_slice(" ", 0), 13,
 		Color.WHITE, 120, HORIZONTAL_ALIGNMENT_CENTER, 4)
 
@@ -118,7 +126,7 @@ func _draw() -> void:
 func _draw_bubble(anim: String, lift: float) -> void:
 	if anim == "walk":
 		return
-	var centre := Vector2(10, -140) if anim != "sleep" else Vector2(-30, -lift - 58)
+	var centre := Vector2(10, -140) if not is_lying(anim) else Vector2(-30, -lift - 58)
 	centre.y += sin(_t * 2.0) * 1.5
 	draw_colored_polygon(PackedVector2Array([centre + Vector2(-5, 9), centre + Vector2(3, 10), centre + Vector2(-6, 18)]), Color.WHITE)
 	draw_circle(centre, 13.0, Color.WHITE)

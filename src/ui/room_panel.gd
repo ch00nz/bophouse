@@ -54,6 +54,9 @@ func _build() -> void:
 	add_child(UiTheme.label("In here now", 14, UiTheme.MUTED))
 	add_child(_occupants)
 
+	if not type_def.get("content_support", {}).is_empty():
+		_add_production_section(room, type_def)
+
 	if not upgradable:
 		refresh()
 		return
@@ -70,12 +73,21 @@ func _build() -> void:
 	var next_q := float(next.get("quality", 1.0))
 	add_child(UiTheme.label("%s x%.2f -> x%.2f (+%d%%)" % [effect, current_q, next_q, roundi((next_q / current_q - 1.0) * 100.0)], 14, UiTheme.GOOD, true))
 	var unlocks := PackedStringArray()
-	for content_id in ContentRules.assignable_ids(config):
-		var room_req: Dictionary = config.content(content_id).get("requirements", {}).get("room", {})
-		if str(room_req.get("type", "")) == room.type_id and int(room_req.get("level", 0)) == room.level + 1:
-			unlocks.append(config.content_label(content_id))
+	var support: Dictionary = type_def.get("content_support", {})
+	for content_id in support:
+		if int(support[content_id].get("min_level", 1)) == room.level + 1:
+			unlocks.append(config.content_label(str(content_id)))
 	if not unlocks.is_empty():
-		add_child(UiTheme.label("Unlocks content: " + ", ".join(unlocks), 14, UiTheme.GOLD, true))
+		add_child(UiTheme.label("Can host here: " + ", ".join(unlocks), 14, UiTheme.GOLD, true))
+	var next_production: Dictionary = next.get("production", {})
+	var current_production: Dictionary = level_def.get("production", {})
+	var gains := PackedStringArray()
+	for attr in RoomProduction.ATTRIBUTES:
+		var delta := float(next_production.get(attr, 0.0)) - float(current_production.get(attr, 0.0))
+		if delta > 0.001:
+			gains.append("%s +%d" % [attr.capitalize(), roundi(delta * 100.0)])
+	if not gains.is_empty():
+		add_child(UiTheme.label("Set quality: " + ", ".join(gains), 13, UiTheme.GOOD, true))
 	_upgrade_button = Button.new()
 	_upgrade_button.custom_minimum_size = Vector2(0, 40)
 	_upgrade_button.pressed.connect(_on_upgrade_pressed)
@@ -103,6 +115,48 @@ func refresh() -> void:
 		var affordable := Game.state.cash >= cost
 		_upgrade_button.disabled = not affordable
 		_upgrade_status.text = "" if affordable else "Need %s more" % Fmt.money(cost - Game.state.cash)
+
+
+## Content set: owner (for private rooms), production attributes and what can be made here.
+func _add_production_section(room: RoomState, type_def: Dictionary) -> void:
+	var config := Game.config
+	add_child(HSeparator.new())
+	add_child(UiTheme.header("Content set"))
+	if bool(type_def.get("private", false)):
+		var owners := PackedStringArray()
+		for creator in Game.state.creators:
+			if creator.home_room_id == room.id:
+				owners.append(creator.display_name.get_slice(" ", 0))
+		add_child(UiTheme.label("Private: only %s films here." % (" & ".join(owners) if not owners.is_empty() else "its owner"), 12, UiTheme.MUTED, true))
+	var attrs := RoomProduction.attributes(config, room)
+	var tips := {
+		"equipment": "Cameras, ring lights, laptops. Livestreams and glamour love gear.",
+		"lighting": "Flattering light for photos and video.",
+		"decor": "A set that looks good on camera.",
+		"privacy": "A closed, intimate space. Premium and custom content need it.",
+	}
+	for attr in RoomProduction.ATTRIBUTES:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var caption := UiTheme.label(attr.capitalize(), 13, UiTheme.MUTED)
+		caption.custom_minimum_size = Vector2(80, 0)
+		row.add_child(caption)
+		row.add_child(UiTheme.bar(float(attrs.get(attr, 0.0)) * 100.0, Color("4cc9f0"), 10))
+		add_child(UiTheme.tip(row, str(tips.get(attr, ""))))
+	var support: Dictionary = type_def.get("content_support", {})
+	for content_id in ContentRules.assignable_ids(config):
+		if not support.has(content_id):
+			continue
+		var entry: Dictionary = support[content_id]
+		var min_level := int(entry.get("min_level", 1))
+		var value: Label
+		if room.level >= min_level:
+			var mult := RoomProduction.multiplier(config, room, content_id)
+			value = UiTheme.value_label("x%.2f" % mult, UiTheme.GOOD if mult >= 1.0 else UiTheme.TEXT, 13)
+		else:
+			value = UiTheme.value_label("from Lv %d" % min_level, UiTheme.MUTED, 13)
+		add_child(UiTheme.tip(UiTheme.row(config.content_label(content_id), value),
+			"Production multiplier for this content here: room fit x set quality (equipment, lighting, decor, privacy)."))
 
 
 func _on_upgrade_pressed() -> void:

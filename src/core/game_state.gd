@@ -47,6 +47,7 @@ static func new_game(config: GameConfig, seed: int = 0) -> GameState:
 			creator.room_id = bedroom.id
 			creator.position = bedroom.spot_position(0.7)
 		state.creators.append(creator)
+	RoomPlanner.assign_home_rooms(state, config)
 	ContentRules.refresh_unlocks(state, config)
 	TrendSystem.ensure_initialized(state, config)
 	return state

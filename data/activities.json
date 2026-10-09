@@ -1,5 +1,5 @@
 {
-  "_comment": "Activities a creator can perform. 'content_driven' activities take their room, spot, animation, label and rates from the creator's chosen content type (content_types.json).",
+  "_comment": "Activities a creator can perform. 'content_driven' activities take their room, spot, animation, label and rates from the creator's chosen content type (content_types.json). 'quiet' activities (sleep, recover) can't share a room with someone filming.",
   "activities": [
     {
       "id": "idle",
@@ -48,7 +48,8 @@
       "rates_per_hour": {
         "energy": 6,
         "mood": 1
-      }
+      },
+      "quiet": true
     },
     {
       "id": "sleep",
@@ -62,7 +63,8 @@
       "rates_per_hour": {
         "energy": 16,
         "mood": 2
-      }
+      },
+      "quiet": true
     }
   ]
 }

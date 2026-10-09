@@ -1,5 +1,5 @@
 {
-  "_comment": "Content categories. Production is always implied: room activity, icons and income only; nothing explicit is depicted. rates_per_hour are base values before multipliers (content fit, room, energy/mood, trends, experience, audience fit, recovery). 'viral' scales with sqrt(followers). 'reputation' is gained per hour while making it. 'per_subscriber_cash' pays per existing subscriber (custom requests). 'fee_per_hour' is paid to an off-screen guest collaborator. Omitting 'subscriber_conversion' leaves the subscriber count untouched.",
+  "_comment": "Content categories. Production is always implied: room activity, icons and income only; nothing explicit is depicted. rates_per_hour are base values before multipliers (content fit, room, energy/mood, trends, experience, audience fit, recovery). 'viral' scales with sqrt(followers). 'reputation' is gained per hour while making it. 'per_subscriber_cash' pays per existing subscriber (custom requests). 'fee_per_hour' is paid to an off-screen guest collaborator. Omitting 'subscriber_conversion' leaves the subscriber count untouched. Which rooms host each content type is defined by rooms.json content_support; room_weights say which room attributes (equipment, lighting, decor, privacy) matter. 'exclusive' content needs the room to herself. 'peak_hours' [from, to) give a time-of-day multiplier. activity.props are drawn with the creator (privacy screen, guest collaborator).",
   "content_types": [
     {
       "id": "social_media",
@@ -8,14 +8,43 @@
       "role": "Funnel",
       "assignable": true,
       "description": "Mainstream posts and reels. Grows followers and reputation fast, pays little. Feeds the premium funnel.",
-      "activity": { "label": "Shooting socials content", "room_type": "living_room", "spot": 0.74, "face": -1, "anim": "selfie", "bubble": "phone" },
-      "stat_weights": { "charisma": 0.45, "adaptability": 0.3, "looks": 0.25 },
-      "requirements": { "stats": {}, "room": {} },
+      "activity": {
+        "label": "Shooting socials content",
+        "spot": 0.74,
+        "face": -1,
+        "anim": "selfie",
+        "bubble": "phone"
+      },
+      "stat_weights": {
+        "charisma": 0.45,
+        "adaptability": 0.3,
+        "looks": 0.25
+      },
+      "requirements": {
+        "stats": {}
+      },
       "rates_per_hour": {
-        "cash": 6, "audience_cash": 0.02, "followers": 40, "viral": 0.8,
-        "subscriber_conversion": 0.01, "conversion_speed": 0.25,
-        "energy": -7, "mood": -1, "reputation": 3
-      }
+        "cash": 6,
+        "audience_cash": 0.02,
+        "followers": 40,
+        "viral": 0.8,
+        "subscriber_conversion": 0.01,
+        "conversion_speed": 0.25,
+        "energy": -7,
+        "mood": -1,
+        "reputation": 3
+      },
+      "room_weights": {
+        "lighting": 0.4,
+        "decor": 0.5,
+        "equipment": 0.1
+      },
+      "exclusive": false,
+      "peak_hours": [
+        12,
+        20
+      ],
+      "peak_multiplier": 1.1
     },
     {
       "id": "glamour",
@@ -23,15 +52,41 @@
       "short": "Glamour",
       "role": "Balanced",
       "assignable": true,
-      "description": "Styled photo sets and modelling. Decent reach and earnings. Shot in the studio.",
-      "activity": { "label": "Shooting a glamour set", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "camera" },
-      "stat_weights": { "looks": 0.5, "confidence": 0.3, "charisma": 0.2 },
-      "requirements": { "stats": { "looks": 50 }, "room": {} },
+      "description": "Styled photo sets and modelling. Decent reach and earnings.",
+      "activity": {
+        "label": "Shooting a glamour set",
+        "spot": 0.62,
+        "face": -1,
+        "anim": "film",
+        "bubble": "camera"
+      },
+      "stat_weights": {
+        "looks": 0.5,
+        "confidence": 0.3,
+        "charisma": 0.2
+      },
+      "requirements": {
+        "stats": {
+          "looks": 50
+        }
+      },
       "rates_per_hour": {
-        "cash": 22, "audience_cash": 0.07, "followers": 14, "viral": 0.3,
-        "subscriber_conversion": 0.04, "conversion_speed": 0.25,
-        "energy": -10, "mood": -2, "reputation": 1
-      }
+        "cash": 22,
+        "audience_cash": 0.07,
+        "followers": 14,
+        "viral": 0.3,
+        "subscriber_conversion": 0.04,
+        "conversion_speed": 0.25,
+        "energy": -10,
+        "mood": -2,
+        "reputation": 1
+      },
+      "room_weights": {
+        "lighting": 0.5,
+        "equipment": 0.3,
+        "decor": 0.2
+      },
+      "exclusive": true
     },
     {
       "id": "solo_premium",
@@ -39,15 +94,40 @@
       "short": "Solo premium",
       "role": "Earner",
       "assignable": true,
-      "description": "Subscriber-only solo sets. Strong subscriber conversion and direct income. Shot in the studio.",
-      "activity": { "label": "Creating premium content", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "star" },
-      "stat_weights": { "looks": 0.4, "confidence": 0.35, "charisma": 0.25 },
-      "requirements": { "stats": { "confidence": 40 }, "room": {} },
+      "description": "Subscriber-only solo sets. Strong subscriber conversion and direct income.",
+      "activity": {
+        "label": "Creating premium content",
+        "spot": 0.62,
+        "face": -1,
+        "anim": "film",
+        "bubble": "star"
+      },
+      "stat_weights": {
+        "looks": 0.4,
+        "confidence": 0.35,
+        "charisma": 0.25
+      },
+      "requirements": {
+        "stats": {
+          "confidence": 40
+        }
+      },
       "rates_per_hour": {
-        "cash": 45, "audience_cash": 0.2, "followers": 5, "viral": 0.1,
-        "subscriber_conversion": 0.09, "conversion_speed": 0.25,
-        "energy": -12, "mood": -3
-      }
+        "cash": 45,
+        "audience_cash": 0.2,
+        "followers": 5,
+        "viral": 0.1,
+        "subscriber_conversion": 0.09,
+        "conversion_speed": 0.25,
+        "energy": -12,
+        "mood": -3
+      },
+      "room_weights": {
+        "privacy": 0.4,
+        "lighting": 0.3,
+        "decor": 0.3
+      },
+      "exclusive": true
     },
     {
       "id": "topless_premium",
@@ -56,14 +136,42 @@
       "role": "Earner",
       "assignable": true,
       "description": "Top-tier subscriber sets on a closed set (nothing shown on screen). Highest conversion, small public reach, more draining. Only for creators who choose it.",
-      "activity": { "label": "Closed-set premium shoot", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "lock" },
-      "stat_weights": { "looks": 0.4, "confidence": 0.4, "wildness": 0.2 },
-      "requirements": { "stats": { "confidence": 50 }, "room": { "type": "studio", "level": 2 } },
+      "activity": {
+        "label": "Closed-set premium shoot",
+        "spot": 0.62,
+        "face": -1,
+        "anim": "film",
+        "bubble": "lock",
+        "props": [
+          "privacy_screen"
+        ]
+      },
+      "stat_weights": {
+        "looks": 0.4,
+        "confidence": 0.4,
+        "wildness": 0.2
+      },
+      "requirements": {
+        "stats": {
+          "confidence": 50
+        }
+      },
       "rates_per_hour": {
-        "cash": 56, "audience_cash": 0.25, "followers": 3, "viral": 0.06,
-        "subscriber_conversion": 0.12, "conversion_speed": 0.25,
-        "energy": -13, "mood": -5
-      }
+        "cash": 56,
+        "audience_cash": 0.25,
+        "followers": 3,
+        "viral": 0.06,
+        "subscriber_conversion": 0.12,
+        "conversion_speed": 0.25,
+        "energy": -13,
+        "mood": -5
+      },
+      "room_weights": {
+        "privacy": 0.6,
+        "lighting": 0.3,
+        "decor": 0.1
+      },
+      "exclusive": true
     },
     {
       "id": "livestream",
@@ -71,15 +179,46 @@
       "short": "Livestream",
       "role": "Hybrid",
       "assignable": true,
-      "description": "Live chats and shows. Tips reward charisma; very tiring. Needs a proper studio setup (Studio level 2).",
-      "activity": { "label": "Livestreaming", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "stream", "bubble": "live" },
-      "stat_weights": { "charisma": 0.5, "stamina": 0.25, "confidence": 0.25 },
-      "requirements": { "stats": { "charisma": 55 }, "room": { "type": "studio", "level": 2 } },
+      "description": "Live chats and shows. Tips reward charisma; very tiring. Needs proper gear (Bedroom or Studio level 2).",
+      "activity": {
+        "label": "Livestreaming",
+        "spot": 0.62,
+        "face": -1,
+        "anim": "stream",
+        "bubble": "live"
+      },
+      "stat_weights": {
+        "charisma": 0.5,
+        "stamina": 0.25,
+        "confidence": 0.25
+      },
+      "requirements": {
+        "stats": {
+          "charisma": 55
+        }
+      },
       "rates_per_hour": {
-        "cash": 28, "audience_cash": 0.2, "followers": 12, "viral": 0.25,
-        "subscriber_conversion": 0.06, "conversion_speed": 0.3,
-        "energy": -16, "mood": -1, "reputation": 1
-      }
+        "cash": 28,
+        "audience_cash": 0.2,
+        "followers": 12,
+        "viral": 0.25,
+        "subscriber_conversion": 0.06,
+        "conversion_speed": 0.3,
+        "energy": -16,
+        "mood": -1,
+        "reputation": 1
+      },
+      "room_weights": {
+        "equipment": 0.6,
+        "lighting": 0.3,
+        "privacy": 0.1
+      },
+      "exclusive": true,
+      "peak_hours": [
+        19,
+        24
+      ],
+      "peak_multiplier": 1.25
     },
     {
       "id": "collab_boy_girl",
@@ -88,14 +227,43 @@
       "role": "Earner",
       "assignable": true,
       "description": "Implied, off-screen collaboration with a booked adult guest performer. Big earner with couples fans; guest fees apply. Only if she chooses it.",
-      "activity": { "label": "Collab shoot with a guest", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "collab" },
-      "stat_weights": { "confidence": 0.35, "looks": 0.35, "charisma": 0.3 },
-      "requirements": { "stats": { "confidence": 55 }, "room": { "type": "studio", "level": 2 } },
+      "activity": {
+        "label": "Collab shoot with a guest",
+        "spot": 0.62,
+        "face": -1,
+        "anim": "film",
+        "bubble": "collab",
+        "props": [
+          "guest_silhouette"
+        ]
+      },
+      "stat_weights": {
+        "confidence": 0.35,
+        "looks": 0.35,
+        "charisma": 0.3
+      },
+      "requirements": {
+        "stats": {
+          "confidence": 55
+        }
+      },
       "rates_per_hour": {
-        "cash": 75, "audience_cash": 0.3, "followers": 10, "viral": 0.3,
-        "subscriber_conversion": 0.1, "conversion_speed": 0.25,
-        "fee_per_hour": 40, "energy": -14, "mood": -3
-      }
+        "cash": 75,
+        "audience_cash": 0.3,
+        "followers": 10,
+        "viral": 0.3,
+        "subscriber_conversion": 0.1,
+        "conversion_speed": 0.25,
+        "fee_per_hour": 40,
+        "energy": -14,
+        "mood": -3
+      },
+      "room_weights": {
+        "privacy": 0.4,
+        "equipment": 0.3,
+        "lighting": 0.3
+      },
+      "exclusive": true
     },
     {
       "id": "collab_girl_girl",
@@ -104,14 +272,43 @@
       "role": "Earner",
       "assignable": true,
       "description": "Implied, off-screen collaboration with a booked adult guest creator (housemates can collab in a later milestone). Guest fees apply. Only if she chooses it.",
-      "activity": { "label": "Collab shoot with a guest", "room_type": "studio", "spot": 0.62, "face": -1, "anim": "film", "bubble": "collab" },
-      "stat_weights": { "charisma": 0.4, "looks": 0.35, "confidence": 0.25 },
-      "requirements": { "stats": { "confidence": 50 }, "room": { "type": "studio", "level": 2 } },
+      "activity": {
+        "label": "Collab shoot with a guest",
+        "spot": 0.62,
+        "face": -1,
+        "anim": "film",
+        "bubble": "collab",
+        "props": [
+          "guest_creator"
+        ]
+      },
+      "stat_weights": {
+        "charisma": 0.4,
+        "looks": 0.35,
+        "confidence": 0.25
+      },
+      "requirements": {
+        "stats": {
+          "confidence": 50
+        }
+      },
       "rates_per_hour": {
-        "cash": 70, "audience_cash": 0.28, "followers": 12, "viral": 0.35,
-        "subscriber_conversion": 0.1, "conversion_speed": 0.25,
-        "fee_per_hour": 35, "energy": -13, "mood": -2
-      }
+        "cash": 70,
+        "audience_cash": 0.28,
+        "followers": 12,
+        "viral": 0.35,
+        "subscriber_conversion": 0.1,
+        "conversion_speed": 0.25,
+        "fee_per_hour": 35,
+        "energy": -13,
+        "mood": -2
+      },
+      "room_weights": {
+        "privacy": 0.4,
+        "equipment": 0.3,
+        "lighting": 0.3
+      },
+      "exclusive": true
     },
     {
       "id": "custom_content",
@@ -119,14 +316,35 @@
       "short": "Customs",
       "role": "Earner",
       "assignable": true,
-      "description": "Personalised requests from paying subscribers, made within her boundaries. Pays per subscriber, grows nothing. Made in her bedroom.",
-      "activity": { "label": "Filming custom requests", "room_type": "bedroom", "spot": 0.74, "face": -1, "anim": "selfie", "bubble": "mail" },
-      "stat_weights": { "charisma": 0.4, "looks": 0.3, "adaptability": 0.3 },
-      "requirements": { "stats": {}, "room": {}, "min_subscribers": 40 },
+      "description": "Personalised requests from paying subscribers, made within her boundaries. Pays per subscriber, grows nothing.",
+      "activity": {
+        "label": "Filming custom requests",
+        "spot": 0.74,
+        "face": -1,
+        "anim": "selfie",
+        "bubble": "mail"
+      },
+      "stat_weights": {
+        "charisma": 0.4,
+        "looks": 0.3,
+        "adaptability": 0.3
+      },
+      "requirements": {
+        "stats": {},
+        "min_subscribers": 40
+      },
       "rates_per_hour": {
-        "cash": 8, "per_subscriber_cash": 0.9,
-        "energy": -9, "mood": -3
-      }
+        "cash": 8,
+        "per_subscriber_cash": 0.9,
+        "energy": -9,
+        "mood": -3
+      },
+      "room_weights": {
+        "privacy": 0.5,
+        "decor": 0.3,
+        "lighting": 0.2
+      },
+      "exclusive": true
     }
   ]
 }

@@ -36,8 +36,11 @@ func refresh() -> void:
 			continue
 		var b := Economy.work_breakdown(creator, Game.state, Game.config, content_id)
 		var fit := float(b["multipliers"]["audience_fit"])
-		(refs["projection"] as Label).text = "~%s/hr   +%s fans/hr   look fit %s" % [
-			Fmt.money(float(b["cash"])), Fmt.compact(float(b["followers"])), Fmt.percent_change(fit)]
+		var room := Game.state.get_room(str(b["room_id"]))
+		var room_text := "in %s" % Game.config.room_type(room.type_id).get("name", "") if room != null else "no room free"
+		(refs["projection"] as Label).text = "~%s/hr   +%s fans/hr   look fit %s\n%s (set x%.2f)" % [
+			Fmt.money(float(b["cash"])), Fmt.compact(float(b["followers"])), Fmt.percent_change(fit),
+			room_text, float(b["multipliers"]["room"])]
 		var trend_mult := float(b["multipliers"]["trend_income"])
 		var trend_label: Label = refs["trend"]
 		trend_label.visible = trend_mult > 1.005
@@ -140,9 +143,12 @@ func _requirements_text(content: Dictionary) -> String:
 		stat_names.append(Game.config.stat_label(str(stat_id)))
 	if not stat_names.is_empty():
 		parts.append("Uses " + ", ".join(stat_names))
-	var room_name := str(Game.config.room_type(str(content.get("activity", {}).get("room_type", ""))).get("name", ""))
-	if not room_name.is_empty():
-		parts.append(room_name)
+	var rooms := PackedStringArray()
+	for entry: Dictionary in RoomProduction.supporting_types(Game.config, str(content.get("id", ""))):
+		var name := str(Game.config.room_type(str(entry["type_id"])).get("name", entry["type_id"]))
+		rooms.append(name if int(entry["min_level"]) <= 1 else "%s Lv%d" % [name, int(entry["min_level"])])
+	if not rooms.is_empty():
+		parts.append("Rooms: " + ", ".join(rooms))
 	return "  |  ".join(parts)
 
 

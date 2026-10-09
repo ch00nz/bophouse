@@ -35,6 +35,20 @@
     "max_fan_satisfaction": 1.5,
     "fan_mix_drift_per_hour": 0.03
   },
+  "rooms": {
+    "min_production": 0.6,
+    "max_production": 1.5,
+    "switch_threshold": 0.15
+  },
+  "photoshoot": {
+    "cooldown_hours": 12,
+    "energy_cost": 12,
+    "min_energy": 30,
+    "reward_hours": 3.0,
+    "min_reward_factor": 0.5,
+    "max_reward_factor": 2.0,
+    "shots": 3
+  },
   "reputation": {
     "start": 40,
     "baseline": 30,

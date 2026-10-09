@@ -30,6 +30,7 @@ var _saved_fade: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("hud")
 	_root = Control.new()
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.theme = UiTheme.build()
@@ -67,6 +68,11 @@ func _ready() -> void:
 
 func show_offline_summary(summary: Dictionary) -> void:
 	_offline_popup.show_summary(summary)
+
+
+## Opens the optional bonus photoshoot mini-game for a creator.
+func open_photoshoot(creator_id: String) -> void:
+	_root.add_child(PhotoshootPopup.new(creator_id))
 
 
 func show_toast(text: String, color: Color = UiTheme.GOLD) -> void:

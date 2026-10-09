@@ -22,7 +22,7 @@ static func check(creator: CreatorState, content_id: String, state: GameState, c
 	if creator.content_declines.has(content_id):
 		return _result(Status.DECLINED, "Outside %s's boundaries. It's her call." % first_name(creator))
 	if not is_unlocked(state, content_id, config):
-		return _result(Status.LOCKED, "Locked: " + room_requirement_text(content, config))
+		return _result(Status.LOCKED, "Locked: " + RoomProduction.requirement_text(config, content_id))
 	var missing := PackedStringArray()
 	var stat_reqs: Dictionary = content.get("requirements", {}).get("stats", {})
 	for stat_id in stat_reqs:
@@ -45,37 +45,21 @@ static func loves(creator: CreatorState, content_id: String) -> bool:
 	return creator.content_accepts.has(content_id)
 
 
-## Room-gated content stays unlocked once the house has had the required room level.
+## Content that needs an upgraded room (any room able to host it, see rooms.json content_support)
+## stays unlocked once the house has had such a room.
 static func is_unlocked(state: GameState, content_id: String, config: GameConfig) -> bool:
-	var room_req: Dictionary = config.content(content_id).get("requirements", {}).get("room", {})
-	return room_req.is_empty() or state.unlocked_content.has(content_id)
-
-
-static func room_requirement_met(state: GameState, room_req: Dictionary) -> bool:
-	if room_req.is_empty():
+	if not RoomProduction.is_room_gated(config, content_id):
 		return true
-	for room in state.rooms:
-		if room.type_id == str(room_req.get("type", "")) and room.level >= int(room_req.get("level", 1)):
-			return true
-	return false
+	return state.unlocked_content.has(content_id)
 
 
-static func room_requirement_text(content: Dictionary, config: GameConfig) -> String:
-	var room_req: Dictionary = content.get("requirements", {}).get("room", {})
-	if room_req.is_empty():
-		return ""
-	var room_name := str(config.room_type(str(room_req.get("type", ""))).get("name", room_req.get("type", "")))
-	return "needs %s level %d" % [room_name, int(room_req.get("level", 1))]
-
-
-## Unlocks content whose room requirement is now met. Returns the newly unlocked ids.
+## Unlocks room-gated content once some room can host it. Returns the newly unlocked ids.
 static func refresh_unlocks(state: GameState, config: GameConfig) -> Array[String]:
 	var unlocked: Array[String] = []
 	for content_id in assignable_ids(config):
-		var room_req: Dictionary = config.content(content_id).get("requirements", {}).get("room", {})
-		if room_req.is_empty() or state.unlocked_content.has(content_id):
+		if not RoomProduction.is_room_gated(config, content_id) or state.unlocked_content.has(content_id):
 			continue
-		if room_requirement_met(state, room_req):
+		if RoomProduction.house_supports(state, config, content_id):
 			state.unlocked_content.append(content_id)
 			unlocked.append(content_id)
 	return unlocked

@@ -22,11 +22,76 @@ const LEG_LENGTH := 46.0
 static func draw(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origin: Vector2, facing: float = 1.0, scale: float = 1.0, sleep_lift: float = 0.0) -> void:
 	if anim == "sleep":
 		ci.draw_set_transform(origin + Vector2(56.0, -sleep_lift - 12.0) * scale, -PI / 2.0, Vector2(scale, scale))
+	elif anim == "recline":
+		# Lying on the bed, propped up on an elbow and posing for the camera.
+		var sway := sin(t * 1.4) * 0.03
+		# Pivot at the feet, resting on the surface; the tilt raises her head and shoulders.
+		ci.draw_set_transform(origin + Vector2(56.0, -sleep_lift + 1.0) * scale, -PI / 2.0 + 0.2 + sway, Vector2(scale, scale))
 	else:
 		var bob := -absf(cos(t * 9.0)) * 2.0 if anim == "walk" else sin(t * 2.2) * 0.7
 		ci.draw_set_transform(origin + Vector2(0.0, bob) * scale, 0.0, Vector2(facing * scale, scale))
 	_draw_body(ci, spec, anim, t)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Draws the creator plus activity props (in local units, scaled like the figure):
+##  - "guest_creator": a consenting adult guest creator posing alongside her (girl/girl collabs);
+##  - "guest_silhouette": an anonymous, clothed dark silhouette (implied boy/girl collabs);
+##  - "privacy_screen": closed-set content is implied by a folding screen and a CLOSED SET tag.
+static func draw_with_props(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origin: Vector2, facing: float, scale: float, lift: float, props: Array, guest_outfit: Dictionary = {}) -> void:
+	var lying := anim == "sleep" or anim == "recline"
+	if props.has("guest_creator") or props.has("guest_silhouette"):
+		var offset := Vector2(0, -6) if lying else Vector2(-32.0 * facing, 0.0)
+		if props.has("guest_creator"):
+			var guest := spec.duplicate()
+			guest["hair_color"] = "#1f1a2e"
+			guest["skin"] = "#c68863"
+			if not guest_outfit.is_empty():
+				guest["outfit"] = guest_outfit
+			guest["tattoos"] = []
+			guest["piercings"] = []
+			draw(ci, guest, "recline" if lying else "film", t + 1.3, origin + offset * scale, -facing, scale * 0.98, lift + (4.0 if lying else 0.0))
+		else:
+			ci.draw_set_transform(origin, 0.0, Vector2(scale, scale))
+			_draw_silhouette(ci, offset, lying, lift)
+			ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw(ci, spec, anim, t, origin, facing, scale, lift)
+	if props.has("privacy_screen"):
+		ci.draw_set_transform(origin, 0.0, Vector2(scale, scale))
+		_draw_privacy_screen(ci, lying, lift)
+		ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+static func _draw_privacy_screen(ci: CanvasItem, lying: bool, lift: float) -> void:
+	var base_y := -lift + 2.0 if lying else 0.0
+	var height := 34.0 if lying else 92.0
+	var width := 104.0 if lying else 46.0
+	var left := -width * 0.5 + (4.0 if lying else 0.0)
+	var panels := 4 if lying else 3
+	var panel_w := width / panels
+	for i in panels:
+		var x := left + i * panel_w
+		var colour := Color("c77dff") if i % 2 == 0 else Color("b5179e")
+		ci.draw_rect(Rect2(x, base_y - height, panel_w - 1.0, height), colour)
+		ci.draw_rect(Rect2(x, base_y - height, panel_w - 1.0, height), colour.darkened(0.35), false, 1.2)
+		PlaceholderArt.draw_heart(ci, Vector2(x + panel_w * 0.5, base_y - height * 0.55), 9.0, Color(1, 1, 1, 0.35))
+	PlaceholderArt.draw_rounded_rect(ci, Rect2(left + width * 0.5 - 30, base_y - height - 14, 60, 12), Color(0.08, 0.03, 0.1, 0.85), 5)
+	PlaceholderArt.draw_text(ci, Vector2(left + width * 0.5 - 30, base_y - height - 5), "CLOSED SET", 9, Color.WHITE, 60, HORIZONTAL_ALIGNMENT_CENTER)
+
+
+static func _draw_silhouette(ci: CanvasItem, offset: Vector2, lying: bool, lift: float) -> void:
+	var c := Color(0.16, 0.1, 0.22, 0.92)
+	if lying:
+		var base := offset + Vector2(0, -lift)
+		ci.draw_rect(Rect2(base + Vector2(-50, -30), Vector2(100, 14)), c)
+		ci.draw_circle(base + Vector2(-56, -24), 9, c)
+		return
+	ci.draw_rect(Rect2(offset + Vector2(-9, -92), Vector2(18, 48)), c)
+	ci.draw_rect(Rect2(offset + Vector2(-8, -46), Vector2(7, 46)), c)
+	ci.draw_rect(Rect2(offset + Vector2(1, -46), Vector2(7, 46)), c)
+	ci.draw_circle(offset + Vector2(0, -104), 11, c)
+	ci.draw_line(offset + Vector2(-9, -88), offset + Vector2(-14, -55), c, 5)
+	ci.draw_line(offset + Vector2(9, -88), offset + Vector2(14, -55), c, 5)
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +133,10 @@ static func _pose(anim: String, t: float) -> Dictionary:
 		"sleep":
 			pose["hand_front"] = Vector2(9.0, -58.0)
 			pose["hand_back"] = Vector2(-9.0, -58.0)
+		"recline":
+			pose["hand_back"] = Vector2(-12.0, -110.0) # propped on the elbow, hand by her head
+			pose["hand_front"] = Vector2(11.0, -64.0) if fmod(t, 5.0) < 3.0 else Vector2(10.0, -98.0)
+			pose["leg_swing"] = 0.12
 	return pose
 
 

@@ -104,6 +104,37 @@ func test_round_trip_preserves_appearance_and_audience() -> void:
 	assert_eq(b.appearance_prefs, ava.appearance_prefs)
 
 
+func test_round_trip_preserves_room_choices_and_photoshoot() -> void:
+	var config := load_config()
+	var state := _played_state(config)
+	var ava := state.creators[0]
+	ava.last_work_room_id = "bedroom_1"
+	ava.photoshoot_ready_at = 12345.0
+	var loaded := SaveSystem.from_save_dict(JSON.parse_string(JSON.stringify(SaveSystem.to_save_dict(state, 1.0))))
+	SaveSystem.post_load(loaded, config)
+	var b := loaded.creators[0]
+	assert_eq(b.home_room_id, ava.home_room_id)
+	assert_eq(b.last_work_room_id, "bedroom_1")
+	assert_eq(b.room_preferences, ava.room_preferences)
+	assert_almost(b.photoshoot_ready_at, 12345.0)
+
+
+func test_v3_save_still_loads() -> void:
+	var config := load_config()
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v3.json"))
+	assert_eq(int(data["version"]), 3, "fixture is a genuine v3 save")
+	var state := SaveSystem.from_save_dict(data)
+	assert_true(state != null)
+	SaveSystem.post_load(state, config)
+	assert_true(SaveSystem.is_compatible(state, config))
+	var ava := state.creators[0]
+	assert_eq(ava.home_room_id, "bedroom_1", "home room assigned")
+	assert_false(ava.room_preferences.is_empty(), "preferences filled from template")
+	assert_eq(ava.look, data["state"]["creators"][0]["look"], "makeover data kept")
+	Simulation.advance(state, config, 24.0 * 60.0, 5.0)
+	assert_gt(state.cash, float(data["state"]["cash"]))
+
+
 func test_v2_save_still_loads() -> void:
 	var config := load_config()
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v2.json"))

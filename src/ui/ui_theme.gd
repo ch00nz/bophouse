@@ -134,6 +134,7 @@ static func bar(value: float, fill: Color = ACCENT, height: float = 12.0) -> Pro
 	b.custom_minimum_size = Vector2(0, height)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.mouse_filter = Control.MOUSE_FILTER_PASS # don't swallow scroll-wheel events in the sidebar
 	b.add_theme_stylebox_override("fill", box(fill, 5, 0))
 	return b
 

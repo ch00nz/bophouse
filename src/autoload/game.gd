@@ -14,6 +14,7 @@ signal content_unlocked(content_id: String)
 signal trends_changed(started_ids: Array)
 signal appearance_changed(creator_id: String, item_id: String)
 signal recovery_finished(creator_id: String)
+signal photoshoot_completed(creator_id: String, result: Dictionary)
 
 var config: GameConfig
 var state: GameState
@@ -115,6 +116,18 @@ func purchase_appearance(creator_id: String, item_id: String) -> Dictionary:
 	return result
 
 
+## Pays out an optional bonus photoshoot with the given average shot quality (0..1).
+func complete_photoshoot(creator_id: String, score: float) -> Dictionary:
+	var creator := state.get_creator(creator_id)
+	if creator == null:
+		return {"ok": false, "reason": "Unknown creator"}
+	var result := Photoshoot.complete(creator, state, config, score)
+	if bool(result.get("ok", false)):
+		photoshoot_completed.emit(creator_id, result)
+		save_game()
+	return result
+
+
 ## Assigns a creator's content specialisation. Returns ContentRules.check() so the UI can
 ## explain refusals; boundaries are enforced here, not just hidden in the UI.
 func set_content_focus(creator_id: String, content_id: String) -> Dictionary:
@@ -155,9 +168,9 @@ func describe_activity(creator: CreatorState) -> String:
 		var target := state.get_room(creator.target_room_id)
 		var room_name := str(config.room_type(target.type_id).get("name", "")) if target != null else ""
 		return "Walking to the %s" % room_name if not room_name.is_empty() else "Walking"
-	var activity := ActivityResolver.resolve(creator, creator.activity_id, config)
-	var label := str(activity.get("label", creator.activity_id))
 	var room := state.get_room(creator.room_id)
+	var activity := ActivityResolver.resolve(creator, creator.activity_id, config, room)
+	var label := str(activity.get("label", creator.activity_id))
 	if room != null and not str(activity.get("room_type", "")).is_empty():
 		return "%s in the %s" % [label, config.room_type(room.type_id).get("name", "")]
 	return label

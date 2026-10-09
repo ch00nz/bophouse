@@ -2,7 +2,8 @@ class_name CreatorBrain
 extends RefCounted
 ## Simple need-driven state machine that picks a creator's next activity.
 ## Uses hysteresis (start/stop thresholds) so creators don't flicker between activities.
-## "work" is content-driven: where she works depends on her chosen content specialisation.
+## "work" is content-driven; RoomPlanner picks which suitable room to work in (studio, her own
+## bedroom, the lounge...) and keeps it for the whole session.
 
 const WORK := "work"
 const RECOVER := "recover"
@@ -13,6 +14,14 @@ static func decide(creator: CreatorState, state: GameState, config: GameConfig) 
 	if creator.is_travelling():
 		return {}
 	var desired := desired_activity(creator, state, config)
+	if desired == WORK:
+		# Mid-session: stay put while the room still works for her content (stability).
+		if creator.activity_id == WORK and RoomPlanner.can_use(state, config, creator, state.get_room(creator.room_id), WORK):
+			return {}
+		var work_room := RoomPlanner.choose_work_room(creator, state, config)
+		if work_room != null:
+			return {"activity_id": WORK, "room_id": work_room.id}
+		desired = "socialise" # nowhere free to work right now
 	if desired == creator.activity_id and _in_right_room(creator, state, config):
 		return {}
 	var room := find_room_for(desired, creator, state, config)
@@ -71,22 +80,20 @@ static func work_stop_energy(creator: CreatorState, config: GameConfig) -> float
 	return lerpf(lazy, diligent, clampf(creator.stat("work_ethic") / 100.0, 0.0, 1.0))
 
 
-## Nearest room of the activity's type with free capacity (the creator's current room always counts).
+## Room for a non-work activity: rest happens in her own bedroom when possible; otherwise the
+## nearest usable room of the activity's type (capacity and compatibility via RoomPlanner).
 static func find_room_for(activity_id: String, creator: CreatorState, state: GameState, config: GameConfig) -> RoomState:
+	if activity_id == WORK:
+		return RoomPlanner.choose_work_room(creator, state, config)
+	if bool(config.activity(activity_id).get("quiet", false)):
+		return RoomPlanner.choose_rest_room(creator, state, config, activity_id)
 	var room_type := ActivityResolver.room_type(creator, activity_id, config)
 	if room_type.is_empty():
 		return null
 	var best: RoomState = null
 	var best_distance := INF
 	for room in state.rooms:
-		if room.type_id != room_type:
-			continue
-		var capacity := int(config.room_type(room.type_id).get("capacity", 1))
-		var others := 0
-		for occupant in state.occupants_of(room.id):
-			if occupant != creator:
-				others += 1
-		if others >= capacity:
+		if room.type_id != room_type or not RoomPlanner.can_use(state, config, creator, room, activity_id):
 			continue
 		var distance := absf(room.center_column() - creator.position.x) + absf(room.storey - creator.position.y) * 3.0
 		if distance < best_distance:
@@ -95,7 +102,7 @@ static func find_room_for(activity_id: String, creator: CreatorState, state: Gam
 	return best
 
 
-## False when the player switched content and the work now happens in a different room.
+## False when a non-work activity is happening in the wrong type of room.
 static func _in_right_room(creator: CreatorState, state: GameState, config: GameConfig) -> bool:
 	var needed := ActivityResolver.room_type(creator, creator.activity_id, config)
 	if needed.is_empty():

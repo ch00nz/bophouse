@@ -108,14 +108,18 @@ static func reputation_conversion_factor(creator: CreatorState, config: GameConf
 # ---------------------------------------------------------------------------
 
 ## Full, explainable breakdown of a creator's hourly output while making `content_id`
-## (defaults to her current focus). Used by the simulation and the income UI alike.
-static func work_breakdown(creator: CreatorState, state: GameState, config: GameConfig, content_id: String = "") -> Dictionary:
+## (defaults to her current focus) in `room` (defaults to the room she's actually using, or the
+## best available one for estimates). Used by the simulation and the income UI alike.
+static func work_breakdown(creator: CreatorState, state: GameState, config: GameConfig, content_id: String = "", room: RoomState = null) -> Dictionary:
 	if content_id.is_empty():
 		content_id = creator.content_focus
 	var content := config.content(content_id)
 	var rates: Dictionary = content.get("rates_per_hour", {})
-	var room := _room_for_content(creator, state, config, content)
-	var quality := room_quality(config, room)
+	if room == null:
+		room = _room_for_content(creator, state, config, content_id)
+	# Production quality of the actual room for this content (equipment, lighting, decor, privacy).
+	var quality := RoomProduction.multiplier(config, room, content_id) if room != null else config.tuning_f("rooms", "min_production", 0.6)
+	var time_of_day := time_multiplier(content, state.hour_of_day())
 	var fit := content_fit(creator, content, config)
 	var prod := productivity(creator, config)
 	var trend := TrendSystem.modifiers(state, config, creator, content_id)
@@ -124,7 +128,7 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 	var audience_fit := float(market["multiplier"])
 	var recovery := Appearance.recovery_output(creator, config)
 
-	var common := fit * quality * prod * experience * audience_fit * recovery
+	var common := fit * quality * prod * experience * audience_fit * recovery * time_of_day
 	var cash_multiplier := common * float(trend["income"])
 	var follower_multiplier := common * float(trend["followers"])
 	var content_sales := float(rates.get("cash", 0.0)) * cash_multiplier
@@ -177,6 +181,7 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 			"fit": fit, "room": quality, "productivity": prod,
 			"trend_income": float(trend["income"]), "trend_followers": float(trend["followers"]),
 			"experience": experience, "audience_fit": audience_fit, "recovery": recovery,
+			"time_of_day": time_of_day,
 		},
 		"trend_effects": trend["effects"],
 	}
@@ -223,14 +228,27 @@ static func house_cash_per_hour(state: GameState, config: GameConfig) -> float:
 	return total
 
 
-## The room a creator would use for this content: her current room if it fits, else the first match.
-static func _room_for_content(creator: CreatorState, state: GameState, config: GameConfig, content: Dictionary) -> RoomState:
-	var room_type := str(content.get("activity", {}).get("room_type", ""))
-	var current := state.get_room(creator.room_id)
-	if current != null and current.type_id == room_type:
-		return current
-	if not creator.target_room_id.is_empty():
+## Time-of-day multiplier: content can peak at certain hours (e.g. evening livestreams).
+static func time_multiplier(content: Dictionary, hour: int) -> float:
+	var peak: Array = content.get("peak_hours", [])
+	if peak.size() < 2:
+		return 1.0
+	var start := int(peak[0])
+	var end := int(peak[1])
+	var in_peak := (hour >= start and hour < end) if start <= end else (hour >= start or hour < end)
+	return float(content.get("peak_multiplier", 1.0)) if in_peak else 1.0
+
+
+## The room this content is (or would be) made in: the room she's actually working in, the room
+## she's walking to for work, else the best room available to her.
+static func _room_for_content(creator: CreatorState, state: GameState, config: GameConfig, content_id: String) -> RoomState:
+	var making_it := content_id == creator.content_focus
+	if making_it and creator.is_travelling() and creator.target_activity_id == CreatorBrain.WORK:
 		var target := state.get_room(creator.target_room_id)
-		if target != null and target.type_id == room_type:
+		if RoomProduction.supports(config, target, content_id):
 			return target
-	return state.first_room_of_type(room_type)
+	if making_it and not creator.is_travelling() and creator.activity_id == CreatorBrain.WORK:
+		var current := state.get_room(creator.room_id)
+		if RoomProduction.supports(config, current, content_id):
+			return current
+	return RoomPlanner.best_room_for(creator, state, config, content_id)

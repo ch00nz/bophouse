@@ -51,6 +51,8 @@
         "wishes": ["lip_filler", "outfit:glamour"]
       },
       "reputation": 40,
+      "_room_preferences_comment": "Multipliers on how much she likes working in a room type (personal comfort, not income).",
+      "room_preferences": { "bedroom": 1.05, "studio": 1.0, "living_room": 1.0 },
       "starting": {
         "followers": 500,
         "subscribers": 20,

@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 3, Adult Creator Focus, Appearance & Subscriber Preferences
+## Current milestone: 4, Automated Multi-Room Content Production
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -48,7 +48,27 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
   who's buying.
 * **Save v3** (v1 and v2 saves migrate; both are tested against real saved files).
 
-Art review: `godot --path . --script res://tests/visual/lookbook.gd -- out.png` renders a grid of looks.
+**Milestone 4 (automated multi-room production):**
+* Rooms declare which content they can host (`content_support` in `data/rooms.json`) with a fit, minimum level and
+  pose overrides. Bedrooms host socials, solo premium (reclining on the bed), custom content, boudoir glamour and,
+  from Lv 2, closed-set premium and livestreaming. **The studio is optional**; it just has the best gear.
+* Production quality = room fit x set quality, where each level has **equipment, lighting, decor and privacy** scores
+  and each content type weights them (livestreams want gear, premium sets want privacy).
+* `RoomPlanner` picks where to work from content, room quality, trends, time of day, energy/mood (via income),
+  availability and personal room preferences. It respects capacity, **private bedrooms** (only the owner films there),
+  **exclusive** content (needs the room to herself) and quiet activities (no filming next to a sleeper).
+  Work sessions keep their room; a new session only moves if another room is >15% better.
+* Creators have a home bedroom: they film there by day and sleep there at night.
+* Visuals: posing for camera, selfies, ring lights, livestreams, reclining on the bed; collabs show a consenting guest
+  (styled guest creator or an anonymous clothed silhouette); implied closed-set content uses a privacy screen.
+* Peak hours (e.g. evening livestreams) and a room-aware Income tab; room panels show the set's attributes and what
+  each content earns there.
+* **Optional Photoshoot Mode**: a 3-shot timing mini-game for bonus cash and followers, on a 12-hour cooldown.
+  Idle play never needs it.
+* Save v4 (v1, v2 and v3 saves load; all tested against real saves).
+
+Art review: `godot --path . --script res://tests/visual/lookbook.gd -- out.png` renders a grid of looks;
+`tests/visual/room_scenes.gd` renders every production pose in its room.
 
 ## Running
 

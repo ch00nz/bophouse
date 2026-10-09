@@ -4,7 +4,8 @@ extends RefCounted
 
 ## v1: first prototype. v2: content specialisation, experience, unlocks, trends.
 ## v3: appearance (look, owned styles, procedures, recovery, tags), fan mix, reputation.
-const SAVE_VERSION := 3
+## v4: multi-room production (home room, last work room, room preferences), photoshoot cooldown.
+const SAVE_VERSION := 4
 
 ## Content ids renamed in v2.
 const V2_CONTENT_RENAMES := {"solo_subscription": "solo_premium", "premium": "topless_premium"}
@@ -43,6 +44,9 @@ static func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 		# v3 only adds fields. Creator defaults (look, tags, fan mix) need the creator templates,
 		# so post_load() fills them in; nothing to rewrite here.
 		version = 3
+	if version == 3:
+		# v4 only adds fields (home/work rooms, preferences, photoshoot cooldown); post_load fills them.
+		version = 4
 	migrated["version"] = version
 	return migrated
 
@@ -73,9 +77,14 @@ static func _migrate_v1_to_v2(data: Dictionary) -> void:
 ## Repairs a loaded state against current data: unlocks, trends, invalid choices.
 ## Call after loading (needs config, so it isn't part of from_save_dict).
 static func post_load(state: GameState, config: GameConfig) -> void:
+	RoomPlanner.assign_home_rooms(state, config)
 	ContentRules.refresh_unlocks(state, config)
 	TrendSystem.ensure_initialized(state, config)
 	for creator in state.creators:
+		if creator.room_preferences.is_empty():
+			var template: Dictionary = config.creator_templates.get(creator.id, {})
+			for type_id in template.get("room_preferences", {}):
+				creator.room_preferences[str(type_id)] = float(template["room_preferences"][type_id])
 		Appearance.ensure_look(creator, config)
 		AudienceModel.ensure_mix(creator, config)
 		creator.content_focus = ContentRules.valid_focus(creator, state, config)

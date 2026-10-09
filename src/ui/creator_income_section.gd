@@ -135,7 +135,19 @@ func refresh() -> void:
 		"How well her stats suit this content (%s). Average stats = no change." % ", ".join(stat_names))
 	var room := state.get_room(str(b["room_id"]))
 	var room_name := "%s Lv %d" % [config.room_type(room.type_id).get("name", ""), room.level] if room != null else "No room"
-	_add_multiplier("Room: " + room_name, float(m["room"]), "Upgrading the room boosts everything made in it.")
+	var room_tip := "Production quality of the room she's using: room fit x set quality."
+	if room != null:
+		var rb := RoomProduction.breakdown(config, room, str(b["content_id"]))
+		var attrs: Dictionary = rb["attributes"]
+		var weights: Dictionary = rb["weights"]
+		var parts := PackedStringArray()
+		for attr in RoomProduction.ATTRIBUTES:
+			if weights.has(attr):
+				parts.append("%s %d%%" % [attr.capitalize(), roundi(float(attrs.get(attr, 0.0)) * 100.0)])
+		room_tip += "\nThis content cares about: " + ", ".join(parts) + ". Upgrades improve the set."
+	_add_multiplier("Room: " + room_name, float(m["room"]), room_tip)
+	if absf(float(m["time_of_day"]) - 1.0) > 0.001:
+		_add_multiplier("Peak hours", float(m["time_of_day"]), "This content performs best at certain times of day.")
 	_add_multiplier("Energy & mood", float(m["productivity"]), "Tired or unhappy creators produce less. Rest and socialising fix it.")
 	var effects: Array = b["trend_effects"]
 	if effects.is_empty():

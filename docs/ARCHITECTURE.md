@@ -97,6 +97,29 @@ creator.look ─► Appearance.render_spec ─► CreatorRenderer (layers)      
 * **Extension points**: `procedure_history` (complications or regret events), `appearance_tags` (event eligibility), and
   guest collab content (becomes housemate collabs once recruitment exists), with `age_tags` driving the MILF segment.
 
+### Room-activity system (milestone 4)
+
+```
+rooms.json content_support (fit, min_level, pose/spot/props) + level production {equipment, lighting, decor, privacy}
+        │                                   content_types.json room_weights, exclusive, peak_hours
+        ▼                                                │
+RoomProduction.multiplier(room, content) ◄──────────────┘   = fit x lerp(min, max, weighted attribute score)
+        │
+        ├─► Economy.work_breakdown(creator, ..., room)   income for the room actually used (or best available)
+        └─► RoomPlanner.work_score / choose_work_room     capacity, private rooms, exclusivity, quiet activities,
+                                                          preferences, stability (last room unless >15% better)
+CreatorBrain: desired activity ("work" / sleep / socialise / recover) ─► RoomPlanner for the room
+ActivityResolver.resolve(creator, activity, config, room) ─► label, anim, spot, face, bubble, props for that room
+```
+
+* Nothing is Ava-specific: any number of creators and rooms work through `RoomPlanner.can_use()`.
+  `test_two_creators_never_conflict_over_three_days` runs two residents for three days and checks capacity,
+  exclusivity and quiet rules every step.
+* Unlocks are room-driven: content is "room-gated" when no room type hosts it at level 1, and unlocks when
+  any room in the house can host it (persisted in `unlocked_content`).
+* `Photoshoot` is a pure, optional bonus (cooldown, energy cost, reward scales with shot quality). Automated
+  production never depends on it.
+
 ### Saving
 
 * `SaveSystem` writes versioned JSON (`version`, `saved_at_unix`, `state`) to `user://savegame.json`
@@ -131,7 +154,8 @@ build/             Export output (git-ignored)
 | 1 | **First playable** | 3-room house, 1 creator, walking, idle/walk/film/sleep/socialise, clock, income, profile, room upgrades, autosave, offline progress, tests, web export | **Done** |
 | 2 | **Creator management & trends** | Content specialisation and boundaries, unlocks, experience, 5 rotating trends, income breakdown, tabbed profile, collapsible sidebar, save v2 | **Done** |
 | 3 | **Adult focus, appearance & audiences** | Layered appearance, makeovers with recovery, appearance tags, 10 audience segments, fan mix, 8 content types, reputation, save v3 | **Done** |
-| 4 | Recruitment & capacity | Recruit pool (data), 3+ creators, housemate collabs, room capacity contention, house-wide income overview, camera pan/zoom, money sinks (wages, rent) | Next |
+| 4 | **Automated multi-room production** | Room content support and production attributes, RoomPlanner (capacity, privacy, exclusivity, stability), bedroom production, props, optional photoshoot, save v4 | **Done** |
+| 5 | Recruitment & capacity | Recruit pool (data), 3+ creators, housemate collabs, room capacity contention, house-wide income overview, camera pan/zoom, money sinks (wages, rent) | Next |
 | 5 | Events | Eligibility rules, weighted selection, cooldowns, choices, event inbox; offline queues events | |
 | 6 | Relationships & storylines | Pairwise friendship/rivalry, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |

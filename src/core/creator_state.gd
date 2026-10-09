@@ -39,6 +39,15 @@ var fan_mix: Dictionary = {}
 ## 0..100 mainstream reputation. Socials raise it; it boosts subscriber conversion.
 var reputation: float = 40.0
 
+## Her own bedroom (sleeps there; private rooms can only be filmed in by their owner).
+var home_room_id: String = ""
+## Where her last work session happened; used for room-selection stability.
+var last_work_room_id: String = ""
+## room type -> comfort multiplier when choosing where to work.
+var room_preferences: Dictionary = {}
+## Game minute when the optional bonus photoshoot is available again.
+var photoshoot_ready_at: float = 0.0
+
 var energy: float = 100.0
 var mood: float = 70.0
 var followers: float = 0.0
@@ -83,6 +92,7 @@ static func from_template(template: Dictionary) -> CreatorState:
 	c.base_tags = template.get("base_tags", {}).duplicate()
 	c.appearance_prefs = template.get("appearance_prefs", {}).duplicate(true)
 	c.reputation = float(template.get("reputation", 40))
+	c.room_preferences = _float_dict(template.get("room_preferences", {}))
 	return c
 
 
@@ -137,6 +147,8 @@ func to_dict() -> Dictionary:
 		"look": look, "owned_styles": owned_styles, "procedure_history": procedure_history,
 		"recovery": recovery, "base_tags": base_tags, "appearance_tags": appearance_tags,
 		"appearance_prefs": appearance_prefs, "fan_mix": fan_mix, "reputation": reputation,
+		"home_room_id": home_room_id, "last_work_room_id": last_work_room_id,
+		"room_preferences": room_preferences, "photoshoot_ready_at": photoshoot_ready_at,
 		"energy": energy, "mood": mood, "followers": followers, "subscribers": subscribers,
 		"lifetime_earnings": lifetime_earnings,
 		"activity_id": activity_id, "activity_minutes": activity_minutes, "room_id": room_id,
@@ -170,6 +182,10 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	c.appearance_prefs = _dict(data.get("appearance_prefs", {}))
 	c.fan_mix = _float_dict(data.get("fan_mix", {}))
 	c.reputation = clampf(float(data.get("reputation", 40.0)), 0.0, 100.0)
+	c.home_room_id = str(data.get("home_room_id", ""))
+	c.last_work_room_id = str(data.get("last_work_room_id", ""))
+	c.room_preferences = _float_dict(data.get("room_preferences", {}))
+	c.photoshoot_ready_at = float(data.get("photoshoot_ready_at", 0.0))
 	c.energy = float(data.get("energy", 100))
 	c.mood = float(data.get("mood", 70))
 	c.followers = float(data.get("followers", 0))

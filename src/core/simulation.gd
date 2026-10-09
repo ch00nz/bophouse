@@ -76,7 +76,7 @@ static func start_activity(state: GameState, config: GameConfig, creator: Creato
 	var room := state.get_room(room_id)
 	var target := creator.position
 	if room != null:
-		target = room.spot_position(float(ActivityResolver.resolve(creator, activity_id, config).get("spot", 0.5)))
+		target = room.spot_position(float(ActivityResolver.resolve(creator, activity_id, config, room).get("spot", 0.5)))
 	creator.target_activity_id = activity_id
 	creator.target_room_id = room_id
 	var path := HouseNavigator.find_path(state.rooms, config, creator.position, target)
@@ -102,6 +102,8 @@ static func _arrive(creator: CreatorState) -> void:
 	creator.travel_progress = 0.0
 	creator.activity_id = creator.target_activity_id
 	creator.room_id = creator.target_room_id
+	if creator.activity_id == CreatorBrain.WORK:
+		creator.last_work_room_id = creator.room_id
 	creator.activity_minutes = 0.0
 	creator.target_activity_id = ""
 	creator.target_room_id = ""

@@ -23,15 +23,16 @@ func test_changing_content_changes_earnings() -> void:
 	assert_lt(float(premium["energy"]), float(socials["energy"]), "premium is more draining")
 
 
-func test_content_uses_its_room() -> void:
+func test_content_rooms_come_from_room_data() -> void:
 	var s := _setup()
 	var config: GameConfig = s[0]
-	var ava: CreatorState = s[2]
-	ava.content_focus = "social_media"
-	assert_eq(ActivityResolver.room_type(ava, "work", config), "living_room")
-	ava.content_focus = "glamour"
-	assert_eq(ActivityResolver.room_type(ava, "work", config), "studio")
-	assert_eq(ActivityResolver.room_type(ava, "sleep", config), "bedroom")
+	var state: GameState = s[1]
+	assert_true(RoomProduction.supports(config, state.get_room("living_1"), "social_media"))
+	assert_true(RoomProduction.supports(config, state.get_room("bedroom_1"), "solo_premium"), "bedrooms host premium content")
+	assert_true(RoomProduction.supports(config, state.get_room("studio_1"), "glamour"))
+	assert_false(RoomProduction.supports(config, state.get_room("living_1"), "solo_premium"), "no premium sets in the lounge")
+	assert_false(RoomProduction.supports(config, state.get_room("stairs_0"), "social_media"))
+	assert_eq(ActivityResolver.room_type(state.creators[0], "sleep", config), "bedroom")
 
 
 func test_declined_content_cannot_be_assigned() -> void:
