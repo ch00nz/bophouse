@@ -1,6 +1,6 @@
 extends SceneTree
 ## Review sheet for painted creator art (needs a display):
-##   godot --path . --resolution 1280x720 --script res://tests/visual/illustrated_sheet.gd -- <output.png> [creator_id]
+##   godot --path . --resolution 1280x720 --script res://tests/visual/illustrated_sheet.gd -- <output.png> [creator_id] [items]
 ## Row 1: house sprites at gameplay scale, painted (top) vs procedural (below) for each animation,
 ##        including walking both ways and the stairs back view. Sleep uses the procedural fallback.
 ## Row 2: the six mood expressions and the four painted outfits.
@@ -16,6 +16,7 @@ class Sprite extends Node2D:
 	var facing := 1.0
 	var stairs := false
 	var painted := true
+	var layer: PaintedLayer = null
 
 	func _ready() -> void:
 		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -29,7 +30,12 @@ class Sprite extends Node2D:
 		var art := IllustratedArt.sprite(spec, anim, stairs) if painted else {}
 		if not art.is_empty():
 			var mirror := anim == "walk" and not stairs and facing < 0.0
-			IllustratedArt.draw(self, art, Vector2.ZERO, 1.0, mirror)
+			if layer == null:
+				layer = PaintedLayer.new()
+				add_child(layer)
+			layer.begin()
+			layer.add_figure(art, IllustratedArt.material_for(spec, art), Vector2(0, -lift) if lying else Vector2.ZERO, 1.0, mirror)
+			layer.end()
 		else:
 			CreatorRenderer.draw(self, spec, anim, 0.7, Vector2.ZERO, facing, 1.0, lift)
 
@@ -41,6 +47,8 @@ func _initialize() -> void:
 	var config := GameConfig.load_from_dir()
 	var state := GameState.new_game(config, 1)
 	var creator := CreatorSetup.create(config.creator_templates[creator_id], config, state)
+	for item_id in (args[2] if args.size() > 2 else "").split(",", false):
+		Appearance.apply_item(creator, config, config.look_item(item_id))
 	var spec := Appearance.render_spec(creator, config)
 	var bg := ColorRect.new()
 	bg.color = Color("e9e1f0")

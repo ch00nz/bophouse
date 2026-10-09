@@ -93,7 +93,8 @@ func test_figures_share_a_consistent_house_scale() -> void:
 func test_every_referenced_painting_exists() -> void:
 	var config := load_config()
 	var assets: Dictionary = IllustratedArt.manifest(ART).get("assets", {})
-	var def: Dictionary = config.illustrated["creators"]["ava"]
+	var def := Appearance.illustrated_definition("ava", config)
+	assert_false(def.is_empty(), "Ava's paintings are found by convention")
 	for key in ["full_body", "expressions"]:
 		for id in (def[key] as Dictionary):
 			assert_true(assets.has(str(def[key][id])), "%s %s -> %s" % [key, id, def[key][id]])
@@ -104,42 +105,93 @@ func test_every_referenced_painting_exists() -> void:
 		assert_true((def["expressions"] as Dictionary).has(expression), "painted " + expression)
 
 
-func test_paintings_only_used_when_they_match_her_look() -> void:
+func test_what_the_paintings_depict_comes_from_her_template() -> void:
+	var config := load_config()
+	var def := Appearance.illustrated_definition("ava", config)
+	var template_look: Dictionary = config.creator_templates["ava"]["look"]
+	assert_eq(str(def["hair_source"]), str(template_look["hair_color"]), "painted hair colour")
+	assert_eq(str(def["base_look"]["hair_style"]), str(template_look["hair_style"]), "painted hairstyle")
+	assert_almost(float(def["body"]["bust"]), 1.0, 0.01, "painted natural body")
+
+
+func test_paintings_stay_and_report_what_they_dont_show() -> void:
 	var config := load_config()
 	var ava := _ava(config)
-	assert_true(IllustratedArt.use_art(_spec(ava, config)), "new-game Ava matches her paintings")
+	assert_true(IllustratedArt.depicts(_spec(ava, config)), "new-game Ava matches her paintings")
 	for item_id in ["makeup:glam", "outfit:fitness", "outfit:bikini", "outfit:glamour"]:
-		assert_true(IllustratedArt.use_art(_spec(_with(ava, config, item_id), config)), item_id + " is painted")
+		assert_true(IllustratedArt.depicts(_spec(_with(ava, config, item_id), config)), item_id + " is painted")
 	var cases := {
 		"breast_augmentation": "Breast augmentation", "bbl": "Brazilian butt lift", "lip_filler": "Lip filler",
-		"hair_color:blonde": "Platinum blonde", "hair_style:bob": "Shoulder bob", "outfit:lingerie": "Lace lingerie set",
+		"hair_style:bob": "Shoulder bob", "outfit:lingerie": "Lace lingerie set",
 		"rose_tattoo": "Rose thigh tattoo", "nose_piercing": "Nose stud", "makeup:smoky_alt": "Smoky alt",
 	}
 	for item_id: String in cases:
 		var spec := _spec(_with(ava, config, item_id), config)
 		var cover: Dictionary = spec["art_cover"]
-		assert_false(IllustratedArt.use_art(spec), item_id + " falls back to the procedural renderer")
-		assert_true((cover["missing"] as Array).has(cases[item_id]), "%s listed as not painted: %s" % [item_id, cover["missing"]])
+		assert_true(IllustratedArt.use_art(spec), item_id + " keeps her paintings")
+		assert_false(IllustratedArt.depicts(spec), item_id + " isn't painted")
+		assert_true((cover["missing"] as Array).has(cases[item_id]), "%s listed as not painted yet: %s" % [item_id, cover["missing"]])
+
+
+func test_hair_colour_is_adapted_on_the_paintings() -> void:
+	var config := load_config()
+	var ava := _ava(config)
+	var brunette := _spec(ava, config)
+	assert_false(IllustratedArt.recolours_hair(brunette), "painted colour needs no recolour")
+	assert_true(IllustratedArt.material_for(brunette, IllustratedArt.full_body(brunette)) == null, "drawn exactly as painted")
+	for colour in ["blonde", "pink", "copper", "honey", "black", "cherry"]:
+		var spec := _spec(_with(ava, config, "hair_color:" + colour), config)
+		var cover: Dictionary = spec["art_cover"]
+		assert_true(IllustratedArt.depicts(spec), colour + " hair is depicted by recolouring")
+		assert_eq((cover["adapted"] as Array).size(), 1, colour + " reported as adapted")
+		assert_true(IllustratedArt.recolours_hair(spec))
+		var material := IllustratedArt.material_for(spec, IllustratedArt.full_body(spec)) as ShaderMaterial
+		assert_true(material != null, colour + " gets a recolour material")
+		assert_true(bool(material.get_shader_parameter("hair_enabled")))
+		var mid: Color = material.get_shader_parameter("hair_mid")
+		var option: Dictionary = config.look_option("hair_color", colour)
+		var expected := Color(str((option["art_palette"] as Array)[1])) if option.has("art_palette") else Color(str(option["color"]))
+		assert_true(mid.is_equal_approx(expected), colour + " mid tone comes from the hair colour data")
+
+
+func test_every_painted_asset_can_be_recoloured() -> void:
+	var config := load_config()
+	var spec := _spec(_with(_ava(config), config, "hair_color:blonde"), config)
+	var def: Dictionary = spec["illustrated"]
+	var arts: Array = []
+	for id in (def["full_body"] as Dictionary):
+		arts.append(IllustratedArt.full_body(spec, str(id)))
+	for mood in CreatorMood.EXPRESSIONS:
+		arts.append(IllustratedArt.bust(spec, mood))
+	for anim in ["idle", "walk", "film", "stream", "selfie", "socialise", "sleep", "recline"]:
+		arts.append(IllustratedArt.sprite(spec, anim))
+	arts.append(IllustratedArt.sprite(spec, "walk", true))
+	for art: Dictionary in arts:
+		assert_false(art.is_empty())
+		assert_true(IllustratedArt.material_for(spec, art) != null, str(art["name"]) + " has a hair mask (directions, frames, portraits)")
+		var mask := Image.load_from_file(ProjectSettings.globalize_path(str(art["hair_mask"])))
+		var texture: Texture2D = art["texture"]
+		assert_eq(mask.get_size(), Vector2i(texture.get_width(), texture.get_height()), str(art["name"]) + " mask matches its painting")
 
 
 func test_art_modes() -> void:
 	var config := load_config()
 	var augmented := _spec(_with(_ava(config), config, "breast_augmentation"), config)
-	IllustratedArt.mode = "always"
-	assert_true(IllustratedArt.use_art(augmented), "always shows the painting for review")
+	IllustratedArt.mode = "auto"
+	assert_true(IllustratedArt.use_art(augmented), "painted art stays for creators who have it")
 	IllustratedArt.mode = "off"
-	assert_false(IllustratedArt.use_art(_spec(_ava(config), config)), "off uses the procedural renderer")
+	assert_false(IllustratedArt.use_art(_spec(_ava(config), config)), "classic uses the procedural renderer")
 
 
 func test_other_creators_are_unaffected() -> void:
 	var config := load_config()
-	IllustratedArt.mode = "always"
+	IllustratedArt.mode = "auto"
 	for template_id in config.creator_order:
 		if template_id == "ava":
 			continue
 		var spec := _spec(CreatorSetup.create(config.creator_templates[template_id], config), config)
 		assert_false(IllustratedArt.has_art(spec), template_id + " has no paintings")
-		assert_false(IllustratedArt.use_art(spec), template_id + " keeps procedural art even in 'always'")
+		assert_false(IllustratedArt.use_art(spec), template_id + " keeps the procedural renderer (no paintings yet)")
 		assert_gt(CreatorRenderer.record(spec, "idle", 0.0).size(), 60, template_id + " still renders")
 
 
@@ -153,7 +205,7 @@ func test_house_poses_map_to_paintings() -> void:
 	assert_eq(str(IllustratedArt.sprite(spec, "selfie")["name"]), "pose_selfie")
 	assert_eq(str(IllustratedArt.sprite(spec, "sleep")["name"]), "pose_lying", "painted sleeper on the bed")
 	assert_eq(str(IllustratedArt.sprite(spec, "sleep")["kind"]), "lying")
-	assert_true(IllustratedArt.sprite(spec, "recline").is_empty(), "recline keeps the procedural animation")
+	assert_eq(str(IllustratedArt.sprite(spec, "recline")["name"]), "pose_lying", "lounging on the bed uses the painted lying pose")
 	var glamour := _spec(_with(_ava(config), config, "outfit:glamour"), config)
 	assert_true(IllustratedArt.sprite(glamour, "sleep").is_empty(), "a standing outfit painting is never laid on the bed")
 	var fitness := _spec(_with(_ava(config), config, "outfit:fitness"), config)
@@ -209,3 +261,16 @@ func test_art_mode_survives_save_and_old_saves_default_to_auto() -> void:
 	var reloaded := SaveSystem.from_save_dict(JSON.parse_string(JSON.stringify(SaveSystem.to_save_dict(old, 1000.0))))
 	assert_eq(str(reloaded.settings.get("illustrated_art", "auto")), "auto", "missing setting means auto")
 	assert_true(Appearance.illustrated_coverage(reloaded.creators[0], config)["ok"], "a reloaded Ava still matches")
+
+
+func test_recoloured_look_survives_save_and_load() -> void:
+	var config := load_config()
+	var state := GameState.new_game(config, 1)
+	var ava := state.creators[0]
+	Appearance.apply_item(ava, config, config.look_item("hair_color:cherry"))
+	var loaded := SaveSystem.from_save_dict(JSON.parse_string(JSON.stringify(SaveSystem.to_save_dict(state, 1000.0))))
+	SaveSystem.post_load(loaded, config)
+	var spec := Appearance.render_spec(loaded.creators[0], config)
+	assert_eq(loaded.creators[0].look_value("hair_color"), "cherry", "her hair colour is saved")
+	assert_true(IllustratedArt.recolours_hair(spec), "and still recolours her paintings after loading")
+	assert_true(IllustratedArt.use_art(spec))

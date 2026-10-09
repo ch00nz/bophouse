@@ -244,10 +244,10 @@ func _build_wardrobe(spec: Dictionary) -> void:
 				_build_wardrobe(spec))
 			_wardrobe.add_child(button)
 	var mode := Button.new()
-	mode.text = "Art: %s" % IllustratedArt.MODE_LABELS.get(IllustratedArt.mode, "Auto")
+	mode.text = "Art: %s" % IllustratedArt.MODE_LABELS.get(IllustratedArt.mode, "Painted")
 	mode.add_theme_font_size_override("font_size", 10)
 	mode.custom_minimum_size = Vector2(0, 22)
-	mode.tooltip_text = "Painted art (prototype).\nAuto: paintings when they match her look.\nAlways: show paintings even if they don't (review).\nOff: classic art only."
+	mode.tooltip_text = "Painted: her paintings (hair colour is recoloured; other changes are listed as not painted yet).\nClassic: the procedural art, which shows every look change."
 	mode.pressed.connect(func() -> void:
 		var modes := IllustratedArt.MODES
 		Game.set_art_mode(modes[(modes.find(IllustratedArt.mode) + 1) % modes.size()])
@@ -260,14 +260,18 @@ static func _art_status(spec: Dictionary) -> String:
 	if not IllustratedArt.has_art(spec):
 		return ""
 	if IllustratedArt.mode == "off":
-		return "Painted art is off (classic art shown)."
+		return "Classic art (painted art is switched off)."
 	var cover: Dictionary = spec.get("art_cover", {})
-	if bool(cover.get("ok", false)):
-		return "Painted art matches her current look."
+	var parts: Array[String] = []
+	var adapted := PackedStringArray((cover.get("adapted", []) as Array).map(func(m: Variant) -> String: return str(m).to_lower()))
+	if not adapted.is_empty():
+		parts.append("Painted art adapted: %s." % ", ".join(adapted))
 	var missing := PackedStringArray((cover.get("missing", []) as Array).map(func(m: Variant) -> String: return str(m).to_lower()))
-	if IllustratedArt.mode == "always":
-		return "Showing paintings anyway; they don't show: %s." % ", ".join(missing)
-	return "Classic art shown. Not painted yet: %s." % ", ".join(missing)
+	if missing.is_empty():
+		parts.append("Painted art shows her whole look." if adapted.is_empty() else "")
+	else:
+		parts.append("Not painted yet: %s." % ", ".join(missing))
+	return " ".join(PackedStringArray(parts)).strip_edges()
 
 
 func _process(delta: float) -> void:

@@ -172,7 +172,8 @@ src/views/         House / room / creator rendering (Node2D)
 src/art/           ArtLibrary (real art lookup), PlaceholderArt (rooms, UI), CreatorRenderer
 src/art/character/ Modular character layers (model, poses, body, outfit, hair, face, accessories, pen)
 src/art/illustrated_art.gd  Painted art lookup/drawing (milestone 5B); data in data/illustrated_art.json
-src/art/illustrated_rig.gd  Skeleton2D + Polygon2D + AnimationPlayer rigs for painted poses; data/illustrated_rigs.json
+src/art/illustrated_rig.gd  Skeleton2D + Polygon2D + AnimationPlayer rigs for painted poses (assets/characters/<id>/illustrated/rigs.json)
+src/art/painted_layer.gd    Painted images with per-image recolour materials; shaders/painted_recolor.gdshader
 art_pipeline/      Python tools that cut painted reference sheets into game assets (docs/ILLUSTRATED_ART.md)
 src/ui/            HUD, sidebar panels, theme
 src/main/          Composition root
@@ -196,6 +197,7 @@ build/             Export output (git-ignored)
 | 5A | **Character visual overhaul** | Western cartoon glamour renderer (modular body/outfit/hair/face/accessory layers, screen-space ink, shading, expressions), bikini outfit, hero showcase with close-up and line-up, makeover reveal, throttled sprite redraws | **Done** |
 | 5B | **Illustrated artwork (prototype)** | Python cut-out pipeline for painted sheets, IllustratedArt with honest look coverage and fallback, mood expressions (CreatorMood), painted portraits, house sprite prototype, wardrobe preview, art mode setting | **Done** |
 | 5C | **Character cleanup & animation** | Matting pipeline v2 (no halos), Skeleton2D rigs for painted poses (idle, walk, film, stream, selfie), painted sleeper, edge regression test | **Done** |
+| 5D | **Reusable painted characters** | Hair masks + recolour shader on every painted draw, PaintedLayer, convention-based art/rigs per creator id, Painted/Classic art mode | **Done** |
 | 6 | Collaboration & events | Housemate collabs (consent and chemistry), eligibility rules, weighted events, cooldowns, choices, event inbox; offline queues events | Next |
 | 7 | Relationships & storylines | Deeper relationship consequences, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |

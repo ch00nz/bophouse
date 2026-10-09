@@ -38,8 +38,18 @@
           44.5,
           257.1
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/master_front_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/master_front_hair.png"
+      },
+      "hair_lum": [
+        0.0534,
+        0.305
+      ]
     },
     "turn_front": {
       "kind": "full_body",
@@ -76,8 +86,18 @@
           48.1,
           257.6
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/turn_front_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/turn_front_hair.png"
+      },
+      "hair_lum": [
+        0.0451,
+        0.3829
+      ]
     },
     "turn_side": {
       "kind": "full_body",
@@ -114,8 +134,18 @@
           40.5,
           255.5
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/turn_side_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/turn_side_hair.png"
+      },
+      "hair_lum": [
+        0.0506,
+        0.3336
+      ]
     },
     "turn_back34": {
       "kind": "full_body",
@@ -152,8 +182,18 @@
           40.3,
           256.3
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/turn_back34_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/turn_back34_hair.png"
+      },
+      "hair_lum": [
+        0.0412,
+        0.3473
+      ]
     },
     "turn_back": {
       "kind": "full_body",
@@ -190,8 +230,18 @@
           39.6,
           253.9
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/turn_back_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/turn_back_hair.png"
+      },
+      "hair_lum": [
+        0.0756,
+        0.2698
+      ]
     },
     "expr_confident": {
       "kind": "bust",
@@ -209,6 +259,13 @@
       "size": [
         469,
         512
+      ],
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/portrait/expr_confident_hair.png"
+      },
+      "hair_lum": [
+        0.0361,
+        0.3265
       ]
     },
     "expr_happy": {
@@ -227,6 +284,13 @@
       "size": [
         475,
         510
+      ],
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/portrait/expr_happy_hair.png"
+      },
+      "hair_lum": [
+        0.0373,
+        0.3229
       ]
     },
     "expr_surprised": {
@@ -245,6 +309,13 @@
       "size": [
         454,
         515
+      ],
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/portrait/expr_surprised_hair.png"
+      },
+      "hair_lum": [
+        0.0345,
+        0.3362
       ]
     },
     "expr_angry": {
@@ -263,6 +334,13 @@
       "size": [
         487,
         524
+      ],
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/portrait/expr_angry_hair.png"
+      },
+      "hair_lum": [
+        0.0368,
+        0.3624
       ]
     },
     "expr_sad": {
@@ -281,6 +359,13 @@
       "size": [
         461,
         528
+      ],
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/portrait/expr_sad_hair.png"
+      },
+      "hair_lum": [
+        0.0361,
+        0.3676
       ]
     },
     "expr_playful": {
@@ -299,6 +384,13 @@
       "size": [
         470,
         519
+      ],
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/portrait/expr_playful_hair.png"
+      },
+      "hair_lum": [
+        0.0372,
+        0.3385
       ]
     },
     "outfit_casual": {
@@ -336,8 +428,18 @@
           63.0,
           257.6
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/outfit_casual_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/outfit_casual_hair.png"
+      },
+      "hair_lum": [
+        0.0314,
+        0.3749
+      ]
     },
     "outfit_glamour": {
       "kind": "full_body",
@@ -374,8 +476,18 @@
           35.6,
           261.0
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/outfit_glamour_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/outfit_glamour_hair.png"
+      },
+      "hair_lum": [
+        0.0328,
+        0.2739
+      ]
     },
     "outfit_fitness": {
       "kind": "full_body",
@@ -412,8 +524,18 @@
           56.0,
           259.7
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/outfit_fitness_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/outfit_fitness_hair.png"
+      },
+      "hair_lum": [
+        0.0349,
+        0.2787
+      ]
     },
     "outfit_swimwear": {
       "kind": "full_body",
@@ -474,8 +596,18 @@
           60.8,
           262.8
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/outfit_swimwear_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/outfit_swimwear_hair.png"
+      },
+      "hair_lum": [
+        0.0326,
+        0.3327
+      ]
     },
     "pose_standing": {
       "kind": "full_body",
@@ -512,8 +644,18 @@
           61.1,
           258.0
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/pose_standing_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/pose_standing_hair.png"
+      },
+      "hair_lum": [
+        0.0321,
+        0.4267
+      ]
     },
     "pose_selfie": {
       "kind": "full_body",
@@ -550,8 +692,18 @@
           43.0,
           257.0
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/pose_selfie_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/pose_selfie_hair.png"
+      },
+      "hair_lum": [
+        0.0314,
+        0.4081
+      ]
     },
     "pose_filming": {
       "kind": "full_body",
@@ -588,8 +740,18 @@
           45.2,
           257.6
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/pose_filming_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/pose_filming_hair.png"
+      },
+      "hair_lum": [
+        0.0298,
+        0.4263
+      ]
     },
     "pose_walking": {
       "kind": "full_body",
@@ -626,8 +788,18 @@
           59.7,
           259.9
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/pose_walking_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/pose_walking_hair.png"
+      },
+      "hair_lum": [
+        0.0337,
+        0.4272
+      ]
     },
     "pose_sleeping": {
       "kind": "scene",
@@ -655,6 +827,7 @@
       "strip_white_props": true,
       "rotate": -96,
       "mirror": true,
+      "crown": "left",
       "source": {
         "sheet": "ava_poses.png",
         "rect": [
@@ -685,8 +858,18 @@
           113.5,
           95.6
         ],
-        "units_per_px": 0.484375
-      }
+        "units_per_px": 0.484375,
+        "masks": {
+          "hair": "res://assets/characters/ava/illustrated/masks/sprite/pose_lying_hair.png"
+        }
+      },
+      "masks": {
+        "hair": "res://assets/characters/ava/illustrated/masks/full/pose_lying_hair.png"
+      },
+      "hair_lum": [
+        0.0384,
+        0.4374
+      ]
     }
   }
 }

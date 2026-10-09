@@ -272,10 +272,11 @@ static func render_spec(creator: CreatorState, config: GameConfig) -> Dictionary
 		"expression": signature_expression(creator, config),
 		"creator_id": creator.id,
 		"look": creator.look.duplicate(true),
-		# Painted art (milestone 5B): the creator's entry in illustrated_art.json and whether it
-		# matches her current look (IllustratedArt decides what to draw from these).
-		"illustrated": config.illustrated.get("creators", {}).get(creator.id, {}),
+		# Painted art: the creator's resolved art definition (empty without paintings), what the
+		# paintings show of her current look, and the hair palette the recolour shader paints with.
+		"illustrated": illustrated_definition(creator.id, config),
 		"art_cover": illustrated_coverage(creator, config),
+		"hair_palette": (config.look_option("hair_color", creator.look_value("hair_color", "brunette")).get("art_palette", []) as Array).duplicate(),
 		# Per-creator animation phase, so housemates don't blink and sway in sync.
 		"seed": float(absi(creator.id.hash()) % 1000) / 97.0,
 		"sprite_frames": str(ap.get("sprite_frames", "")),
@@ -283,15 +284,52 @@ static func render_spec(creator: CreatorState, config: GameConfig) -> Dictionary
 	}
 
 
-## Whether a creator's painted art depicts her current look: {ok, missing (labels of what the
-## paintings don't show yet), outfit (painted outfit id or "")}. Procedures, other hairstyles and
-## colours, tattoos, visible piercings and outfits without paintings all fall back to the
-## procedural renderer, so changes are never hidden by a stretched or wrong illustration.
+## Painted-art definition for a creator: the shared defaults (data/illustrated_art.json) with her
+## overrides, the manifest/rig paths for her id, and what the paintings depict, taken from her own
+## template (painted hair colour, base look, natural body). {} when no paintings exist for her, so
+## any creator gets painted art by dropping a manifest into assets/characters/<id>/illustrated/.
+static func illustrated_definition(creator_id: String, config: GameConfig) -> Dictionary:
+	var defaults: Dictionary = config.illustrated.get("defaults", {})
+	var overrides: Dictionary = config.illustrated.get("creators", {}).get(creator_id, {})
+	var def := defaults.duplicate(true)
+	for key in overrides:
+		def[key] = overrides[key]
+	for key in ["manifest", "rigs"]:
+		def[key] = str(def.get(key, "")).replace("{id}", creator_id)
+	if str(def["manifest"]).is_empty() or not FileAccess.file_exists(str(def["manifest"])):
+		return {}
+	var template: Dictionary = config.creator_templates.get(creator_id, {})
+	var template_look: Dictionary = template.get("look", {})
+	def["hair_source"] = str(template_look.get("hair_color", DEFAULT_LOOK["hair_color"]))
+	if not def.has("base_look"):
+		var base := {}
+		for slot in def.get("base_slots", []):
+			base[str(slot)] = str(template_look.get(str(slot), DEFAULT_LOOK.get(str(slot), "")))
+		def["base_look"] = base
+	if not def.has("body"):
+		var natural := BodyMeasurements.from_dict(template.get("body", BodyShape.DEFAULT_BODY))
+		var params := BodyShape.render_params(natural, config)
+		def["body"] = {"bust": params["bust"], "waist": params["waist"], "hips": params["hips"], "glutes": params["glutes"]}
+	return def
+
+
+## What a creator's paintings show of her current look:
+##   {ok, missing (labels of what isn't painted yet), adapted (labels the renderer applies to the
+##    paintings, e.g. a recoloured hair colour), outfit (painted outfit id or ""), missing_outfit}.
+## The paintings stay on screen either way; 'missing' tells the player what they don't show yet.
 static func illustrated_coverage(creator: CreatorState, config: GameConfig) -> Dictionary:
-	var def: Dictionary = config.illustrated.get("creators", {}).get(creator.id, {})
+	var def := illustrated_definition(creator.id, config)
 	if def.is_empty():
-		return {"ok": false, "missing": ["No illustrated art"], "outfit": "", "missing_outfit": ""}
+		return {"ok": false, "missing": ["No illustrated art"], "adapted": [], "outfit": "", "missing_outfit": ""}
 	var missing: Array[String] = []
+	var adapted: Array[String] = []
+	var adapts: Array = def.get("adapts", [])
+	var hair := creator.look_value("hair_color")
+	if hair != str(def["hair_source"]):
+		if adapts.has("hair_color"):
+			adapted.append(_look_label(config, "hair_color", hair) + " hair")
+		else:
+			missing.append(_look_label(config, "hair_color", hair))
 	var base: Dictionary = def.get("base_look", {})
 	for slot in base:
 		var value := creator.look_value(str(slot))
@@ -314,12 +352,12 @@ static func illustrated_coverage(creator: CreatorState, config: GameConfig) -> D
 	if creator.measurements != null and missing.is_empty():
 		var body: Dictionary = def.get("body", {})
 		var params := BodyShape.render_params(creator.measurements, config)
-		var tolerance := float(body.get("tolerance", 0.08))
+		var tolerance := float(def.get("body_tolerance", 0.08))
 		for key in ["bust", "waist", "hips", "glutes"]:
 			if body.has(key) and absf(float(params[key]) - float(body[key])) > tolerance:
 				missing.append("Body measurements")
 				break
-	return {"ok": missing.is_empty(), "missing": missing, "outfit": painted, "missing_outfit": missing_outfit}
+	return {"ok": missing.is_empty(), "missing": missing, "adapted": adapted, "outfit": painted, "missing_outfit": missing_outfit}
 
 
 static func _look_label(config: GameConfig, slot: String, value: String) -> String:

@@ -71,7 +71,8 @@ if __name__ == "__main__":
     parser.add_argument("--only", default="")
     args = parser.parse_args()
     paper = np.array([float(v) for v in args.paper.split(",")])
-    paths = sorted(glob.glob(os.path.join(args.asset_dir, "**", "*.png"), recursive=True))
+    paths = sorted(p for p in glob.glob(os.path.join(args.asset_dir, "**", "*.png"), recursive=True)
+                   if "masks" not in p.replace(os.sep, "/").split("/"))
     if args.only:
         paths = [p for p in paths if any(o in p.replace(os.sep, "/") for o in args.only.split(","))]
     for path in paths:

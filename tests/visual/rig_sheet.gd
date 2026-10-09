@@ -1,6 +1,6 @@
 extends SceneTree
 ## Review sheet for painted skeletal rigs (needs a display):
-##   godot --path . --resolution 1280x720 --script res://tests/visual/rig_sheet.gd -- <output.png> [creator_id]
+##   godot --path . --resolution 1280x720 --script res://tests/visual/rig_sheet.gd -- <output.png> [creator_id] [anim] [items]
 ## For each rigged pose: the bone-weight regions, then 5 frames across its main animation (large,
 ## on dark purple), so limb motion, seams and tearing are visible.
 
@@ -16,9 +16,12 @@ func _run() -> void:
 	var out_path: String = args[0] if args.size() > 0 else "user://rig_sheet.png"
 	var creator_id: String = args[1] if args.size() > 1 else "ava"
 	var only: String = args[2] if args.size() > 2 else ""
+	var items: String = args[3] if args.size() > 3 else ""
 	var config := GameConfig.load_from_dir()
 	var state := GameState.new_game(config, 1)
 	var creator := CreatorSetup.create(config.creator_templates[creator_id], config, state)
+	for item_id in items.split(",", false):
+		Appearance.apply_item(creator, config, config.look_item(item_id))
 	var spec := Appearance.render_spec(creator, config)
 	var bg := ColorRect.new()
 	bg.color = Color("2b1236")
@@ -31,10 +34,11 @@ func _run() -> void:
 	for r in rows.size():
 		var anim: String = rows[r][0]
 		var art := IllustratedArt.sprite(spec, anim)
-		if art.is_empty() or not IllustratedRig.has_rig(str(art["name"])):
+		if art.is_empty() or not IllustratedRig.has_rig(IllustratedArt.rigs_path(spec), str(art["name"])):
 			continue
 		for f in FRAMES + 1:
-			var rig := IllustratedRig.create(art, art["full_size"])
+			var rig := IllustratedRig.create(art, art["full_size"], IllustratedArt.rigs_path(spec))
+			rig.set_paint_material(IllustratedArt.material_for(spec, art))
 			rig.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 			root.add_child(rig)
 			var s := 2.6 if big else 0.52

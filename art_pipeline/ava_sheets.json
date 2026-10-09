@@ -62,7 +62,7 @@
         { "name": "pose_sleeping", "box": [1095, 120, 1448, 880], "kind": "scene", "pose": "sleeping" },
         { "name": "pose_lying", "box": [1120, 120, 1448, 880], "kind": "lying", "pose": "sleeping", "outfit": "casual",
           "_comment": "The curled side-sleeper with the painted bedding removed, turned to lie along a side-view bed (head left, front facing up).",
-          "strip_white_props": true, "rotate": -96, "mirror": true }
+          "strip_white_props": true, "rotate": -96, "mirror": true, "crown": "left" }
       ]
     }
   ]

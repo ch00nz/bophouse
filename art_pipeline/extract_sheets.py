@@ -25,6 +25,7 @@ from scipy import ndimage
 
 sys.path.insert(0, os.path.dirname(__file__))
 from cutout import alpha_matte, background_colour, background_mask, load_rgb, rgba  # noqa: E402
+from masks import hair_mask, luminance_range, save_mask  # noqa: E402
 
 PAD = 6
 
@@ -158,7 +159,7 @@ def run(manifest_path: str, preview: str | None) -> None:
     with open(manifest_path, encoding="utf-8") as f:
         manifest = json.load(f)
     out_dir = manifest["out_dir"]
-    for sub in ("full", "sprite", "portrait", "reference"):
+    for sub in ("full", "sprite", "portrait", "reference", "masks/full", "masks/sprite", "masks/portrait"):
         os.makedirs(os.path.join(out_dir, sub), exist_ok=True)
     figure_units = float(manifest["figure_units"])
     sprite_height = float(manifest["sprite_height_px"])
@@ -229,6 +230,8 @@ def run(manifest_path: str, preview: str | None) -> None:
                     "anchor": [round(ax * factor, 1), round(ay * factor, 1)],
                     "units_per_px": round(figure_units / sprite_height, 6),
                 }
+            if kind != "scene":
+                _write_masks(entry, image, out_dir, folder, name, item)
             assets[name] = entry
             previews.append(image)
             print(f"  {name:16s} {kind:9s} {image.width}x{image.height}")
@@ -246,6 +249,23 @@ def run(manifest_path: str, preview: str | None) -> None:
     if preview:
         contact_sheet(previews).save(preview)
         print("preview", preview)
+
+
+def _write_masks(entry: dict, image: Image.Image, out_dir: str, folder: str, name: str, item: dict) -> None:
+    """Recolour masks (hair) for the full image and its sprite, plus the hair's luminance range."""
+    pixels = np.asarray(image.convert("RGBA"))
+    mask = hair_mask(pixels, crown_side=str(item.get("crown", "top")))
+    if mask.max() < 0.5:
+        return
+    path = os.path.join(out_dir, "masks", folder, name + "_hair.png")
+    mask_image = save_mask(mask, path)
+    entry["masks"] = {"hair": "res://" + path.replace(os.sep, "/")}
+    entry["hair_lum"] = luminance_range(pixels, mask)
+    if "sprite" in entry:
+        size = tuple(entry["sprite"]["size"])
+        sprite_path = os.path.join(out_dir, "masks", "sprite", name + "_hair.png")
+        mask_image.resize(size, Image.LANCZOS).save(sprite_path, optimize=True)
+        entry["sprite"]["masks"] = {"hair": "res://" + sprite_path.replace(os.sep, "/")}
 
 
 def contact_sheet(images: list[Image.Image]) -> Image.Image:

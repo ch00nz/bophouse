@@ -55,30 +55,42 @@ static func draw(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origi
 ##  - "guest_silhouette": an anonymous, clothed dark silhouette (implied boy/girl collabs);
 ##  - "privacy_screen": closed-set content is implied by a folding screen and a CLOSED SET tag.
 static func draw_with_props(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origin: Vector2, facing: float, scale: float, lift: float, props: Array, guest_outfit: Dictionary = {}) -> void:
-	var lying := anim == "sleep" or anim == "recline"
-	if props.has("guest_creator") or props.has("guest_silhouette"):
-		var offset := Vector2(0, -6) if lying else Vector2(-32.0 * facing, 0.0)
-		if props.has("guest_creator"):
-			var guest := spec.duplicate()
-			guest.erase("look_hash")
-			guest["hair_color"] = "#1f1a2e"
-			guest["hair_style"] = "bob"
-			guest["skin"] = "#c68863"
-			guest["eyes"] = "#4a2c1d"
-			guest["freckles"] = false
-			guest["seed"] = float(spec.get("seed", 0.0)) + 1.3
-			if not guest_outfit.is_empty():
-				guest["outfit"] = guest_outfit
-			guest["tattoos"] = []
-			guest["piercings"] = []
-			draw(ci, guest, "recline" if lying else "film", t, origin + offset * scale, -facing, scale * 0.98, lift + (4.0 if lying else 0.0))
-		else:
-			_draw_silhouette(ci, origin + offset * scale, -facing, scale, lying, lift)
+	draw_guests(ci, spec, anim, t, origin, facing, scale, lift, props, guest_outfit)
 	draw(ci, spec, anim, t, origin, facing, scale, lift)
-	if props.has("privacy_screen"):
-		ci.draw_set_transform(origin, 0.0, Vector2(scale, scale))
-		_draw_privacy_screen(ci, lying, lift)
-		ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_screen(ci, anim, origin, scale, lift, props)
+
+
+## The other people in a collab shot (behind/beside the creator). Painted creators draw these too.
+static func draw_guests(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origin: Vector2, facing: float, scale: float, lift: float, props: Array, guest_outfit: Dictionary = {}) -> void:
+	var lying := anim == "sleep" or anim == "recline"
+	if not (props.has("guest_creator") or props.has("guest_silhouette")):
+		return
+	var offset := Vector2(0, -6) if lying else Vector2(-32.0 * facing, 0.0)
+	if props.has("guest_creator"):
+		var guest := spec.duplicate()
+		guest.erase("look_hash")
+		guest["hair_color"] = "#1f1a2e"
+		guest["hair_style"] = "bob"
+		guest["skin"] = "#c68863"
+		guest["eyes"] = "#4a2c1d"
+		guest["freckles"] = false
+		guest["seed"] = float(spec.get("seed", 0.0)) + 1.3
+		if not guest_outfit.is_empty():
+			guest["outfit"] = guest_outfit
+		guest["tattoos"] = []
+		guest["piercings"] = []
+		draw(ci, guest, "recline" if lying else "film", t, origin + offset * scale, -facing, scale * 0.98, lift + (4.0 if lying else 0.0))
+	else:
+		_draw_silhouette(ci, origin + offset * scale, -facing, scale, lying, lift)
+
+
+## The closed-set privacy screen (drawn in front of the creator).
+static func draw_screen(ci: CanvasItem, anim: String, origin: Vector2, scale: float, lift: float, props: Array) -> void:
+	if not props.has("privacy_screen"):
+		return
+	ci.draw_set_transform(origin, 0.0, Vector2(scale, scale))
+	_draw_privacy_screen(ci, anim == "sleep" or anim == "recline", lift)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Records a standing figure (feet at the origin, facing +x) into draw commands instead of drawing:

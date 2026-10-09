@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 5C, Character Graphics Cleanup & Animation
+## Current milestone: 5D, Reusable Painted Characters & Hair Colour
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -139,6 +139,17 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
 * **Painted sleeping pose** on the bed (bedding removed from the reference and turned to lie along the bed).
 * Flattened paintings only allow small limb swings; the exact layered rig art needed for full animation is
   specified in the docs. The procedural renderer remains the fallback for every look the paintings don't show.
+
+**Milestone 5D (reusable painted characters and hair colour):** see [docs/ILLUSTRATED_ART.md](docs/ILLUSTRATED_ART.md) section 6.
+* **Hair colour works on the paintings:** the pipeline generates hair masks for every painted image, and a
+  recolour shader repaints only the hair, keeping its shading. It's consistent in every animation, both walking
+  directions, the stairs back view, sleeping, the hero, close-ups and roster faces.
+* Painted creators keep their paintings when their look changes. Differences the paintings can't show yet
+  are listed as "Not painted yet". The art mode is Painted or Classic.
+* **Renderer reusable by any creator:** paintings and rigs are found by creator id under
+  `assets/characters/<id>/illustrated/`; what they depict comes from her template. Recruits without
+  paintings keep the procedural renderer.
+* The test runner now fails test files that don't compile, instead of skipping them.
 
 **Economy rebalance:** start with $250, 350 followers and 8 subscribers (~$18 gross per productive hour).
 Running costs (rent, utilities, equipment maintenance, residents' living costs) are charged continuously and shown

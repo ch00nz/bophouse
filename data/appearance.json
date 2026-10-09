@@ -23,6 +23,7 @@
     "mature": { "from_age": 28, "full_age": 38 }
   },
   "show_tag_threshold": 0.35,
+  "_hair_palette_comment": "Hair colour 'art_palette' = dark, mid and light tones the painted-art recolour shader maps the original hair shading onto (shadows -> dark, highlights -> light).",
   "_portrait_comment": "Signature portrait expression from her first matching trait (see src/art/character/face_painter.gd EXPRESSIONS).",
   "portrait": {
     "default_expression": "smile",
@@ -35,12 +36,12 @@
   "slots": {
     "hair_color": [
       { "id": "brunette", "label": "Brunette", "color": "#6b3b2a", "tags": { "natural": 0.2 } },
-      { "id": "blonde", "label": "Platinum blonde", "color": "#ecd18a", "tags": { "bombshell": 0.35, "glamour": 0.2, "natural": -0.15 } },
-      { "id": "pink", "label": "Pastel pink", "color": "#ff8fc7", "tags": { "alternative": 0.6, "cute": 0.3, "natural": -0.3 } },
-      { "id": "copper", "label": "Copper red", "color": "#b8572e", "tags": { "natural": 0.2, "cute": 0.15 } },
-      { "id": "honey", "label": "Honey balayage", "color": "#c8924f", "tags": { "glamour": 0.1, "natural": 0.1 } },
-      { "id": "black", "label": "Jet black", "color": "#221c2a", "tags": { "alternative": 0.15, "luxury": 0.1 } },
-      { "id": "cherry", "label": "Cherry red", "color": "#c81d4b", "tags": { "alternative": 0.3, "bombshell": 0.2, "natural": -0.25 } }
+      { "id": "blonde", "label": "Platinum blonde", "color": "#ecd18a", "art_palette": ["#7a5a34", "#e9cf8f", "#fff6da"], "tags": { "bombshell": 0.35, "glamour": 0.2, "natural": -0.15 } },
+      { "id": "pink", "label": "Pastel pink", "color": "#ff8fc7", "art_palette": ["#7e2754", "#f58cc0", "#ffd6ec"], "tags": { "alternative": 0.6, "cute": 0.3, "natural": -0.3 } },
+      { "id": "copper", "label": "Copper red", "color": "#b8572e", "art_palette": ["#4d1a0e", "#b8572e", "#f3a46a"], "tags": { "natural": 0.2, "cute": 0.15 } },
+      { "id": "honey", "label": "Honey balayage", "color": "#c8924f", "art_palette": ["#5b3417", "#c8924f", "#f6d495"], "tags": { "glamour": 0.1, "natural": 0.1 } },
+      { "id": "black", "label": "Jet black", "color": "#221c2a", "art_palette": ["#08070b", "#221c2a", "#5d5470"], "tags": { "alternative": 0.15, "luxury": 0.1 } },
+      { "id": "cherry", "label": "Cherry red", "color": "#c81d4b", "art_palette": ["#3f0612", "#c81d4b", "#ff7a98"], "tags": { "alternative": 0.3, "bombshell": 0.2, "natural": -0.25 } }
     ],
     "hair_style": [
       { "id": "long_waves", "label": "Long waves", "tags": { "glamour": 0.1 } },

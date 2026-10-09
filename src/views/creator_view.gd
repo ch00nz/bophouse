@@ -30,6 +30,11 @@ var _last_logical: Vector2 = Vector2.INF
 ## Skeletal rigs for painted poses (milestone 5C), created on demand per painted asset.
 var _rigs: Dictionary = {}
 var _rig_active: IllustratedRig = null
+## Static paintings (each with its own recolour material) and an overlay drawn above them
+## (speech bubble, name, privacy screen).
+var _painted: PaintedLayer
+var _overlay: Node2D
+var _materials: Dictionary = {} # painted asset name -> recolour material (or null), per look
 ## Painted sleepers sink this far into the mattress (model units) so they rest on it, not float.
 const LYING_SINK := 6.0
 ## Game animation -> painted rig animation (rigs fall back to their own default motion).
@@ -47,6 +52,11 @@ func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 	position = house.logical_to_pixel(creator.position)
 	# Painted sprites are downscaled several times; mipmaps keep them smooth.
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_painted = PaintedLayer.new()
+	add_child(_painted)
+	_overlay = Node2D.new()
+	_overlay.draw.connect(_draw_overlay)
+	add_child(_overlay)
 	var frames := ArtLibrary.sprite_frames(str(creator.appearance.get("sprite_frames", "")))
 	if frames != null:
 		_sprite = AnimatedSprite2D.new()
@@ -58,6 +68,7 @@ func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 ## Re-resolves the layered look (call after appearance changes).
 func refresh_look() -> void:
 	_spec = Appearance.render_spec(creator, house.config)
+	_materials.clear()
 	_drawn_state = ""
 
 
@@ -156,21 +167,37 @@ func _draw() -> void:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2(-4, -lift - 12), Vector2(66, 22), Color("ffd166"), 2.5)
 		else:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2.ZERO, Vector2(22, 6), Color("ffd166"), 2.5)
-	if _sprite == null and not _draw_painted(anim, props, lift):
-		CreatorRenderer.draw_with_props(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift, props,
-			house.config.look_option("outfit", "glamour"))
+	_painted.begin()
+	if _sprite == null:
+		if _draw_painted(anim, lift):
+			# Collab guests are drawn around a painted creator; she keeps her paintings.
+			CreatorRenderer.draw_guests(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift, props,
+				house.config.look_option("outfit", "glamour"))
+		else:
+			CreatorRenderer.draw_guests(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift, props,
+				house.config.look_option("outfit", "glamour"))
+			CreatorRenderer.draw(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift)
+	_painted.end()
+	_overlay.queue_redraw()
+
+
+## Above every painting: the closed-set screen, speech bubble and name.
+func _draw_overlay() -> void:
+	var anim := current_anim()
+	var lying := is_lying(anim)
+	var lift := house.sleep_surface_height(creator.room_id) if lying else 0.0
+	var props: Array = [] if creator.is_travelling() else current_activity().get("props", [])
+	CreatorRenderer.draw_screen(_overlay, anim, Vector2.ZERO, 1.0, lift, props)
 	_draw_bubble(anim, lift)
 	var name_y := 18.0 if not lying else 14.0
-	PlaceholderArt.draw_text(self, Vector2(-60, name_y), creator.display_name.get_slice(" ", 0), 13,
+	PlaceholderArt.draw_text(_overlay, Vector2(-60, name_y), creator.display_name.get_slice(" ", 0), 13,
 		Color.WHITE, 120, HORIZONTAL_ALIGNMENT_CENTER, 4)
 
 
-## Painted art for this moment ({} = use the procedural renderer): no props (collabs, closed sets),
-## a look the paintings show, and a painted pose for the animation.
+## Painted art for this moment ({} = use the procedural renderer): the creator has paintings, art
+## mode isn't Classic, and there's a painted pose for the animation.
 func _painted_art(anim: String) -> Dictionary:
 	if _sprite != null or not IllustratedArt.use_art(_spec):
-		return {}
-	if not creator.is_travelling() and not (current_activity().get("props", []) as Array).is_empty():
 		return {}
 	return IllustratedArt.sprite(_spec, anim, _on_stairs)
 
@@ -180,23 +207,34 @@ func _painted_scale() -> float:
 	return float(_spec.get("height_scale", 1.0)) * house_scale
 
 
+## Recolour material for a painted asset under her current look (hair colour), cached per look.
+func _material(art: Dictionary) -> Material:
+	var name := str(art.get("name", ""))
+	if not _materials.has(name):
+		_materials[name] = IllustratedArt.material_for(_spec, art)
+	return _materials[name]
+
+
 ## Shows the skeletal rig for the current painted pose (idle breathing, walking strides, filming,
 ## livestream waves, selfies), hiding the others. Rigs animate every frame on their own.
 func _update_rig(anim: String, rate: float) -> void:
 	var art := _painted_art(anim)
 	var name := str(art.get("name", ""))
+	var rigs_path := IllustratedArt.rigs_path(_spec)
 	var rig: IllustratedRig = null
-	if not name.is_empty() and IllustratedRig.has_rig(name):
+	if not name.is_empty() and IllustratedRig.has_rig(rigs_path, name):
 		rig = _rigs.get(name)
 		if rig == null:
-			rig = IllustratedRig.create(art, art["full_size"])
+			rig = IllustratedRig.create(art, art["full_size"], rigs_path)
 			add_child(rig)
+			move_child(_overlay, -1) # bubble and name stay on top
 			_rigs[name] = rig
 		var s := float(art["units_per_px"]) * _painted_scale()
 		var mirror := false
 		if anim == "walk" and not _on_stairs:
 			mirror = _facing * float((_spec.get("illustrated", {}) as Dictionary).get("walk_facing", 1)) < 0.0
 		rig.scale = Vector2(-s if mirror else s, s)
+		rig.set_paint_material(_material(art))
 		rig.play(str(RIG_ANIMS.get(anim, "idle")), rate if anim == "walk" else 1.0)
 	for key: String in _rigs:
 		(_rigs[key] as IllustratedRig).visible = _rigs[key] == rig
@@ -205,12 +243,10 @@ func _update_rig(anim: String, rate: float) -> void:
 		queue_redraw()
 
 
-## Painted art without a rig: the back view on the stairs (with a step bounce), the sleeping pose on
+## Painted art without a rig: the back view on the stairs (with a step bounce), the lying pose on
 ## the bed, and painted outfits standing in for unpainted poses. Returns false when the procedural
 ## renderer should draw instead (no painting for this moment). Rigged poses are drawn by their rig.
-func _draw_painted(anim: String, props: Array, lift: float) -> bool:
-	if not props.is_empty():
-		return false
+func _draw_painted(anim: String, lift: float) -> bool:
 	if _rig_active != null and _rig_active.visible:
 		return true
 	var art := _painted_art(anim)
@@ -219,7 +255,7 @@ func _draw_painted(anim: String, props: Array, lift: float) -> bool:
 	var scale := _painted_scale()
 	if str(art.get("kind", "")) == "lying":
 		# Resting on the mattress, centred on the bed spot like the procedural sleeper; slow breathing.
-		IllustratedArt.draw(self, art, Vector2(-4.0, -lift + LYING_SINK), scale, false, sin(_t * 1.4) * 0.012)
+		_painted.add_figure(art, _material(art), Vector2(-4.0, -lift + LYING_SINK), scale, false, sin(_t * 1.4) * 0.012)
 		return true
 	var origin := Vector2.ZERO
 	var mirror := false
@@ -227,7 +263,7 @@ func _draw_painted(anim: String, props: Array, lift: float) -> bool:
 		origin.y = -absf(sin(_t * 9.0)) * 1.6
 		if not _on_stairs:
 			mirror = _facing * float((_spec.get("illustrated", {}) as Dictionary).get("walk_facing", 1)) < 0.0
-	IllustratedArt.draw(self, art, origin, scale, mirror, sin(_t * 2.0) * 0.004 if anim != "walk" else 0.0)
+	_painted.add_figure(art, _material(art), origin, scale, mirror, sin(_t * 2.0) * 0.004 if anim != "walk" else 0.0)
 	return true
 
 
@@ -247,57 +283,57 @@ func _draw_bubble(anim: String, lift: float) -> void:
 	if anim == "sleep" and str(_painted_art(anim).get("kind", "")) == "lying":
 		centre = Vector2(-46, -lift - 70) # clear of the painted sleeper's face
 	centre.y += sin(_t * 2.0) * 1.5
-	draw_colored_polygon(PackedVector2Array([centre + Vector2(-5, 9), centre + Vector2(3, 10), centre + Vector2(-6, 18)]), Color.WHITE)
-	draw_circle(centre, 13.0, Color.WHITE)
-	draw_arc(centre, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.25), 1.5, true)
+	_overlay.draw_colored_polygon(PackedVector2Array([centre + Vector2(-5, 9), centre + Vector2(3, 10), centre + Vector2(-6, 18)]), Color.WHITE)
+	_overlay.draw_circle(centre, 13.0, Color.WHITE)
+	_overlay.draw_arc(centre, 13.0, 0, TAU, 24, Color(0, 0, 0, 0.25), 1.5, true)
 	# Bubble icon comes from data (activity or content), so new content types need no code.
 	match bubble:
 		"chat":
-			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-9, -7), Vector2(12, 8)), Color("9d4edd"), 3)
-			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-2, -1), Vector2(12, 8)), Color("ff7ab8"), 3)
+			PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre + Vector2(-9, -7), Vector2(12, 8)), Color("9d4edd"), 3)
+			PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre + Vector2(-2, -1), Vector2(12, 8)), Color("ff7ab8"), 3)
 			for i in 3:
-				draw_circle(centre + Vector2(1.5 + i * 3.0, 3), 0.9 if fmod(_t * 3.0, 3.0) > i else 0.5, Color.WHITE)
+				_overlay.draw_circle(centre + Vector2(1.5 + i * 3.0, 3), 0.9 if fmod(_t * 3.0, 3.0) > i else 0.5, Color.WHITE)
 		"party":
-			draw_colored_polygon(PackedVector2Array([centre + Vector2(-7, 8), centre + Vector2(-2, -6), centre + Vector2(4, 4)]), Color("ffb703"))
+			_overlay.draw_colored_polygon(PackedVector2Array([centre + Vector2(-7, 8), centre + Vector2(-2, -6), centre + Vector2(4, 4)]), Color("ffb703"))
 			for i in 5:
 				var a := _t * 2.0 + i * 1.3
-				draw_circle(centre + Vector2(cos(a) * 7.0, sin(a) * 6.0 - 2.0), 1.4, Color.from_hsv(fmod(i * 0.21, 1.0), 0.7, 1.0))
+				_overlay.draw_circle(centre + Vector2(cos(a) * 7.0, sin(a) * 6.0 - 2.0), 1.4, Color.from_hsv(fmod(i * 0.21, 1.0), 0.7, 1.0))
 		"gossip":
-			PlaceholderArt.draw_text(self, centre + Vector2(-10, 5), "psst", 10, Color("6a4c93"))
+			PlaceholderArt.draw_text(_overlay, centre + Vector2(-10, 5), "psst", 10, Color("6a4c93"))
 		"angry":
 			for sign_x: float in [-1.0, 1.0]:
-				draw_line(centre + Vector2(sign_x * 2.0, -6), centre + Vector2(sign_x * 7.0, -1), Color("e63946"), 2.5)
-				draw_line(centre + Vector2(sign_x * 2.0, 6), centre + Vector2(sign_x * 7.0, 1), Color("e63946"), 2.5)
+				_overlay.draw_line(centre + Vector2(sign_x * 2.0, -6), centre + Vector2(sign_x * 7.0, -1), Color("e63946"), 2.5)
+				_overlay.draw_line(centre + Vector2(sign_x * 2.0, 6), centre + Vector2(sign_x * 7.0, 1), Color("e63946"), 2.5)
 		"camera":
-			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-8, -5), Vector2(13, 10)), Color("333333"), 2)
-			draw_colored_polygon(PackedVector2Array([centre + Vector2(5, -2), centre + Vector2(9, -5), centre + Vector2(9, 5), centre + Vector2(5, 2)]), Color("333333"))
+			PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre + Vector2(-8, -5), Vector2(13, 10)), Color("333333"), 2)
+			_overlay.draw_colored_polygon(PackedVector2Array([centre + Vector2(5, -2), centre + Vector2(9, -5), centre + Vector2(9, 5), centre + Vector2(5, 2)]), Color("333333"))
 			if fmod(_t, 1.0) < 0.6:
-				draw_circle(centre + Vector2(-4, -1), 2.0, Color("ff3b3b"))
+				_overlay.draw_circle(centre + Vector2(-4, -1), 2.0, Color("ff3b3b"))
 		"phone":
-			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-5, -8), Vector2(10, 16)), Color("333333"), 2)
-			draw_rect(Rect2(centre + Vector2(-3.5, -6), Vector2(7, 11)), Color("7fd3ff"))
-			PlaceholderArt.draw_heart(self, centre + Vector2(0, -0.5), 7.0 + sin(_t * 5.0), Color("ff4f8b"))
+			PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre + Vector2(-5, -8), Vector2(10, 16)), Color("333333"), 2)
+			_overlay.draw_rect(Rect2(centre + Vector2(-3.5, -6), Vector2(7, 11)), Color("7fd3ff"))
+			PlaceholderArt.draw_heart(_overlay, centre + Vector2(0, -0.5), 7.0 + sin(_t * 5.0), Color("ff4f8b"))
 		"star":
-			PlaceholderArt.draw_star(self, centre, 9.0 + sin(_t * 4.0), Color("ffb703"))
+			PlaceholderArt.draw_star(_overlay, centre, 9.0 + sin(_t * 4.0), Color("ffb703"))
 		"lock":
-			draw_arc(centre + Vector2(0, -2), 4.5, PI, TAU, 10, Color("6a4c93"), 2.5)
-			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-6, -2), Vector2(12, 9)), Color("6a4c93"), 2)
+			_overlay.draw_arc(centre + Vector2(0, -2), 4.5, PI, TAU, 10, Color("6a4c93"), 2.5)
+			PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre + Vector2(-6, -2), Vector2(12, 9)), Color("6a4c93"), 2)
 		"live":
-			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-12, -6), Vector2(24, 12)), Color("e63946"), 3)
-			PlaceholderArt.draw_text(self, centre + Vector2(-12, 4), "LIVE", 9, Color.WHITE, 24, HORIZONTAL_ALIGNMENT_CENTER)
+			PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre + Vector2(-12, -6), Vector2(24, 12)), Color("e63946"), 3)
+			PlaceholderArt.draw_text(_overlay, centre + Vector2(-12, 4), "LIVE", 9, Color.WHITE, 24, HORIZONTAL_ALIGNMENT_CENTER)
 		"heal":
-			draw_rect(Rect2(centre + Vector2(-2, -7), Vector2(4, 14)), Color("2ec4b6"))
-			draw_rect(Rect2(centre + Vector2(-7, -2), Vector2(14, 4)), Color("2ec4b6"))
+			_overlay.draw_rect(Rect2(centre + Vector2(-2, -7), Vector2(4, 14)), Color("2ec4b6"))
+			_overlay.draw_rect(Rect2(centre + Vector2(-7, -2), Vector2(14, 4)), Color("2ec4b6"))
 		"mail":
-			draw_rect(Rect2(centre + Vector2(-8, -5), Vector2(16, 11)), Color("ffd166"))
-			draw_polyline(PackedVector2Array([centre + Vector2(-8, -5), centre + Vector2(0, 1), centre + Vector2(8, -5)]), Color("b5838d"), 1.5)
-			PlaceholderArt.draw_heart(self, centre + Vector2(5, 4), 7.0, Color("ff4f8b"))
+			_overlay.draw_rect(Rect2(centre + Vector2(-8, -5), Vector2(16, 11)), Color("ffd166"))
+			_overlay.draw_polyline(PackedVector2Array([centre + Vector2(-8, -5), centre + Vector2(0, 1), centre + Vector2(8, -5)]), Color("b5838d"), 1.5)
+			PlaceholderArt.draw_heart(_overlay, centre + Vector2(5, 4), 7.0, Color("ff4f8b"))
 		"collab":
-			PlaceholderArt.draw_heart(self, centre + Vector2(-3.5, 0), 11.0, Color("ff4f8b"))
-			PlaceholderArt.draw_heart(self, centre + Vector2(3.5, 1), 11.0 + sin(_t * 5.0), Color("9d4edd"))
+			PlaceholderArt.draw_heart(_overlay, centre + Vector2(-3.5, 0), 11.0, Color("ff4f8b"))
+			PlaceholderArt.draw_heart(_overlay, centre + Vector2(3.5, 1), 11.0 + sin(_t * 5.0), Color("9d4edd"))
 		"zz":
-			PlaceholderArt.draw_text(self, centre + Vector2(-9, 6), "Zz", 15, Color("5b6ee1"))
+			PlaceholderArt.draw_text(_overlay, centre + Vector2(-9, 6), "Zz", 15, Color("5b6ee1"))
 		"heart":
-			PlaceholderArt.draw_heart(self, centre + Vector2(0, 1), 18.0 + sin(_t * 5.0) * 2.0, Color("ff4f8b"))
+			PlaceholderArt.draw_heart(_overlay, centre + Vector2(0, 1), 18.0 + sin(_t * 5.0) * 2.0, Color("ff4f8b"))
 		_:
-			PlaceholderArt.draw_text(self, centre + Vector2(-9, 4), "...", 15, Color("555555"))
+			PlaceholderArt.draw_text(_overlay, centre + Vector2(-9, 4), "...", 15, Color("555555"))

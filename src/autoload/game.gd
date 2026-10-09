@@ -153,11 +153,11 @@ func set_imperial_units(value: bool) -> void:
 	settings_changed.emit()
 
 
-## Painted character art mode (milestone 5B): "auto" (use paintings that match her look),
-## "always" (show them even when they don't, for reviewing the art) or "off".
+## Painted character art mode: "auto" (paintings for every creator who has them) or "off" (classic
+## procedural art for everyone).
 func art_mode() -> String:
 	var value := str(state.settings.get("illustrated_art", "auto"))
-	return value if IllustratedArt.MODES.has(value) else "auto"
+	return value if IllustratedArt.MODES.has(value) else "auto" # older saves: "always" -> auto
 
 
 func set_art_mode(value: String) -> void:

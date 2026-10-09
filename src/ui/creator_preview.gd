@@ -24,6 +24,11 @@ var _mood: String = ""
 var _flash_mood: String = ""
 var _flash_t: float = 0.0
 var _outfit_preview: String = ""
+## Paintings (each with its own recolour material) and an overlay above them for badges, the
+## caption and the reveal. Overlay drawing is queued during _draw and replayed by the overlay.
+var _painted: PaintedLayer
+var _overlay: Node2D
+var _ops: Array[Callable] = []
 
 
 func _init(preview_framing: String = "full", min_size: Vector2 = Vector2(300, 300)) -> void:
@@ -33,6 +38,13 @@ func _init(preview_framing: String = "full", min_size: Vector2 = Vector2(300, 30
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Paintings are downscaled a lot; mipmaps keep them smooth.
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_painted = PaintedLayer.new()
+	add_child(_painted)
+	_overlay = Node2D.new()
+	_overlay.draw.connect(func() -> void:
+		for op in _ops:
+			op.call())
+	add_child(_overlay)
 
 
 ## Mood expression from CreatorMood (confident, happy, sad, angry, surprised, playful).
@@ -124,8 +136,17 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	_ops.clear()
+	_painted.begin()
+	_draw_stage()
+	_painted.end()
+	_overlay.queue_redraw()
+
+
+func _draw_stage() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
 	_draw_backdrop(rect)
+	_ops.append(func() -> void: _overlay.draw_rect(rect.grow(-1.5), Color("ffd166").darkened(0.2), false, 2.0))
 	if _specs.is_empty():
 		return
 	if _specs.size() == 1 and framing == "portrait":
@@ -136,8 +157,12 @@ func _draw() -> void:
 	var count := _specs.size()
 	var lineup := count > 2
 	var caption_space := 46.0 if not caption_title.is_empty() and count == 1 else 0.0
-	# A before/after comparison only uses paintings when both sides have them, so it stays fair.
-	var compare_painted := count == 2 and IllustratedArt.use_art(_specs[0]) and IllustratedArt.use_art(_specs[1])
+	# A before/after comparison uses the paintings only when they can show the change (e.g. a hair
+	# colour); otherwise both sides use the classic renderer so the difference is visible.
+	var compare_painted := count == 2 and IllustratedArt.use_art(_specs[0]) and IllustratedArt.use_art(_specs[1]) \
+		and str((_specs[0] as Dictionary).get("art_cover", {}).get("missing", [])) == str((_specs[1] as Dictionary).get("art_cover", {}).get("missing", []))
+	if count == 2 and not compare_painted and IllustratedArt.use_art(_specs[0]):
+		_badge(Vector2(size.x * 0.5, size.y - 14.0), "CLASSIC PREVIEW: not painted yet", Color("ffb3c1"))
 	# Paintings are wider than procedural figures (hair, poses): shrink the whole stage uniformly so
 	# every painted figure fits its column and relative heights stay true.
 	var width_limit := INF
@@ -183,7 +208,7 @@ func _draw() -> void:
 				var art := IllustratedArt.full_body(spec, _outfit_preview if count == 1 else "")
 				if not art.is_empty():
 					var hop := absf(sin(_t * 7.0)) * 3.0 * scale if _reveal_t >= 0.0 and _reveal_t < 1.4 and i == count - 1 else 0.0
-					IllustratedArt.draw(self, art, origin - Vector2(0, hop), scale * float(spec.get("height_scale", 1.0)), false, sin(_t * 2.0 + i) * 0.004)
+					_painted.add_figure(art, IllustratedArt.material_for(spec, art), origin - Vector2(0, hop), scale * float(spec.get("height_scale", 1.0)), false, sin(_t * 2.0 + i) * 0.004)
 					if count == 1:
 						_draw_mood_inset(spec)
 						_draw_art_notes(spec)
@@ -198,10 +223,9 @@ func _draw() -> void:
 	if count == 2:
 		draw_line(Vector2(size.x * 0.5, 30), Vector2(size.x * 0.5, size.y - 8), Color(1, 1, 1, 0.15), 1.0)
 	if caption_space > 0.0:
-		_draw_caption()
+		_ops.append(_draw_caption)
 	if _reveal_t >= 0.0:
-		_draw_reveal(Vector2(size.x * (count - 0.5) / count, size.y * 0.42))
-	draw_rect(rect.grow(-1.5), Color("ffd166").darkened(0.2), false, 2.0)
+		_ops.append(_draw_reveal.bind(Vector2(size.x * (count - 0.5) / count, size.y * 0.42)))
 
 
 func _column_badges(i: int, count: int, lineup: bool, column_centre: float, caption_space: float, spec: Dictionary) -> void:
@@ -225,14 +249,16 @@ func _draw_painted_bust(spec: Dictionary, area: Rect2) -> bool:
 			var region := Rect2(0.0, 0.0, full.get_width(), full.get_height() * 0.42)
 			var k := minf(area.size.x / region.size.x, area.size.y * 0.97 / region.size.y)
 			var dest := Rect2(Vector2(area.position.x + (area.size.x - region.size.x * k) * 0.5, area.end.y - region.size.y * k), region.size * k)
-			draw_texture_rect_region(full, dest, region)
+			_painted.add_region(full, IllustratedArt.material_for(spec, art), dest, region)
 			_draw_mood_inset(spec)
 			if not _outfit_preview.is_empty():
 				_badge(Vector2(size.x * 0.5, 48.0), "WARDROBE PREVIEW", UiTheme.GOLD)
 			return true
-	var texture := IllustratedArt.bust(spec, current_mood())
-	if texture == null:
+	var bust := IllustratedArt.bust(spec, current_mood())
+	if bust.is_empty():
 		return false
+	var texture: Texture2D = bust["texture"]
+	var paint := IllustratedArt.material_for(spec, bust)
 	var tex_size := texture.get_size()
 	if framing == "portrait":
 		var face := IllustratedArt.face(spec)
@@ -241,12 +267,12 @@ func _draw_painted_bust(spec: Dictionary, area: Rect2) -> bool:
 		# Crop around the face, matching the card's aspect ratio.
 		var aspect := area.size.x / maxf(area.size.y, 1.0)
 		var half := Vector2(r * 1.2 * aspect, r * 1.2)
-		draw_texture_rect_region(texture, area, Rect2(centre - half + Vector2(0, r * 0.3), half * 2.0))
+		_painted.add_region(texture, paint, area, Rect2(centre - half + Vector2(0, r * 0.3), half * 2.0))
 		return true
 	var fit := minf(area.size.x / tex_size.x, area.size.y * 0.97 / tex_size.y)
 	var draw_size := tex_size * fit
 	var pos := Vector2(area.position.x + (area.size.x - draw_size.x) * 0.5, area.end.y - draw_size.y)
-	draw_texture_rect(texture, Rect2(pos, draw_size), false)
+	_painted.add_region(texture, paint, Rect2(pos, draw_size), Rect2(Vector2.ZERO, tex_size))
 	var badge_y := area.position.y + 48.0 if area.size.x >= 200.0 else area.end.y - 12.0
 	_badge(Vector2(area.position.x + area.size.x * 0.5, badge_y), current_mood().to_upper(), UiTheme.GOLD)
 	return true
@@ -254,16 +280,17 @@ func _draw_painted_bust(spec: Dictionary, area: Rect2) -> bool:
 
 ## Small framed face showing her current mood over the full-body painting.
 func _draw_mood_inset(spec: Dictionary) -> void:
-	var texture := IllustratedArt.bust(spec, current_mood())
-	if texture == null or size.x < 200.0:
+	var bust := IllustratedArt.bust(spec, current_mood())
+	if bust.is_empty() or size.x < 200.0:
 		return
+	var texture: Texture2D = bust["texture"]
 	var tex_size := texture.get_size()
 	var face := IllustratedArt.face(spec)
 	var r := float(face["radius"]) * tex_size.x
 	var centre: Vector2 = (face["centre"] as Vector2) * tex_size
 	var box := Rect2(size.x - 84.0, 40.0, 72.0, 72.0)
 	PlaceholderArt.draw_rounded_rect(self, box.grow(3.0), Color("2b1236"), 12, UiTheme.GOLD, 2)
-	draw_texture_rect_region(texture, box, Rect2(centre - Vector2(r, r) + Vector2(0, r * 0.25), Vector2(r, r) * 2.0))
+	_painted.add_region(texture, IllustratedArt.material_for(spec, bust), box, Rect2(centre - Vector2(r, r) + Vector2(0, r * 0.25), Vector2(r, r) * 2.0))
 	_badge(Vector2(box.get_center().x, box.end.y + 12.0), current_mood().to_upper(), UiTheme.GOLD)
 
 
@@ -283,7 +310,7 @@ func _draw_art_notes(spec: Dictionary) -> void:
 	if shown.is_empty():
 		return
 	var y := size.y - 66.0 - (46.0 if not caption_title.is_empty() else 0.0)
-	_badge(Vector2(size.x * 0.5, y), "Painting doesn't show: " + ", ".join(PackedStringArray(shown)), Color("ffb3c1"))
+	_badge(Vector2(size.x * 0.5, y), "Not painted yet: " + ", ".join(PackedStringArray(shown)), Color("ffb3c1"))
 
 
 func _draw_backdrop(rect: Rect2) -> void:
@@ -316,36 +343,40 @@ func _draw_backdrop(rect: Rect2) -> void:
 
 func _draw_caption() -> void:
 	var plate := Rect2(8, size.y - 52, size.x - 16, 44)
-	draw_polygon(PackedVector2Array([plate.position, Vector2(plate.end.x, plate.position.y), plate.end, Vector2(plate.position.x, plate.end.y)]),
+	_overlay.draw_polygon(PackedVector2Array([plate.position, Vector2(plate.end.x, plate.position.y), plate.end, Vector2(plate.position.x, plate.end.y)]),
 		PackedColorArray([Color(0.06, 0.02, 0.08, 0.35), Color(0.06, 0.02, 0.08, 0.1), Color(0.06, 0.02, 0.08, 0.1), Color(0.06, 0.02, 0.08, 0.75)]))
-	PlaceholderArt.draw_text(self, Vector2(18, size.y - 28), caption_title, 22, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_LEFT, 4, Color(0.1, 0.02, 0.1, 0.8))
+	PlaceholderArt.draw_text(_overlay, Vector2(18, size.y - 28), caption_title, 22, Color.WHITE, -1, HORIZONTAL_ALIGNMENT_LEFT, 4, Color(0.1, 0.02, 0.1, 0.8))
 	if not caption_subtitle.is_empty():
-		PlaceholderArt.draw_text(self, Vector2(19, size.y - 11), caption_subtitle, 13, UiTheme.GOLD, size.x - 30, HORIZONTAL_ALIGNMENT_LEFT, 3, Color(0.1, 0.02, 0.1, 0.8))
+		PlaceholderArt.draw_text(_overlay, Vector2(19, size.y - 11), caption_subtitle, 13, UiTheme.GOLD, size.x - 30, HORIZONTAL_ALIGNMENT_LEFT, 3, Color(0.1, 0.02, 0.1, 0.8))
 
 
 func _draw_reveal(centre: Vector2) -> void:
 	var u := _reveal_t / 2.2
 	var flash := clampf(1.0 - _reveal_t / 0.35, 0.0, 1.0)
 	if flash > 0.0:
-		draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.95, 1, 0.45 * flash))
+		_overlay.draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.95, 1, 0.45 * flash))
 	for i in 18:
 		var a := TAU * i / 18.0 + u * 1.5
 		var d := (40.0 + 160.0 * u) * (0.7 + 0.3 * sin(i * 2.1))
 		var alpha := clampf(1.0 - u, 0.0, 1.0)
 		var p := centre + Vector2(cos(a), sin(a) * 1.2) * d
 		if i % 3 == 0:
-			PlaceholderArt.draw_heart(self, p, 12.0, Color(1, 0.4, 0.7, alpha))
+			PlaceholderArt.draw_heart(_overlay, p, 12.0, Color(1, 0.4, 0.7, alpha))
 		else:
-			PlaceholderArt.draw_star(self, p, 5.0 + 3.0 * sin(i + _reveal_t * 6.0), Color(1, 0.9, 0.5, alpha))
+			PlaceholderArt.draw_star(_overlay, p, 5.0 + 3.0 * sin(i + _reveal_t * 6.0), Color(1, 0.9, 0.5, alpha))
 	if _reveal_t < 1.9:
 		var pop := minf(_reveal_t / 0.25, 1.0)
 		var w := 150.0 * pop
-		PlaceholderArt.draw_rounded_rect(self, Rect2(centre.x - w * 0.5, 30, w, 30), Color("ff4f8b"), 15, Color.WHITE, 2)
+		PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre.x - w * 0.5, 30, w, 30), Color("ff4f8b"), 15, Color.WHITE, 2)
 		if pop >= 1.0:
-			PlaceholderArt.draw_text(self, Vector2(centre.x - 75, 51), "NEW LOOK!", 18, Color.WHITE, 150, HORIZONTAL_ALIGNMENT_CENTER)
+			PlaceholderArt.draw_text(_overlay, Vector2(centre.x - 75, 51), "NEW LOOK!", 18, Color.WHITE, 150, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 func _badge(centre: Vector2, text: String, colour: Color) -> void:
+	_ops.append(_badge_now.bind(centre, text, colour))
+
+
+func _badge_now(centre: Vector2, text: String, colour: Color) -> void:
 	var width := text.length() * 7.0 + 14.0
-	PlaceholderArt.draw_rounded_rect(self, Rect2(centre.x - width * 0.5, centre.y - 9.0, width, 18.0), Color(0.08, 0.03, 0.1, 0.75), 9)
-	PlaceholderArt.draw_text(self, Vector2(centre.x - width * 0.5, centre.y + 4.5), text, 11, colour, width, HORIZONTAL_ALIGNMENT_CENTER)
+	PlaceholderArt.draw_rounded_rect(_overlay, Rect2(centre.x - width * 0.5, centre.y - 9.0, width, 18.0), Color(0.08, 0.03, 0.1, 0.75), 9)
+	PlaceholderArt.draw_text(_overlay, Vector2(centre.x - width * 0.5, centre.y + 4.5), text, 11, colour, width, HORIZONTAL_ALIGNMENT_CENTER)

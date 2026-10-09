@@ -15,10 +15,8 @@ extends Node2D
 const CELL := 4 # mesh cell size in sprite pixels
 const KEYS_PER_LOOP := 24
 const BLEND_TIME := 0.2
-const RIGS_PATH := "res://data/illustrated_rigs.json"
-
-static var _rig_data: Dictionary = {}
-static var _meshes: Dictionary = {} # asset name -> {points, uvs, triangles, weights}
+static var _rig_files: Dictionary = {} # rigs.json path -> parsed rigs
+static var _meshes: Dictionary = {} # texture + bones -> {points, uvs, triangles, weights}
 
 var asset_name: String = ""
 var _skeleton: Skeleton2D
@@ -28,26 +26,34 @@ var _bone_paths: Dictionary = {} # bone name -> path from this node
 var _default_animation: String = ""
 
 
-## Rig definition for a painted asset, or {} when it has none.
-static func definition(asset: String) -> Dictionary:
-	if _rig_data.is_empty():
-		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(RIGS_PATH)) if FileAccess.file_exists(RIGS_PATH) else null
-		_rig_data = parsed if parsed is Dictionary else {"rigs": {}}
-	return (_rig_data.get("rigs", {}) as Dictionary).get(asset, {})
+## Rig definition for a painted asset in a creator's rigs file (IllustratedArt.rigs_path), or {}.
+## Each creator has her own file next to her art, because joints are pixel positions in her paintings.
+static func definition(rigs_path: String, asset: String) -> Dictionary:
+	if rigs_path.is_empty():
+		return {}
+	if not _rig_files.has(rigs_path):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(rigs_path)) if FileAccess.file_exists(rigs_path) else null
+		_rig_files[rigs_path] = (parsed as Dictionary).get("rigs", {}) if parsed is Dictionary else {}
+	return (_rig_files[rigs_path] as Dictionary).get(asset, {})
 
 
-static func has_rig(asset: String) -> bool:
-	return not definition(asset).is_empty()
+static func has_rig(rigs_path: String, asset: String) -> bool:
+	return not definition(rigs_path, asset).is_empty()
 
 
 ## Builds a rig for a painted sprite. `art` comes from IllustratedArt.sprite() (texture, anchor);
 ## `full_size` is the full-resolution cut-out size the rig coordinates refer to.
-static func create(art: Dictionary, full_size: Vector2) -> IllustratedRig:
+static func create(art: Dictionary, full_size: Vector2, rigs_path: String) -> IllustratedRig:
 	var rig := IllustratedRig.new()
 	rig.asset_name = str(art["name"])
 	rig.name = "Rig_" + rig.asset_name
-	rig._build(art, full_size)
+	rig._build(art, full_size, definition(rigs_path, rig.asset_name))
 	return rig
+
+
+## Recolour material (IllustratedArt.material_for) on the skinned mesh; null = as painted.
+func set_paint_material(paint: Material) -> void:
+	_mesh.material = paint
 
 
 ## Plays a rig animation by name (falls back to the rig's own default motion), blending from the
@@ -97,8 +103,7 @@ func bone(bone_name: String) -> Bone2D:
 	return get_node_or_null(NodePath(str(_bone_paths.get(bone_name, "")))) as Bone2D
 
 
-func _build(art: Dictionary, full_size: Vector2) -> void:
-	var def := definition(asset_name)
+func _build(art: Dictionary, full_size: Vector2, def: Dictionary) -> void:
 	var texture: Texture2D = art["texture"]
 	var anchor: Vector2 = art["anchor"]
 	var k := Vector2(texture.get_width(), texture.get_height()) / full_size # full px -> sprite px

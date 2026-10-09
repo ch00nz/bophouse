@@ -1,6 +1,9 @@
 extends TestCase
 ## Milestone 5C skeletal rigs for painted poses: data is consistent, meshes are skinned sensibly,
 ## animations really move the limbs, and the feet stay planted (the root bone never animates).
+## Rigs live next to each creator's art.
+
+const RIGS := "res://assets/characters/ava/illustrated/rigs.json"
 
 
 func _spec() -> Dictionary:
@@ -9,8 +12,9 @@ func _spec() -> Dictionary:
 
 
 func _rig(anim: String) -> IllustratedRig:
-	var art := IllustratedArt.sprite(_spec(), anim)
-	var rig := IllustratedRig.create(art, art["full_size"])
+	var spec := _spec()
+	var art := IllustratedArt.sprite(spec, anim)
+	var rig := IllustratedRig.create(art, art["full_size"], IllustratedArt.rigs_path(spec))
 	(Engine.get_main_loop() as SceneTree).root.add_child(rig)
 	return rig
 
@@ -18,7 +22,7 @@ func _rig(anim: String) -> IllustratedRig:
 func test_rig_data_is_consistent() -> void:
 	var manifest: Dictionary = IllustratedArt.manifest("res://assets/characters/ava/illustrated/illustrated.json").get("assets", {})
 	for asset in ["pose_standing", "pose_walking", "pose_filming", "pose_selfie"]:
-		var def := IllustratedRig.definition(asset)
+		var def := IllustratedRig.definition(RIGS, asset)
 		assert_false(def.is_empty(), asset + " has a rig")
 		assert_true(manifest.has(asset), asset + " is an extracted painting")
 		var names := {}
@@ -43,7 +47,7 @@ func test_rig_builds_a_skinned_mesh() -> void:
 		var rig := _rig(anim)
 		var mesh: Polygon2D = rig.get_node("Mesh")
 		assert_gt(mesh.polygon.size(), 200, anim + " mesh covers the painting")
-		assert_eq(mesh.get_bone_count(), (IllustratedRig.definition(rig.asset_name)["bones"] as Array).size(), anim + " every bone skinned")
+		assert_eq(mesh.get_bone_count(), (IllustratedRig.definition(RIGS, rig.asset_name)["bones"] as Array).size(), anim + " every bone skinned")
 		for v in range(0, mesh.polygon.size(), 7):
 			var total := 0.0
 			for b in mesh.get_bone_count():

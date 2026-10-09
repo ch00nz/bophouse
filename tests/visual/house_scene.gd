@@ -34,6 +34,10 @@ func _run() -> void:
 	game.state = state
 	game.set_paused(true)
 	game.set("pending_offline_summary", {}) # a previous tool run's save must not show "welcome back"
+	# Optional look changes for Ava (comma-separated makeover item ids, e.g. hair_color:blonde).
+	var looks: String = OS.get_cmdline_user_args()[2] if OS.get_cmdline_user_args().size() > 2 else ""
+	for item_id in looks.split(",", false):
+		Appearance.apply_item(state.get_creator("ava"), config, config.look_item(item_id))
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	await _frames(10)

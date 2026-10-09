@@ -1,4 +1,4 @@
-# Illustrated character art (milestones 5B and 5C)
+# Illustrated character art (milestones 5B to 5D)
 
 Painted Western-cartoon art for Ava, used as the new visual benchmark. This covers the asset
 pipeline, how the game uses the paintings today, the plan for full customisation, and exactly which
@@ -254,3 +254,77 @@ greyscale for tinting.
 **8. Lying poses** without a bed, as separate full images until the rig can lie down:
 * sleeping on her back with her head to the left, side view;
 * reclining propped on one elbow, side view.
+
+## 6. Milestone 5D: a reusable painted renderer and hair colour
+
+### Why hair colour didn't change the paintings (audit)
+1. The paintings are flattened: hair, skin and clothes are baked into one image.
+2. The art policy hid the paintings: a look that differed from the painted brunette long waves
+   failed the coverage check, and the game switched to the procedural renderer.
+3. Paintings were drawn with plain `draw_texture`, with no material that could recolour anything.
+
+### How it works now
+* **Hair masks (pipeline):** `art_pipeline/masks.py` segments the hair of every extracted painting
+  (full size, sprites, busts, back view, lying pose). It works by colour (desaturated red-brown),
+  removes line art and brows by shape, keeps the mass connected to the crown, and grows back strands.
+  Masks are saved to `illustrated/masks/<folder>/<asset>_hair.png`, and the manifest records them along
+  with the hair's luminance range. A hand-painted mask with the same file name replaces an automatic one.
+* **Recolour shader:** `src/art/shaders/painted_recolor.gdshader` changes only masked pixels. It maps
+  the painted luminance onto the hair colour's `art_palette` (dark, mid and light, in
+  `data/appearance.json`), so strands, highlights and line art survive. Nothing else in the sprite changes.
+* **Every painted draw uses it:** `PaintedLayer` gives each painting its own material, and rigs set it
+  on their skinned mesh. That covers house sprites in every animation, the walk in both directions,
+  the stairs back view, the lying pose, the hero, close-up busts, the mood inset and roster faces.
+* **Art policy:** creators who have paintings keep them. Hair colour is adapted. Other differences
+  (hairstyles, procedures, unpainted outfits, tattoos, piercings) are listed as "Not painted yet"
+  rather than swapping to procedural art. Art mode is now Painted or Classic (Classic = procedural
+  art, which shows every change). Old "always" saves load as Painted.
+* **Reusable for every creator:** nothing is Ava-specific in code.
+  * Paintings are found by convention at `assets/characters/<id>/illustrated/illustrated.json`.
+  * Rigs live in `assets/characters/<id>/illustrated/rigs.json`.
+  * Shared defaults (outfit, pose and expression mapping) are in `data/illustrated_art.json`, with
+    optional per-creator overrides.
+  * What a creator's paintings depict (painted hair colour, hairstyle, natural body) is read from her
+    own template in `data/creators.json`.
+  * A recruit gets painted art by adding sheets, a manifest entry and a rigs file. No code change.
+* **Fallbacks:** a recruit without paintings keeps the procedural renderer. A painted creator's
+  before/after makeover preview uses Classic for changes the paintings can't show, so the difference
+  stays visible.
+
+### Adding painted art for another creator (e.g. Chloe)
+1. Put her sheets in `assets/characters/chloe/references/`. The sheets need the same content as
+   Ava's (master, turnaround, expressions, outfits, poses).
+2. Copy `art_pipeline/ava_sheets.json` to `chloe_sheets.json`, then set `character`, `source_dir`,
+   `out_dir` and the boxes for her sheets.
+3. Run `extract_sheets.py art_pipeline/chloe_sheets.json`. It produces cut-outs, sprites, masks and the
+   manifest. Check `inspect_edges.py` and the mask overlays.
+4. Write `assets/characters/chloe/illustrated/rigs.json`: joint positions in her paintings, using Ava's
+   as the template.
+5. Her template look in `creators.json` must match what's painted. Chloe's painted hair would be
+   `blonde`, and the paintings must show her template outfit, bust and body.
+
+### Art needed for interchangeable hairstyles, outfits, skin tones and body types
+Hair colour works from masks. The other changes need separately painted layers, because hidden
+pixels (the scalp under long hair, the body under clothes) don't exist in flattened art.
+
+**Shared rules**
+* **Format:** PNG with transparency.
+* **Canvas and scale:** the same canvas, scale and feet baseline as the rig spec in section 5
+  (2048 x 2048, 168 cm = 1500 px, feet on y = 1950).
+* **Coverage:** one file per layer, per view (front three-quarter, side, back), per rig pose.
+* **Naming:** `assets/characters/<id>/layers/<view>/<layer>__<variant>.png`, for example
+  `front34/hair_back__ponytail.png` or `front34/top__casual__bust_full.png`.
+
+**Layers**
+
+| Layer | Variants | Notes |
+|---|---|---|
+| `head` | per creator | Face and ears, no hair |
+| `body` | 4 bust x 4 hip/seat tiers | Nude-tone base, non-explicit, with seams at the waist and upper thigh |
+| `hair_back__<style>` and `hair_front__<style>` | long_waves, high_ponytail, bob, curls, space_buns | Painted in neutral greyscale (value only) so the shader can tint any colour; a separate `__mask` file is optional |
+| `top__<outfit>__<bust tier>` | each top, for each bust tier | |
+| `bottom__<outfit>__<hip tier>` | each bottom, for each hip tier | |
+| `legwear__<type>` | stockings, fishnets, leggings | |
+| `shoes__<type>` | sneakers, heels, boots, sandals | One file per foot |
+| Skin tone | per painting | Either a `skin_mask` (white = skin) per painting for shader tinting, or base layers painted per tone |
+| Tattoo and piercing overlays | each design | Per body tier, positioned on the rig bone |
