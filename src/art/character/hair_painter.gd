@@ -71,6 +71,9 @@ const BUNS_CAP := [
 	Vector2(2.6, -7.8), Vector2(1.2, -8.5), Vector2(-0.6, -7.8), Vector2(-4.6, -6.4), Vector2(-6.8, -2.6), Vector2(-7.4, 2.8),
 ]
 
+## Refined style (RenderStyle) for the look being drawn: hair-toned outline and RefinedHair passes.
+static var _refined: bool = false
+
 
 static func palette(spec: Dictionary) -> Dictionary:
 	var base := PlaceholderArt.color(spec.get("hair_color"), Color("6b3b2a"))
@@ -92,6 +95,7 @@ static func style_of(spec: Dictionary) -> String:
 static func draw_back(pen: InkPen, spec: Dictionary) -> void:
 	var c := palette(spec)
 	var detail := pen.lod(1.9)
+	_begin(pen, spec, c)
 	match style_of(spec):
 		"high_ponytail":
 			var tail := _curve(PONYTAIL)
@@ -141,6 +145,10 @@ static func draw_back(pen: InkPen, spec: Dictionary) -> void:
 				pen.fill(InkPen.taper(InkPen.smooth_open(PackedVector2Array([Vector2(11.6, 10.0), Vector2(12.2, 18.0), Vector2(12.0, 26.0)]), 4), 0.3, 0.2, 0.8), c["light"])
 	# Depth behind the neck.
 	pen.fill_clipped(InkPen.ellipse(Vector2(0.4, 6.0), Vector2(9.5, 9.0), 18), _back_shape(spec), c["deep"])
+	if _refined:
+		var mass := _back_shape(spec) if style_of(spec) != "high_ponytail" else _curve(PONYTAIL)
+		RefinedHair.back_extra(pen, mass, c)
+	pen.ink = InkPen.INK
 
 
 static func _back_shape(spec: Dictionary) -> PackedVector2Array:
@@ -165,6 +173,9 @@ static func draw_front(pen: InkPen, spec: Dictionary) -> void:
 	var detail := pen.lod(1.9)
 	var skin := PlaceholderArt.color(spec.get("skin"), Color("f1c6a5"))
 	var head := FacePainter.head_shape()
+	_begin(pen, spec, c)
+	if _refined:
+		head = RefinedFace.head_shape()
 	match style_of(spec):
 		"high_ponytail":
 			var cap := _curve(SLEEK_CAP)
@@ -224,6 +235,29 @@ static func draw_front(pen: InkPen, spec: Dictionary) -> void:
 					[Vector2(10.0, 0.0), Vector2(11.0, 8.0), Vector2(11.9, 15.0), Vector2(11.9, 21.0)]])
 				pen.fill(InkPen.taper(InkPen.smooth_open(PackedVector2Array([Vector2(11.1, 4.0), Vector2(11.2, 9.0), Vector2(12.0, 14.0)]), 3), 0.25, 0.15, 0.7), c["shine"])
 			_shine(pen, c)
+	if _refined:
+		RefinedHair.front_extra(pen, front_masses(spec), c)
+	pen.ink = InkPen.INK
+
+
+## The crown/fringe shapes of the front layer (refined passes are clipped to them).
+static func front_masses(spec: Dictionary) -> Array:
+	match style_of(spec):
+		"high_ponytail":
+			return [_curve(SLEEK_CAP)]
+		"bob":
+			return [_curve(BOB_FRONT)]
+		"curls":
+			return [_curve(CURLS_CAP)]
+		"space_buns":
+			return [_curve(BUNS_CAP)]
+	return [_curve(LONG_WAVES_FRONT), _curve(LONG_WAVES_LOCK)]
+
+
+static func _begin(pen: InkPen, spec: Dictionary, c: Dictionary) -> void:
+	_refined = RenderStyle.refined(spec)
+	if _refined:
+		pen.ink = RefinedHair.outline(c)
 
 
 static func _crown(pen: InkPen, shape: PackedVector2Array, c: Dictionary) -> void:
@@ -233,12 +267,20 @@ static func _crown(pen: InkPen, shape: PackedVector2Array, c: Dictionary) -> voi
 
 
 static func _shine(pen: InkPen, c: Dictionary) -> void:
+	if _refined:
+		RefinedHair.sheen(pen, c)
+		return
 	pen.fill(InkPen.taper(InkPen.quad(Vector2(-4.4, -9.2), Vector2(0.8, -11.9), Vector2(5.6, -9.6), 10), 0.35, 0.35, 0.95), c["shine"])
 	if pen.lod(1.9):
 		pen.fill(InkPen.taper(InkPen.quad(Vector2(6.6, -8.6), Vector2(7.6, -7.6), Vector2(8.3, -6.2), 4), 0.4, 0.1), c["shine"])
 
 
 static func _fringe_shadow(pen: InkPen, hair_shape: PackedVector2Array, head: PackedVector2Array, skin: Color) -> void:
+	if _refined: # a soft shadow: two translucent steps
+		var shadow := RefinedBody.warm_shadow(skin, 0.35)
+		pen.fill_clipped(InkPen.translated(hair_shape, Vector2(0.3, 1.5)), head, Color(shadow, 0.3))
+		pen.fill_clipped(InkPen.translated(hair_shape, Vector2(0.2, 0.75)), head, Color(shadow, 0.45))
+		return
 	pen.fill_clipped(InkPen.translated(hair_shape, Vector2(0.3, 1.1)), head, InkPen.shadow_of(skin, 0.3))
 
 
@@ -260,6 +302,9 @@ static func _wisp(pen: InkPen, points: Array, c: Dictionary) -> void:
 
 static func _strands(pen: InkPen, c: Dictionary, paths: Array) -> void:
 	for path: Array in paths:
+		if _refined:
+			pen.stroke(InkPen.smooth_open(PackedVector2Array(path), 4), Color(c["line"], 0.5), 0.14, false, 0.6)
+			continue
 		pen.stroke(InkPen.smooth_open(PackedVector2Array(path), 4), Color(c["line"], 0.75), 0.24, false, 0.6)
 
 

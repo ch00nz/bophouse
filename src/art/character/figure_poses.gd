@@ -5,7 +5,8 @@ extends RefCounted
 ## tilt, hand shapes and the facial expression. FigureModel's two-bone IK turns targets into limbs,
 ## so poses work for every body (tall, petite, curvy) without per-creator animation.
 ##
-## Anims: idle, walk, film, selfie, stream, socialise, chat, celebrate, argue, sleep, recline.
+## Anims: idle, walk, film, selfie, stream, socialise, chat, celebrate, argue, sleep, recline,
+## sit, sit_phone, sit_chat (seated on a couch/chair/beanbag `seat` model units above the floor).
 ## "film" cycles three glamour poses; transitions blend smoothly.
 
 const GROUND := -4.5
@@ -13,8 +14,14 @@ const FAR := 0
 const NEAR := 1
 
 
-static func pose(anim: String, t: float) -> Dictionary:
+static func pose(anim: String, t: float, seat: float = 22.0) -> Dictionary:
 	match anim:
+		"sit":
+			return _sit(t, seat, "")
+		"sit_phone":
+			return _sit(t, seat, "phone")
+		"sit_chat":
+			return _sit(t, seat, "chat")
 		"walk":
 			return _walk(t)
 		"film":
@@ -206,6 +213,41 @@ static func _argue(t: float) -> Dictionary:
 	p["elbows"] = [Vector2(-1, 0.1), Vector2(0.3, 1) if pointing else Vector2(1, 0.1)]
 	p["hands"] = ["hip", "point" if pointing else "hip"]
 	p["expression"] = "annoyed"
+	return p
+
+
+# ---------------------------------------------------------------------------
+# Sitting (the body lowers onto the seat; feet stay on the floor in front, knees up)
+# ---------------------------------------------------------------------------
+
+## `seat` = seat height above the floor in model units. The pelvis rests on it and the lower legs
+## reach down to the floor in front of the seat, solved by the same leg IK as standing poses.
+static func _sit(t: float, seat: float, variant: String) -> Dictionary:
+	var p := _base()
+	var drop := clampf(47.0 - seat, 8.0, 38.0)
+	var ground := FigurePoses.GROUND - drop
+	p["bob"] = drop + sin(t * 1.8) * 0.25
+	p["sway"] = 0.0
+	p["head_tilt"] = 0.06 + sin(t * 0.8) * 0.03
+	p["ankles"] = [Vector2(23.0, ground), Vector2(30.0, ground)]
+	p["knees"] = [Vector2(0.4, -1), Vector2(0.4, -1)]
+	p["wrists"] = [Vector2(9.0, -57.0), Vector2(19.0, -58.5)]
+	p["elbows"] = [Vector2(-0.2, 1), Vector2(0.2, 1)]
+	p["hands"] = ["relaxed", "relaxed"]
+	p["hair_swing"] = sin(t * 1.1) * 0.25
+	match variant:
+		"phone":
+			p["wrists"] = [Vector2(9.0, -57.0), Vector2(13.0, -80.0)]
+			p["elbows"] = [Vector2(-0.2, 1), Vector2(0.4, 1)]
+			p["hands"] = ["relaxed", "phone"]
+			p["phone"] = true
+			p["head_tilt"] = 0.18
+			p["expression"] = "smile"
+		"chat":
+			p["wrists"] = [Vector2(9.0, -57.0), Vector2(17.0 + sin(t * 4.0) * 2.5, -72.0 + cos(t * 3.0) * 3.0)]
+			p["elbows"] = [Vector2(-0.2, 1), Vector2(0.4, 1)]
+			p["hands"] = ["relaxed", "open"]
+			p["expression"] = "talk"
 	return p
 
 

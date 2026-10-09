@@ -16,6 +16,14 @@ static func ensure_initialized(state: GameState, config: GameConfig) -> void:
 		if config.trends.has(str(entry.get("id", ""))):
 			kept.append(entry)
 	state.active_trends = kept
+	# Older saves rolled much shorter trends: stretch them to the current minimum (time already
+	# elapsed is kept, so a trend that was nearly over still ends first).
+	for entry: Dictionary in state.active_trends:
+		var duration := float(entry.get("duration_minutes", 0.0))
+		var clamped := clamp_duration(duration, config)
+		if not is_equal_approx(clamped, duration):
+			entry["remaining_minutes"] = clampf(float(entry.get("remaining_minutes", 0.0)) + clamped - duration, 1.0, clamped)
+			entry["duration_minutes"] = clamped
 
 	var rng := _rng(state)
 	var count := mini(int(config.tuning("trends", "active_count", 2)), config.trends.size())
@@ -121,9 +129,15 @@ static func adaptability_factor(creator: CreatorState, config: GameConfig) -> fl
 
 
 static func _new_entry(rng: RandomNumberGenerator, config: GameConfig, trend_id: String) -> Dictionary:
-	var hours: Array = config.trend(trend_id).get("duration_hours", [36, 36])
-	var duration := rng.randf_range(float(hours[0]), float(hours[hours.size() - 1])) * 60.0
+	var hours: Array = config.trend(trend_id).get("duration_hours", [168, 168])
+	var duration := clamp_duration(rng.randf_range(float(hours[0]), float(hours[hours.size() - 1])) * 60.0, config)
 	return {"id": trend_id, "remaining_minutes": duration, "duration_minutes": duration}
+
+
+## Trend length in game minutes, kept within one week .. one month (balance.json trends).
+static func clamp_duration(minutes: float, config: GameConfig) -> float:
+	return clampf(minutes, config.tuning_f("trends", "min_duration_hours", 168.0) * 60.0,
+		config.tuning_f("trends", "max_duration_hours", 720.0) * 60.0)
 
 
 static func _pick(rng: RandomNumberGenerator, config: GameConfig, excluded: Array[String]) -> String:

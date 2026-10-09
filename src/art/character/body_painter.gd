@@ -8,11 +8,14 @@ extends RefCounted
 
 static func palette(spec: Dictionary) -> Dictionary:
 	var skin := PlaceholderArt.color(spec.get("skin"), Color("f1c6a5"))
+	if RenderStyle.refined(spec):
+		return RefinedBody.palette(skin)
 	var back := InkPen.shadow_of(skin, 0.1)
 	return {
 		"skin": skin, "lit": InkPen.light_of(skin, 0.07), "mid": skin.lerp(InkPen.shadow_of(skin, 0.2), 0.3),
 		"shadow": InkPen.shadow_of(skin, 0.22), "light": InkPen.light_of(skin, 0.3), "line": InkPen.line_of(skin, 0.42),
 		"back": back, "back_mid": InkPen.shadow_of(skin, 0.18),
+		"ink": InkPen.INK,
 	}
 
 
@@ -36,6 +39,7 @@ static func rig(model: FigureModel, pose: Dictionary) -> Dictionary:
 			"hip": hip, "knee": solved[0], "ankle": ankle, "side": -1.0 if i == 0 else 1.0,
 			"thigh": pow(model.hips, 0.85) * lerpf(1.0, model.tone, 0.2), "calf": lerpf(1.0, model.tone, 0.6),
 			"foot_angle": 0.35 if lying else clampf(lift * 0.22, 0.0, 0.7),
+			"refined": model.refined,
 		})
 	var arms: Array = []
 	var wrists: Array = pose["wrists"]
@@ -43,7 +47,7 @@ static func rig(model: FigureModel, pose: Dictionary) -> Dictionary:
 	for i in 2:
 		var shoulder: Vector2 = model.shoulder_joints[i]
 		var solved := FigureModel.solve_joint(shoulder, wrists[i], FigureModel.UPPER_ARM, FigureModel.FOREARM, elbows[i])
-		arms.append({"shoulder": shoulder, "elbow": solved[0], "wrist": solved[1], "tone": lerpf(1.0, model.tone, 0.7)})
+		arms.append({"shoulder": shoulder, "elbow": solved[0], "wrist": solved[1], "tone": lerpf(1.0, model.tone, 0.7), "refined": model.refined})
 	return {"legs": legs, "arms": arms, "sway": sway}
 
 
@@ -54,16 +58,20 @@ static func rig(model: FigureModel, pose: Dictionary) -> Dictionary:
 static func draw_leg(pen: InkPen, leg: Dictionary, c: Dictionary, is_far: bool) -> void:
 	var poly := FigureModel.leg_polygon(leg, -0.08, 1.0)
 	if is_far:
-		pen.shape_lit(poly, c["back"], c["back_mid"])
-		pen.shade(poly, Vector2(1.6, -0.2), InkPen.shadow_of(c["skin"], 0.3))
+		pen.shape_lit(poly, c["back"], c["back_mid"], 0.85, c["ink"])
+		pen.shade(poly, Vector2(1.6, -0.2), _limb_shadow(c, true))
 	else:
-		pen.shape_lit(poly, c["lit"], c["mid"])
+		pen.shape_lit(poly, c["lit"], c["mid"], 0.85, c["ink"])
 		_leg_shading(pen, leg, poly, c)
 
 
 static func _leg_shading(pen: InkPen, leg: Dictionary, poly: PackedVector2Array, c: Dictionary) -> void:
 	pen.shade(poly, Vector2(1.5, -0.2), c["shadow"])
-	if pen.lod(1.4):
+	if c.has("refined"):
+		if pen.lod(1.4):
+			pen.shade(poly, Vector2(-0.75, 0.2), c["light"])
+			RefinedBody.leg_detail(pen, leg, c)
+	elif pen.lod(1.4):
 		for piece in InkPen.rim(poly, Vector2(-0.75, 0.2)):
 			pen.fill_soft(piece, c["light"])
 	if pen.lod(1.9):
@@ -84,11 +92,14 @@ static func draw_arm(pen: InkPen, arm: Dictionary, hand_shape: String, c: Dictio
 	var dir: Vector2 = (wrist - (arm["elbow"] as Vector2)).normalized()
 	for shape in hand_shapes(wrist, dir, hand_shape, pen.lod(1.9)):
 		parts.append([shape, lit, mid])
-	pen.group(parts, 0.75)
-	pen.shade(arm_poly, Vector2(1.2, -0.6), InkPen.shadow_of(c["skin"], 0.3 if is_far else 0.22))
+	pen.group(parts, 0.75, c["ink"])
+	pen.shade(arm_poly, Vector2(1.2, -0.6), _limb_shadow(c, is_far))
 	if not is_far and pen.lod(1.4):
-		for piece in InkPen.rim(arm_poly, Vector2(-0.6, 0.3)):
-			pen.fill_soft(piece, c["light"])
+		if c.has("refined"):
+			pen.shade(arm_poly, Vector2(-0.6, 0.3), c["light"])
+		else:
+			for piece in InkPen.rim(arm_poly, Vector2(-0.6, 0.3)):
+				pen.fill_soft(piece, c["light"])
 	if not is_far:
 		if (spec.get("tattoos", []) as Array).has("arm_sleeve"):
 			_sleeve_tattoo(pen, arm, arm_poly)
@@ -108,6 +119,12 @@ static func draw_arm(pen: InkPen, arm: Dictionary, hand_shape: String, c: Dictio
 				tips.append(wrist + dir * 4.6 + n * 0.3)
 		for tip in tips:
 			pen.dot(tip, 0.4, nails)
+
+
+static func _limb_shadow(c: Dictionary, is_far: bool) -> Color:
+	if c.has("refined"):
+		return RefinedBody.warm_shadow(c["skin"], 0.34 if is_far else 0.28)
+	return InkPen.shadow_of(c["skin"], 0.3 if is_far else 0.22)
 
 
 ## Hand silhouettes for a wrist and forearm direction.
@@ -168,7 +185,7 @@ static func draw_body(pen: InkPen, model: FigureModel, near_leg: Dictionary, c: 
 		[torso, c["lit"], c["mid"]], [model.neck, c["lit"], c["mid"]], [leg, c["lit"], c["mid"]],
 		[model.breast_shape(0), c["lit"], c["mid"]], [model.breast_shape(1), c["lit"], c["mid"]],
 	]
-	pen.group(parts, 0.85)
+	pen.group(parts, 0.85, c["ink"])
 	pen.replay(baked_detail)
 	_leg_shading(pen, near_leg, leg, c)
 
@@ -176,12 +193,17 @@ static func draw_body(pen: InkPen, model: FigureModel, near_leg: Dictionary, c: 
 ## Pose-independent torso shading and anatomy lines (recorded once per body and skin tone).
 static func bake_torso_detail(pen: InkPen, model: FigureModel, c: Dictionary, spec: Dictionary) -> void:
 	pen.shade(model.torso, Vector2(2.6, -0.3), c["shadow"])
-	if pen.lod(1.4):
+	if c.has("refined"):
+		if pen.lod(1.4):
+			pen.shade(model.torso, Vector2(-0.8, 0.25), c["light"])
+		RefinedBody.bake_torso_extra(pen, model, c)
+	elif pen.lod(1.4):
 		for piece in InkPen.rim(model.torso, Vector2(-0.8, 0.25)):
 			pen.fill_soft(piece, c["light"])
 	for i in 2:
 		pen.shade(model.breast_shape(i), Vector2(0.3, -1.4), c["shadow"])
-	pen.fill_clipped(InkPen.ellipse(Vector2(1.6, -101.0), Vector2(5.0, 2.8), 16), model.neck, c["shadow"])
+	if not c.has("refined"): # refined: a soft shadow under the chin instead (RefinedBody)
+		pen.fill_clipped(InkPen.ellipse(Vector2(1.6, -101.0), Vector2(5.0, 2.8), 16), model.neck, c["shadow"])
 	pen.shade(model.neck, Vector2(1.6, 0.0), c["shadow"])
 	if not pen.lod(1.4):
 		return

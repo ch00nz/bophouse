@@ -1,5 +1,5 @@
 {
-  "_comment": "Activities a creator can perform. 'content_driven' activities take their room, spot, animation, label and rates from the creator's chosen content type (content_types.json). 'quiet' activities (sleep, recover) can't share a room with someone filming.",
+  "_comment": "Activities a creator can perform. 'content_driven' activities take their room, spot, animation, label and rates from the creator's chosen content type (content_types.json). 'quiet' activities (sleep, recover) can't share a room with someone filming. 'passive_sales_fraction': posted content keeps selling at this share of her content income while she does this activity (overnight sales while sleeping).",
   "activities": [
     {
       "id": "idle",
@@ -55,6 +55,7 @@
       "id": "sleep",
       "label": "Sleeping",
       "room_type": "bedroom",
+      "passive_sales_fraction": 0.25,
       "spot": 0.33,
       "anim": "sleep",
       "bubble": "zz",

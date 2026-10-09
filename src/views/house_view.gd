@@ -1,5 +1,5 @@
 class_name HouseView
-extends Node2D
+extends CreatorStage
 ## Side-on cutaway of the house: sky, building shell, rooms and creators.
 ## Presentation only. Converts logical grid positions to pixels and reports clicks upward.
 ## The building lives in a scaled "world" node that fits the free screen area (between the roster
@@ -9,9 +9,6 @@ signal creator_clicked(creator_id: String)
 signal room_clicked(room_id: String)
 signal background_clicked
 
-const CELL_W := 170.0
-const STOREY_H := 200.0
-const FLOOR_H := 14.0
 const ROOF_H := 92.0
 
 ## Screen width covered by UI (sidebar on the right, roster on the left); the house centres in what's left.
@@ -20,9 +17,6 @@ var reserved_left: float = 0.0
 const GROUND_H := 52.0
 const TOP_RESERVED := 104.0
 const SIDE_MARGIN := 40.0
-
-var config: GameConfig
-var state: GameState
 
 var _world: Node2D                 # scaled container: shell, rooms, creators, effects
 var _shell: Node2D
@@ -119,12 +113,6 @@ func set_reserved_left(width: float) -> void:
 	_layout()
 
 
-## Converts a logical (column, storey) position to the world point where feet touch the floor.
-## World space has column 0 / ground level at the origin and is scaled to fit the screen.
-func logical_to_pixel(logical: Vector2) -> Vector2:
-	return Vector2(logical.x * CELL_W, -logical.y * STOREY_H - FLOOR_H)
-
-
 func room_rect(room: RoomState) -> Rect2:
 	return Rect2(room.column * CELL_W, -(room.storey + 1) * STOREY_H, room.width * CELL_W, STOREY_H)
 
@@ -150,17 +138,6 @@ func _on_creator_joined(creator_id: String) -> void:
 	view.setup(creator, self)
 	spawn_floating_text(logical_to_pixel(creator.position) + Vector2(0, -150), "Welcome, %s!" % creator.first_name(), Color("ffd166"))
 	_refresh_rooms()
-
-
-## Height of the bed (or other sleep surface) in a room, for placing sleeping creators.
-func sleep_surface_height(room_id: String) -> float:
-	var room := state.get_room(room_id)
-	if room == null:
-		return 0.0
-	for item: Dictionary in config.room_level_def(room.type_id, room.level).get("furniture", []):
-		if bool(item.get("sleep_surface", false)):
-			return float(item.get("h", 0.0)) * (STOREY_H - FLOOR_H)
-	return 0.0
 
 
 func set_selection(kind: String, id: String) -> void:

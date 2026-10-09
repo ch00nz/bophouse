@@ -33,11 +33,14 @@ static var _layers: Dictionary = {}
 
 
 ## Draws a creator with feet at `origin`. Poses: idle, walk, film, socialise, selfie, stream, sleep,
-## recline, chat, celebrate, argue, showcase. Her height scales the whole figure uniformly.
+## recline, chat, celebrate, argue, showcase, sit, sit_phone, sit_chat (sleep_lift = the seat height
+## for seated poses). Her height scales the whole figure uniformly.
 static func draw(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origin: Vector2, facing: float = 1.0, scale: float = 1.0, sleep_lift: float = 0.0) -> void:
 	scale *= float(spec.get("height_scale", 1.0))
 	var seed := float(spec.get("seed", 0.0))
-	var pose := FigurePoses.pose(anim, t + seed)
+	# Seated poses take the seat height (local units, like sleep_lift) in model units.
+	var seat := sleep_lift / float(spec.get("height_scale", 1.0)) if anim.begins_with("sit") else 22.0
+	var pose := FigurePoses.pose(anim, t + seed, seat)
 	var base: Transform2D
 	if anim == "sleep":
 		base = Transform2D(-PI / 2.0, Vector2(scale, scale), 0.0, origin + Vector2(56.0, -sleep_lift - 13.0) * scale)
@@ -47,6 +50,8 @@ static func draw(ci: CanvasItem, spec: Dictionary, anim: String, t: float, origi
 	else:
 		base = Transform2D(0.0, Vector2(facing * scale, scale), 0.0, origin + Vector2(0.0, float(pose["bob"])) * scale)
 	var pen := InkPen.new(ci, base)
+	# Soft shading only where it shows (above sprite size); house sprites keep the cheaper cel shading.
+	pen.soft = RenderStyle.refined(spec) and pen.px >= float(TIER_PX[0])
 	_draw_figure(pen, spec, pose, t + seed)
 
 
@@ -97,6 +102,7 @@ static func draw_screen(ci: CanvasItem, anim: String, origin: Vector2, scale: fl
 ## [op, canvas points, colour, ...] (see InkPen.Op). Used by tests to check geometry headlessly.
 static func record(spec: Dictionary, anim: String, t: float, scale: float = 3.0) -> Array:
 	var pen := InkPen.new(null, Transform2D(0.0, Vector2(scale, scale) * float(spec.get("height_scale", 1.0)), 0.0, Vector2.ZERO))
+	pen.soft = RenderStyle.refined(spec) and pen.px >= float(TIER_PX[0])
 	var rec := pen.recorder()
 	rec.xf = pen.xf
 	rec.px = scale
@@ -161,9 +167,14 @@ static func _draw_figure(pen: InkPen, spec: Dictionary, pose: Dictionary, t: flo
 		_draw_near_arm(pen, arms[1], str(hands[1]), c, spec, bool(pose["phone"]))
 	pen.push(head_xf)
 	pen.replay(_layer("face|%s" % expr["key"], spec, tier, pen, func(rec: InkPen) -> void:
-		FacePainter.draw_ear(rec, c["skin"])
-		AccessoryPainter.draw_ears(rec, spec)
-		FacePainter.draw(rec, spec, expr)))
+		if RenderStyle.refined(spec):
+			RefinedFace.draw_ear(rec, c["skin"])
+			AccessoryPainter.draw_ears(rec, spec)
+			RefinedFace.draw(rec, spec, expr)
+		else:
+			FacePainter.draw_ear(rec, c["skin"])
+			AccessoryPainter.draw_ears(rec, spec)
+			FacePainter.draw(rec, spec, expr)))
 	pen.replay(_layer("hair_front", spec, tier, pen, func(rec: InkPen) -> void:
 		HairPainter.draw_front(rec, spec)
 		AccessoryPainter.draw_head_top(rec, spec)))
@@ -187,12 +198,13 @@ static func _tier(px: float) -> int:
 
 ## Recorded commands for a pose-independent layer, cached by everything that changes its look.
 static func _layer(kind: String, spec: Dictionary, tier: int, pen: InkPen, paint: Callable, sway: float = 0.0) -> Array:
-	var key := "%s|%d|%d|%.2f" % [kind, tier, _look_hash(spec), sway]
+	var style := RenderStyle.of(spec)
+	var key := "%s|%s|%d|%d|%.2f" % [kind, style, tier, _look_hash(spec), sway]
 	if _layers.has(key):
 		return _layers[key]
 	if _layers.size() > 600:
 		_layers.clear()
-	var base_key := "%s|%d|%d|0.00" % [kind, tier, _look_hash(spec)]
+	var base_key := "%s|%s|%d|%d|0.00" % [kind, style, tier, _look_hash(spec)]
 	if not _layers.has(base_key):
 		var rec := pen.recorder()
 		rec.px = float(TIER_RECORD_PX[tier])

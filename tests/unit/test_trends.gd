@@ -95,12 +95,41 @@ func test_trends_keep_rotating_over_many_days() -> void:
 	var config := load_config()
 	var state := GameState.new_game(config, 4)
 	var seen := {}
-	for i in range(60):
-		Simulation.advance(state, config, 24.0 * 60.0, 10.0)
+	# Trends last 1-4 weeks, so it takes a couple of in-game years to see every one.
+	for i in range(730):
+		TrendSystem.advance(state, config, 24.0 * 60.0)
 		for trend_id in TrendSystem.active_ids(state):
 			seen[trend_id] = true
 		assert_eq(state.active_trends.size(), 2)
-	assert_eq(seen.size(), config.trends.size(), "every trend appears over 60 days")
+	assert_eq(seen.size(), config.trends.size(), "every trend appears over two years")
+
+
+func test_trends_last_between_a_week_and_a_month() -> void:
+	var config := load_config()
+	var state := GameState.new_game(config, 9)
+	var week := 7.0 * 24.0 * 60.0
+	var month := 30.0 * 24.0 * 60.0
+	var rolled := 0
+	for i in range(400):
+		TrendSystem.advance(state, config, 24.0 * 60.0)
+		for entry: Dictionary in state.active_trends:
+			var duration := float(entry["duration_minutes"])
+			assert_true(duration >= week - 0.01 and duration <= month + 0.01, "%s lasts %.1f days" % [entry["id"], duration / 1440.0])
+			rolled += 1
+	assert_gt(rolled, 0)
+	for trend_id in config.trend_order:
+		var hours: Array = config.trend(trend_id)["duration_hours"]
+		assert_true(float(hours[0]) >= 168.0 and float(hours[1]) <= 720.0, "%s data is within a week..month" % trend_id)
+
+
+func test_short_trends_from_old_saves_are_stretched() -> void:
+	var config := load_config()
+	var state := GameState.new_game(config, 5)
+	state.active_trends = [{"id": "poolside_glamour", "remaining_minutes": 600.0, "duration_minutes": 2400.0}]
+	TrendSystem.ensure_initialized(state, config)
+	var entry: Dictionary = state.active_trends[0]
+	assert_almost(float(entry["duration_minutes"]), 168.0 * 60.0)
+	assert_almost(float(entry["remaining_minutes"]), 168.0 * 60.0 - 1800.0, 0.01, "elapsed time is kept")
 
 
 func test_trend_rolls_are_deterministic_for_a_seed() -> void:

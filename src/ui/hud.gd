@@ -7,6 +7,8 @@ const TOAST_SECONDS := 4.0
 
 ## Emitted when the screen area covered by the sidebar changes (collapse/expand).
 signal reserved_width_changed(width: float)
+## Room View: the player asked to go back to the house overview.
+signal back_to_house_requested
 
 var sidebar: Sidebar
 var roster: RosterPanel
@@ -18,6 +20,9 @@ var _sidebar_toggle: Button
 var _toast: PanelContainer
 var _toast_label: Label
 var _toast_time: float = 0.0
+var _room_bar: PanelContainer
+var _room_title: Label
+var _room_subtitle: Label
 
 var _root: Control
 var _cash: Label
@@ -57,6 +62,7 @@ func _ready() -> void:
 	_build_sidebar_toggle()
 	_build_toast()
 	_build_footer()
+	_build_room_bar()
 
 	_reset_dialog = ConfirmationDialog.new()
 	_reset_dialog.title = "Start over?"
@@ -81,6 +87,51 @@ func _ready() -> void:
 	Game.state_replaced.connect(func() -> void: _close_overlay())
 	_on_speed_changed(Game.speed, Game.paused)
 	_refresh()
+
+
+## Room View header: an obvious Back to House button with the room's name and status.
+func _build_room_bar() -> void:
+	_room_bar = PanelContainer.new()
+	_room_bar.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.PANEL, 12, 8, UiTheme.ACCENT, 2))
+	_room_bar.offset_left = RosterPanel.WIDTH + 24.0
+	_room_bar.offset_top = 106.0
+	_room_bar.visible = false
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	_room_bar.add_child(row)
+	var back := Button.new()
+	back.text = "<  Back to House"
+	back.custom_minimum_size = Vector2(150, 34)
+	back.add_theme_font_size_override("font_size", 15)
+	back.add_theme_stylebox_override("normal", UiTheme.box(UiTheme.ACCENT.darkened(0.15), 8, 6))
+	back.add_theme_stylebox_override("hover", UiTheme.box(UiTheme.ACCENT, 8, 6))
+	back.tooltip_text = "Return to the house overview (Esc). The house keeps running either way."
+	back.pressed.connect(func() -> void: back_to_house_requested.emit())
+	row.add_child(back)
+	var titles := VBoxContainer.new()
+	titles.add_theme_constant_override("separation", 0)
+	row.add_child(titles)
+	_room_title = UiTheme.label("", 18, UiTheme.TEXT)
+	titles.add_child(_room_title)
+	_room_subtitle = UiTheme.label("", 12, UiTheme.GOLD)
+	titles.add_child(_room_subtitle)
+	_root.add_child(_room_bar)
+
+
+func show_room_bar(title: String, subtitle: String) -> void:
+	_room_title.text = title
+	_room_subtitle.text = subtitle
+	_room_bar.visible = true
+	_room_bar.reset_size()
+
+
+func set_room_subtitle(subtitle: String) -> void:
+	if _room_subtitle.text != subtitle:
+		_room_subtitle.text = subtitle
+
+
+func hide_room_bar() -> void:
+	_room_bar.visible = false
 
 
 ## Screen width covered on the left by the roster (the house view centres in the remaining space).

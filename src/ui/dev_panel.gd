@@ -3,8 +3,11 @@ extends PanelContainer
 ## Developer-only economy panel (debug builds only, toggle with F9): advance game time through the real
 ## simulation, adjust cash, and inspect every number behind the economy (per-creator multipliers,
 ## audience growth and churn, freshness, running costs, forecast). Never available in release exports.
+## F8 (or the button here) toggles the refined character-art prototype (RenderStyle) for a live
+## before/after comparison.
 
 var _text: Label
+var _style_button: Button
 var _timer: float = 0.0
 
 
@@ -39,6 +42,10 @@ func _ready() -> void:
 		b.text = "%s%s" % ["+" if amount > 0.0 else "", Fmt.money(amount)]
 		b.pressed.connect(func() -> void: Game.dev_add_cash(amount))
 		buttons.add_child(b)
+	_style_button = Button.new()
+	_style_button.pressed.connect(_toggle_render_style)
+	buttons.add_child(_style_button)
+	_update_style_button()
 	column.add_child(buttons)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -52,6 +59,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_F9:
 		visible = not visible
 		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_F8:
+		_toggle_render_style()
+		get_viewport().set_input_as_handled()
+
+
+func _toggle_render_style() -> void:
+	RenderStyle.toggle()
+	_update_style_button()
+	print("Refined art prototype (%s): %s" % [", ".join(PackedStringArray(RenderStyle.prototype_ids)), "on" if RenderStyle.enabled else "off"])
+
+
+func _update_style_button() -> void:
+	_style_button.text = "Art prototype (F8): %s" % ("refined" if RenderStyle.enabled else "classic")
 
 
 func _process(delta: float) -> void:

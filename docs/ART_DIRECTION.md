@@ -71,13 +71,39 @@ Appearance.render_spec ─► CreatorRenderer.draw(ci, spec, anim, t, origin, fa
   `FigurePoses`.
 * **Pose:** add a function in `FigurePoses` that returns joint targets.
 
+## Refined style prototype (milestone 6, phase 1)
+
+A polished pass over the same modular renderer, aimed at Ava's painted look in a Western cartoon
+style. It is **only applied to Mia** (`RenderStyle.prototype_ids`) until reviewed; everyone else
+renders exactly as before (classic output is unchanged byte for byte).
+
+| Area | Refined treatment |
+|---|---|
+| Face (`refined/refined_face.gd`) | Almond eyes ~8% larger with the lids partly covering the iris, layered iris (limbal ring, lit lower half, two catch-lights), warm lid tone, tapered lash line with a flick and curled outer lashes, pink inner corner; full arched brows that fade in at the head; nose drawn with soft shadow and light only; fuller lips with cupid's-bow peaks, a darker upper lip, gloss and a shadow under the lower lip; sculpted forehead, cheekbone and chin highlights; radial blush. |
+| Skin (`refined/refined_body.gd`) | Warm rosy-brown shadows instead of violet; outlines in a deep tone of the skin instead of plum ink; soft gradient shading (`InkPen.soft`) in place of cel crescents; collarbone, shoulder, bust, belly and hip highlights; knee, thigh and shin highlights. |
+| Hair (`refined/refined_hair.gd`) | Hair-toned outline, soft volume (lit crown, darker underside), tapered strand clumps with lit edges, soft rim light, a glossy sheen band with crisp highlight strands. Works for every style and colour. |
+| Body (`FigureModel`, refined only) | Slimmer neck; shoulders and ribcage taper into the waist; slimmer upper arm, forearm swell, fine wrist; fuller upper thigh tapering to a slim knee, shapely calf, fine ankle. Joints, bone lengths and waist/hip/seat widths are unchanged, so poses, seats, beds, outfits and measurements all still line up. |
+
+New `InkPen` primitives: `fill_mesh`, `fill_radial`, `fill_feather`, `shade_soft`. Below the sprite
+tier the refined style keeps cel shading (invisible at that size, and cheaper).
+
+* **Compare:** `tests/visual/style_compare.gd` (below) renders Mia refined | Mia classic | Roxy classic
+  at close-up, hero, Room View and house scale, plus an expression strip. In a debug build, **F8**
+  (or the Dev panel button, F9) flips the prototype on and off live in the house and Room View.
+* **Cost:** about +0.7 ms per refined creator per redraw at Room View scale (sprites redraw at
+  8–15 fps); `render_benchmark.gd -- refined 2.6` forces the whole cast refined as a worst case.
+* **Revert:** empty `RenderStyle.prototype_ids`, or delete `render_style.gd`, `refined/` and the
+  `RenderStyle` / `c.has("refined")` / `pen.soft` branches. **Roll out:** add creator ids, or make
+  `RenderStyle.of` return refined for everyone.
+
 ## Review tools
 
 ```
 godot --path . --resolution 1280x720 --script res://tests/visual/character_sheet.gd -- out.png ava [item,item]
+godot --path . --script res://tests/visual/style_compare.gd -- out.png [mia] [roxy]
 godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]
 godot --path . --resolution 1280x720 --script res://tests/visual/house_scene.gd -- <dir>
-godot --path . --resolution 1280x720 --script res://tests/visual/render_benchmark.gd
+godot --path . --resolution 1280x720 --script res://tests/visual/render_benchmark.gd [-- classic|refined [scale]]
 ```
 
 `InkPen.debug_validate = true` (set by the character sheet) prints a backtrace for any polygon

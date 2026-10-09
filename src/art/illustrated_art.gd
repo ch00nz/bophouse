@@ -68,7 +68,9 @@ static func sprite(spec: Dictionary, anim: String, on_stairs: bool = false) -> D
 	var poses: Dictionary = def.get("sprites", {}).get(outfit(spec), {})
 	var key := "stairs" if on_stairs and poses.has("stairs") else anim
 	var name := str(poses.get(key, poses.get("*", "")))
-	if (anim == "sleep" or anim == "recline") and not poses.has(anim):
+	# Lying and seated poses need an explicit painting (a standing figure is never laid on a bed or
+	# placed on a seat).
+	if (anim == "sleep" or anim == "recline" or anim.begins_with("sit")) and not poses.has(anim):
 		name = ""
 	return _asset(def, name, true)
 

@@ -236,6 +236,10 @@ static func _bust_shading(pen: InkPen, model: FigureModel, shape: PackedVector2A
 		var centre: Vector2 = b[0]
 		var r: Vector2 = b[1]
 		var grown := model.breast_shape(i, 0.45)
+		if pen.soft: # refined style: soft volume instead of cel rings
+			pen.shade_soft(grown, Vector2(0.3, -1.4) * InkPen.SOFT_SPREAD, c["shadow"], shape)
+			pen.fill_radial(centre + Vector2(0.2 * r.x, -0.3 * r.y), Vector2(0.55 * r.x, 0.4 * r.y), Color(c["light"], 0.7 if i == 1 else 0.35), -0.4)
+			continue
 		for rim_piece in InkPen.rim(grown, Vector2(0.3, -1.4)):
 			pen.fill_clipped(rim_piece, shape, c["shadow"])
 		if i == 1:
@@ -244,7 +248,7 @@ static func _bust_shading(pen: InkPen, model: FigureModel, shape: PackedVector2A
 		var near: Array = model.breasts[1]
 		var nc: Vector2 = near[0]
 		var nr: Vector2 = near[1]
-		pen.stroke_clipped(InkPen.arc(nc, nr + Vector2(0.3, 0.3), PI * 0.15, PI * 0.75, 8), shape, c["line"], 0.25, 0.6)
+		pen.stroke_clipped(InkPen.arc(nc, nr + Vector2(0.3, 0.3), PI * 0.15, PI * 0.75, 8), shape, Color(c["line"], 0.35) if pen.soft else c["line"], 0.25, 0.6)
 
 
 static func _pattern(pen: InkPen, model: FigureModel, shape: PackedVector2Array, piece: Dictionary, c: Dictionary, y0: float, y1: float) -> void:

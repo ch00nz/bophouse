@@ -1,0 +1,14 @@
+{
+  "_comment": "Detailed Room View (click a room in the house). 'rooms' enables an interior per room type and says how creators are staged there; rooms not listed keep the house view only. 'sit_anims' maps a creator's simulated animation to a seated pose when a seat is free and she can sit (painted creators need a painted sitting pose); everyone else is shown at her simulated spot doing her real activity. 'seating' derives seats from furniture kinds in rooms.json: seat_h = seat height (fraction of the room's interior height), seats = fixed count, or seat_spacing (fraction of room width) with margin (fraction of the item's width kept for armrests). Room View never changes game state.",
+  "rooms": {
+    "living_room": {
+      "enabled": true,
+      "sit_anims": { "idle": "sit", "socialise": "sit_phone", "chat": "sit_chat" }
+    }
+  },
+  "seating": {
+    "couch": { "seat_h": 0.115, "seat_spacing": 0.115, "margin": 0.13 },
+    "beanbag": { "seat_h": 0.07, "seats": 1 },
+    "chair": { "seat_h": 0.13, "seats": 1 }
+  }
+}

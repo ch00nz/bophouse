@@ -218,7 +218,18 @@ static func current_rates(creator: CreatorState, state: GameState, config: GameC
 	var activity := config.activity(creator.activity_id)
 	if ActivityResolver.is_content_driven(activity):
 		return work_breakdown(creator, state, config)
-	return activity_rates(creator, activity, room_quality(config, state.get_room(creator.room_id)), config)
+	var rates := activity_rates(creator, activity, room_quality(config, state.get_room(creator.room_id)), config)
+	rates["cash"] = float(rates["cash"]) + passive_sales_per_hour(creator, state, config, activity)
+	return rates
+
+
+## Overnight sales: while she sleeps, content she has already posted keeps selling at a share
+## (activity passive_sales_fraction) of what her content focus earns now. Cash only.
+static func passive_sales_per_hour(creator: CreatorState, state: GameState, config: GameConfig, activity: Dictionary) -> float:
+	var fraction := float(activity.get("passive_sales_fraction", 0.0))
+	if fraction <= 0.0 or creator.content_focus.is_empty():
+		return 0.0
+	return fraction * maxf(float(work_breakdown(creator, state, config)["cash"]), 0.0)
 
 
 ## Estimated current gross revenue per hour for one creator (before the contract split).

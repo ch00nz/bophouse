@@ -14,7 +14,8 @@ const CALM_FPS := 8.0
 const SLEEP_FPS := 3.0
 
 var creator: CreatorState
-var house: HouseView
+## The view showing her: the house cutaway or a room interior (see CreatorStage).
+var house: CreatorStage
 var selected: bool = false
 
 var _t: float = 0.0
@@ -35,6 +36,11 @@ var _rig_active: IllustratedRig = null
 var _painted: PaintedLayer
 var _overlay: Node2D
 var _materials: Dictionary = {} # painted asset name -> recolour material (or null), per look
+## Stage overrides for this frame (CreatorStage.stage): animation, seat height, easing state.
+var _stage_anim: String = ""
+var _stage_lift: float = 0.0
+var _easing_walk: bool = false
+var _placed: bool = false
 ## Painted sleepers sink this far into the mattress (model units) so they rest on it, not float.
 const LYING_SINK := 6.0
 ## Game animation -> painted rig animation (rigs fall back to their own default motion).
@@ -42,7 +48,7 @@ const RIG_ANIMS := {"walk": "walk", "film": "film", "stream": "stream", "celebra
 	"socialise": "selfie", "idle": "idle", "chat": "idle", "argue": "idle"}
 
 
-func setup(creator_state: CreatorState, house_view: HouseView) -> void:
+func setup(creator_state: CreatorState, house_view: CreatorStage) -> void:
 	creator = creator_state
 	house = house_view
 	_last_earnings = creator.house_earnings
@@ -82,13 +88,38 @@ func current_activity() -> Dictionary:
 
 
 func current_anim() -> String:
-	if creator.is_travelling():
+	if creator.is_travelling() or _easing_walk:
 		return "walk"
-	var anim := str(current_activity().get("anim", "idle"))
+	if not _stage_anim.is_empty():
+		return _stage_anim
+	return simulated_anim(creator, house.state, house.config)
+
+
+## The animation for what she's actually doing in the simulation (walking, her activity's pose, or a
+## social reaction such as chatting). Shared by every view that shows creators.
+static func simulated_anim(who: CreatorState, game_state: GameState, game_config: GameConfig) -> String:
+	if who.is_travelling():
+		return "walk"
+	var anim := str(ActivityResolver.resolve(who, who.activity_id, game_config, game_state.get_room(who.room_id)).get("anim", "idle"))
 	# Social reactions (chatting, celebrating, bickering) override standing poses.
-	if creator.has_reaction(house.state.game_minutes) and not is_lying(anim):
-		return str(creator.reaction.get("anim", anim))
+	if who.has_reaction(game_state.game_minutes) and not is_lying(anim):
+		return str(who.reaction.get("anim", anim))
 	return anim
+
+
+## Seated poses (on a couch, chair or beanbag), lowered onto the seat height.
+static func is_sitting(anim: String) -> bool:
+	return anim.begins_with("sit")
+
+
+## Whether she can be shown sitting: procedural creators can; painted creators only with a painted
+## sitting pose (a standing painting is never placed on a seat).
+func can_sit() -> bool:
+	if _sprite != null:
+		return false
+	if IllustratedArt.use_art(_spec):
+		return not IllustratedArt.sprite(_spec, "sit").is_empty()
+	return true
 
 
 ## Poses performed lying on a bed or sofa (lifted onto the sleep surface).
@@ -100,28 +131,51 @@ func hit_rect() -> Rect2:
 	if is_lying(current_anim()):
 		var lift := house.sleep_surface_height(creator.room_id)
 		return Rect2(-62, -lift - 30, 120, 40)
+	if is_sitting(current_anim()):
+		return Rect2(-30, -125, 72, 147)
 	return STANDING_HIT
 
 
 func _process(delta: float) -> void:
+	var staged := house.stage(creator)
+	visible = bool(staged.get("visible", true))
+	if not visible:
+		_placed = false
+		return
+	_stage_anim = str(staged.get("anim", ""))
+	_stage_lift = float(staged.get("lift", 0.0))
+	var target: Vector2 = staged["pos"]
+	var previous := position
+	if bool(staged.get("ease", false)) and _placed:
+		# Interiors: walk to her spot (a seat, a free space) at least as fast as the simulation moves.
+		var speed := 0.0 if Game.paused else maxf(float(Game.speed), 1.0)
+		var step := maxf(120.0, house.config.tuning_f("movement", "walk_cells_per_minute", 0.3) * house.config.tuning_f("time", "game_minutes_per_real_second", 2.0) * CreatorStage.CELL_W * 1.4) * speed * delta
+		position = position.move_toward(target, step)
+		_easing_walk = position.distance_to(target) > 0.5 and not creator.is_travelling()
+	else:
+		position = target
+		_easing_walk = false
+	_placed = true
+
 	var anim := current_anim()
 	var rate := 1.0
 	if anim == "walk":
 		rate = 0.0 if Game.paused else minf(float(Game.speed), 3.0)
 	_t += delta * rate
 
-	var target := house.logical_to_pixel(creator.position)
-	if creator.is_travelling():
-		if absf(target.x - position.x) > 0.01:
-			_facing = signf(target.x - position.x)
+	var face := float(staged.get("face", 0.0))
+	if anim == "walk":
+		if absf(position.x - previous.x) > 0.01:
+			_facing = signf(position.x - previous.x)
+	elif face != 0.0:
+		_facing = signf(face)
 	else:
-		var face := float(current_activity().get("face", 0))
+		face = float(current_activity().get("face", 0))
 		var partner := _reaction_partner()
 		if partner != null and absf(partner.position.x - creator.position.x) > 0.01:
 			face = partner.position.x - creator.position.x # turn to the housemate she's with
 		if face != 0.0:
 			_facing = signf(face)
-	position = target
 	if creator.is_travelling() and _last_logical != Vector2.INF:
 		var moved := creator.position - _last_logical
 		if absf(moved.y) > 0.00001:
@@ -148,8 +202,8 @@ func _process(delta: float) -> void:
 		if earned >= 1.0:
 			house.spawn_floating_text(position + Vector2(0, -135), "+" + Fmt.money(earned), Color("7ae582"))
 	var fps := ANIM_FPS if anim == "walk" or anim == "celebrate" else (SLEEP_FPS if anim == "sleep" else CALM_FPS)
-	var state := "%d|%s|%d|%s|%s|%s|%s|%s|%s" % [int(_t * fps), anim, int(_facing), selected, creator.room_id, creator.activity_id,
-		str(creator.reaction.get("kind", "")), _on_stairs, IllustratedArt.mode]
+	var state := "%d|%s|%d|%s|%s|%s|%s|%s|%s|%.1f" % [int(_t * fps), anim, int(_facing), selected, creator.room_id, creator.activity_id,
+		str(creator.reaction.get("kind", "")), _on_stairs, IllustratedArt.mode + RenderStyle.of(_spec), _stage_lift]
 	if state != _drawn_state:
 		_drawn_state = state
 		queue_redraw()
@@ -159,8 +213,10 @@ func _draw() -> void:
 	var anim := current_anim()
 	var lying := is_lying(anim)
 	var lift := house.sleep_surface_height(creator.room_id) if lying else 0.0
+	if is_sitting(anim):
+		lift = _stage_lift
 	var props: Array = [] if creator.is_travelling() else current_activity().get("props", [])
-	if not lying:
+	if not lying and not is_sitting(anim):
 		PlaceholderArt.draw_ellipse(self, Vector2.ZERO, Vector2(17, 4), Color(0, 0, 0, 0.2))
 	if selected:
 		if lying:
@@ -280,6 +336,8 @@ func _draw_bubble(anim: String, lift: float) -> void:
 	if creator.has_reaction(house.state.game_minutes):
 		bubble = str(creator.reaction.get("kind", bubble))
 	var centre := Vector2(10, -140) if not is_lying(anim) else Vector2(-30, -lift - 58)
+	if is_sitting(anim):
+		centre.y += 24.0
 	if anim == "sleep" and str(_painted_art(anim).get("kind", "")) == "lying":
 		centre = Vector2(-46, -lift - 70) # clear of the painted sleeper's face
 	centre.y += sin(_t * 2.0) * 1.5

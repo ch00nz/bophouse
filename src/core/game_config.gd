@@ -31,6 +31,7 @@ var upgrades_data: Dictionary = {}     # raw upgrades.json (stack_falloff, categ
 var upgrades: Dictionary = {}          # upgrade_id -> definition
 var upgrade_order: Array[String] = []  # catalogue order
 var illustrated: Dictionary = {}       # raw illustrated_art.json (painted art per creator)
+var interiors: Dictionary = {}         # raw room_interiors.json (Room View staging and seating)
 
 
 static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
@@ -69,6 +70,7 @@ static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
 	config.body = _read_json(dir.path_join("body.json"))
 	config.social = _read_json(dir.path_join("social.json"))
 	config.illustrated = _read_json(dir.path_join("illustrated_art.json"))
+	config.interiors = _read_json(dir.path_join("room_interiors.json"))
 	config.upgrades_data = _read_json(dir.path_join("upgrades.json"))
 	for item in config.upgrades_data.get("upgrades", []):
 		config.upgrades[str(item["id"])] = item

@@ -33,6 +33,7 @@ data/*.json ──► GameConfig (read-only)
                     │  RoomUpgrades, SaveSystem, OfflineProgress
                     ▼
    Main ─► HouseView ─► RoomView ×N, CreatorView ×N, FloatingText
+        ├► RoomInteriorView (Room View) ─► InteriorPainter layers, CreatorView ×N (same views, CreatorStage)
         └► Hud ─► Sidebar ─► OverviewPanel | CreatorPanel | RoomPanel ; OfflinePopup
 ```
 
@@ -71,6 +72,10 @@ never touches game logic. Offline catch-up handles travel the same way.
 * `TrendSystem` keeps `active_count` trends with countdowns and a pre-rolled forecast. The RNG seed and state are saved
   (as strings, because JSON doubles can't hold 64-bit integers), so rotations are reproducible across reloads.
 * Trend strength = content match x favoured-stat fit x adaptability factor (0.6 to 1.4).
+* Trends last one week to one month of game time (`balance.json` `trends.min_duration_hours` / `max_duration_hours`
+  clamp every roll; older saves with shorter trends are stretched on load).
+* Overnight sales: while a creator sleeps, `Economy.passive_sales_per_hour` pays `passive_sales_fraction`
+  (`activities.json`, 25% for sleep) of her current content-focus income. Cash only: no follower or subscriber growth.
 
 ### Appearance, tags and audiences (milestone 3)
 
@@ -198,6 +203,7 @@ build/             Export output (git-ignored)
 | 5B | **Illustrated artwork (prototype)** | Python cut-out pipeline for painted sheets, IllustratedArt with honest look coverage and fallback, mood expressions (CreatorMood), painted portraits, house sprite prototype, wardrobe preview, art mode setting | **Done** |
 | 5C | **Character cleanup & animation** | Matting pipeline v2 (no halos), Skeleton2D rigs for painted poses (idle, walk, film, stream, selfie), painted sleeper, edge regression test | **Done** |
 | 5D | **Reusable painted characters** | Hair masks + recolour shader on every painted draw, PaintedLayer, convention-based art/rigs per creator id, Painted/Classic art mode | **Done** |
+| RV | **Room View prototype** | CreatorStage base shared by the house and room interiors, RoomInteriorView (living room), RoomStaging (presence, seats, facing; presentation only), InteriorPainter, procedural sitting poses, HUD Back to House | **Done** |
 | 6 | Collaboration & events | Housemate collabs (consent and chemistry), eligibility rules, weighted events, cooldowns, choices, event inbox; offline queues events | Next |
 | 7 | Relationships & storylines | Deeper relationship consequences, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |

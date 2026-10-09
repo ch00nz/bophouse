@@ -28,6 +28,8 @@ const MIN_PIXEL_AREA := 0.6
 
 ## Visible outer outline never exceeds this many screen pixels.
 const MAX_OUTLINE_PX := 3.4
+## Soft shading reaches this much further than a cel crescent (it fades out over its width).
+const SOFT_SPREAD := 1.7
 
 ## Art debugging: report polygons the renderer can't triangulate (with a script backtrace).
 static var debug_validate: bool = false
@@ -41,6 +43,10 @@ var _local_per_px: float = 1.0
 var _stack: Array[Transform2D] = []
 var _recording: bool = false
 var _commands: Array = []
+## Refined style (RenderStyle): outlines drawn with the default INK use this colour instead (painters
+## set it to a darker tone of the skin or hair), and shade() draws soft gradient shading.
+var ink: Color = INK
+var soft: bool = false
 
 
 func _init(canvas_item: CanvasItem = null, base: Transform2D = Transform2D.IDENTITY) -> void:
@@ -59,6 +65,7 @@ func recorder() -> InkPen:
 	var rec := InkPen.new()
 	rec._recording = true
 	rec.px = px
+	rec.soft = soft
 	return rec
 
 
@@ -150,6 +157,101 @@ static func gradient(points: PackedVector2Array, lit: Color, shade_colour: Color
 	return colours
 
 
+## Triangle mesh with per-vertex colours (soft gradients: see fill_radial / fill_feather).
+## `area_hint` is the shape's model-space area, used to skip it when it's too small to see.
+func fill_mesh(points: PackedVector2Array, indices: PackedInt32Array, colours: PackedColorArray, area_hint: float) -> void:
+	if indices.is_empty():
+		return
+	var canvas_points := xf * points
+	if _recording:
+		_commands.append([Op.LIT, canvas_points, colours, absf(area_hint) * absf(xf.determinant()), indices])
+		return
+	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), indices, canvas_points, colours)
+
+
+## Soft radial glow/shadow: full `colour` in the centre fading to transparent at the rim (blush,
+## highlights, soft shadows). One triangle mesh, so it costs a single draw.
+func fill_radial(centre: Vector2, radii: Vector2, colour: Color, rotation: float = 0.0, segments: int = 16, core: float = 0.0) -> void:
+	if colour.a <= 0.0:
+		return
+	var points := PackedVector2Array([centre])
+	var colours := PackedColorArray([colour])
+	var mid := Color(colour, colour.a * 0.55)
+	var clear := Color(colour, 0.0)
+	var inner := ellipse(centre, radii * lerpf(0.5, 0.8, core), segments, rotation)
+	var outer := ellipse(centre, radii, segments, rotation)
+	points.append_array(inner)
+	points.append_array(outer)
+	for i in segments:
+		colours.append(colour if core > 0.0 else mid)
+	for i in segments:
+		colours.append(clear)
+	var indices := PackedInt32Array()
+	for i in segments:
+		var a := 1 + i
+		var b := 1 + (i + 1) % segments
+		indices.append_array([0, a, b, a, segments + a, b, b, segments + a, segments + b])
+	fill_mesh(points, indices, colours, PI * radii.x * radii.y)
+
+
+## Fills `points` with an edge that fades out over `feather` model units (soft shadows and
+## highlights with an arbitrary shape). Works for shapes that are star-shaped around their centroid.
+func fill_feather(points: PackedVector2Array, colour: Color, feather: float) -> void:
+	var n := points.size()
+	if n < 3 or colour.a <= 0.0:
+		return
+	var inner_idx := Geometry2D.triangulate_polygon(points)
+	if inner_idx.is_empty():
+		return
+	var centroid := Vector2.ZERO
+	for p in points:
+		centroid += p
+	centroid /= n
+	var all := points.duplicate()
+	var colours := PackedColorArray()
+	colours.resize(n * 2)
+	for i in n:
+		colours[i] = colour
+		var out := points[i] - centroid
+		all.append(points[i] + out.normalized() * feather)
+		colours[n + i] = Color(colour, 0.0)
+	var indices := inner_idx.duplicate()
+	for i in n:
+		var j := (i + 1) % n
+		indices.append_array([i, n + i, j, j, n + i, n + j])
+	fill_mesh(all, indices, colours, area(points))
+
+
+## Soft shading: the crescent of shade() as a gradient, opaque along the silhouette and fading to
+## nothing where it meets the lit side (no hard cel edge). One mesh per crescent. With a `mask`, the
+## crescent is clipped to it (shading on a garment).
+func shade_soft(points: PackedVector2Array, offset: Vector2, colour: Color, mask: PackedVector2Array = PackedVector2Array()) -> void:
+	var pieces := rim(points, offset)
+	if mask.size() >= 3:
+		var clipped: Array[PackedVector2Array] = []
+		for piece in pieces:
+			for part in Geometry2D.intersect_polygons(piece, mask):
+				if not Geometry2D.is_polygon_clockwise(part) == Geometry2D.is_polygon_clockwise(piece) or absf(area(part)) <= MIN_AREA:
+					continue
+				clipped.append(part)
+		pieces = clipped
+	if pieces.is_empty():
+		return
+	# Vertices on the silhouette sit on `points`' edge; the inner (fading) edge lies inside it.
+	var shrunk := Geometry2D.offset_polygon(points, -0.06)
+	var inside: PackedVector2Array = shrunk[0] if shrunk.size() > 0 else points
+	var clear := Color(colour, 0.0)
+	for piece in pieces:
+		var indices := Geometry2D.triangulate_polygon(piece)
+		if indices.is_empty():
+			continue
+		var colours := PackedColorArray()
+		colours.resize(piece.size())
+		for i in piece.size():
+			colours[i] = clear if Geometry2D.is_point_in_polygon(piece[i], inside) else colour
+		fill_mesh(piece, indices, colours, area(piece))
+
+
 func stroke(points: PackedVector2Array, colour: Color, model_w: float, closed: bool = false, min_px: float = 1.0, max_px: float = INF) -> void:
 	if points.size() < 2 or colour.a <= 0.0:
 		return
@@ -238,7 +340,7 @@ func line(a: Vector2, b: Vector2, colour: Color, model_w: float, min_px: float =
 ## Outline pass: a thick ink stroke whose inner half the fill pass covers, leaving a clean contour.
 func contour(points: PackedVector2Array, model_w: float, colour: Color = INK, min_px: float = 1.1) -> void:
 	# Bold, but capped so close-ups don't turn into thick marker lines.
-	stroke(points, colour, model_w * 2.0, true, min_px * 2.0, MAX_OUTLINE_PX * 2.0)
+	stroke(points, ink if colour == INK else colour, model_w * 2.0, true, min_px * 2.0, MAX_OUTLINE_PX * 2.0)
 
 
 ## Outline + fill in one go (a single isolated shape).
@@ -269,6 +371,9 @@ func group(parts: Array, outline_w: float = 0.85, outline: Color = INK) -> void:
 ## Cel shadow: the part of `points` not covered by itself shifted by `offset` (a crescent on the
 ## side opposite the offset), filled opaque and softened at the edge.
 func shade(points: PackedVector2Array, offset: Vector2, colour: Color) -> void:
+	if soft:
+		shade_soft(points, offset * SOFT_SPREAD, colour)
+		return
 	for piece in rim(points, offset):
 		fill_soft(piece, colour)
 

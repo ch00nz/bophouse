@@ -23,6 +23,7 @@
     "follower_decay_per_day": 0.025,
     "subscriber_base_churn_per_day": 0.03,
     "subscriber_churn_speed": 0.04,
+    "_overnight_comment": "While she sleeps, content she has already posted keeps selling: activities with passive_sales_fraction (activities.json) earn that share of her current content focus income. Only cash; followers and subscribers still need her awake and working.",
     "loved_content_mood_per_hour": 2
   },
   "freshness": {
@@ -79,7 +80,10 @@
     "change_mood_bonus": 4
   },
   "trends": {
+    "_comment": "Every trend lasts between min_duration_hours and max_duration_hours of game time (one week to one month), whatever trends.json says; saves with shorter trends are stretched to the minimum on load.",
     "active_count": 2,
+    "min_duration_hours": 168,
+    "max_duration_hours": 720,
     "min_adaptability_factor": 0.6,
     "max_adaptability_factor": 1.4,
     "stat_fit_floor": 0.5

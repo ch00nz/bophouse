@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 5D, Reusable Painted Characters & Hair Colour
+## Current milestone: Room View prototype
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -151,6 +151,16 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
   paintings keep the procedural renderer.
 * The test runner now fails test files that don't compile, instead of skipping them.
 
+**Room View (prototype):** see [docs/ROOM_VIEW.md](docs/ROOM_VIEW.md).
+* Click the living room to open a large, detailed side-on interior. The room reflects its upgrade level's
+  furniture and colours and the time of day. A **Back to House** bar (or Esc) returns to the overview.
+* It shows the real game: everyone in the room (including people walking in and out) does her simulated
+  activity. Relaxing housemates take seats on the couch or beanbag, chatting partners face each other, and
+  clicking a creator opens her management screen. The simulation keeps running throughout.
+* It reuses the house's creator rendering (painted art, rigs, hair colour, moods). Procedural creators gain
+  sitting poses; painted Ava stands until a painted sitting pose exists.
+* Other room types are enabled in `data/room_interiors.json` once their furniture drawings exist.
+
 **Economy rebalance:** start with $250, 350 followers and 8 subscribers (~$18 gross per productive hour).
 Running costs (rent, utilities, equipment maintenance, residents' living costs) are charged continuously and shown
 line by line in **Finances** (yesterday / today / lifetime). **Upgrades** (`data/upgrades.json`: ring light $150,
@@ -164,6 +174,7 @@ economy inspector (F9) to skip time and adjust cash. Balance report:
 Art review: `tests/visual/illustrated_sheet.gd -- out.png` (painted vs procedural sprites, expressions, outfits),
 `tests/visual/house_walk.gd -- out.png` (a creator walking upstairs to bed in the real house),
 `tests/visual/rig_sheet.gd -- out.png [creator] [anim]` (skeletal rig weights and animation frames),
+`tests/visual/room_view.gd -- <dir> [level]` (Room View day/night/live/click shots),
 `tests/visual/character_sheet.gd -- out.png ava [items]` renders one creator in hero poses and every
 gameplay animation (with a 3x zoom of the sprites); `tests/visual/render_benchmark.gd` measures draw cost;
 `godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]` renders a grid of looks

@@ -34,6 +34,16 @@ const LEG_PROFILE := [
 	[-0.08, 5.9, 5.0], [0.0, 5.8, 4.9], [0.12, 5.4, 4.4], [0.26, 4.6, 3.7], [0.4, 3.6, 2.9],
 	[0.5, 2.75, 2.45], [0.6, 3.15, 2.75], [0.7, 2.95, 2.5], [0.84, 2.05, 1.75], [0.97, 1.5, 1.35], [1.0, 1.45, 1.3],
 ]
+## Refined style (RenderStyle): a fuller upper thigh tapering smoothly to a slimmer knee, a
+## shapely calf and a fine ankle. Same widths at the hip, so garments and measurements still match.
+const REFINED_LEG_PROFILE := [
+	[-0.08, 5.9, 5.0], [0.0, 5.85, 4.95], [0.1, 5.55, 4.6], [0.22, 4.95, 4.0], [0.34, 4.1, 3.3], [0.44, 3.15, 2.65],
+	[0.5, 2.7, 2.35], [0.56, 2.8, 2.4], [0.64, 3.15, 2.65], [0.72, 2.95, 2.4], [0.84, 2.0, 1.6], [0.95, 1.38, 1.18], [1.0, 1.4, 1.22],
+]
+## Refined arm half-widths along shoulder -> elbow -> wrist (slimmer upper arm, forearm swell, fine wrist).
+## Refined torso: width factors for the shoulder..ribcage control points (above the waist).
+const REFINED_TAPER := [0.95, 0.965, 0.965, 0.96, 0.97]
+const REFINED_ARM := [[0.0, 2.9], [0.2, 2.6], [0.45, 2.2], [0.75, 1.75], [1.0, 1.6], [1.12, 1.78], [1.35, 1.6], [1.65, 1.25], [2.0, 1.05]]
 
 var spec: Dictionary
 var key: String = ""
@@ -51,13 +61,15 @@ var neck: PackedVector2Array
 var breasts: Array = []
 var hip_joints: Array[Vector2] = [] # far, near (before sway)
 var shoulder_joints: Array[Vector2] = [] # far, near
+## Painted with the refined style (RenderStyle): smoother limb and neck contours.
+var refined: bool = false
 
 static var _cache: Dictionary = {}
 
 
 ## Cached model for a spec (only body-shape keys matter, so outfit/hair changes share a body).
 static func for_spec(render_spec: Dictionary) -> FigureModel:
-	var key := "%.3f|%.3f|%.3f|%.3f|%.3f|%.3f" % [
+	var key := "%s|%.3f|%.3f|%.3f|%.3f|%.3f|%.3f" % [RenderStyle.of(render_spec),
 		float(render_spec.get("bust", 1.0)), float(render_spec.get("waist", 1.0)), float(render_spec.get("hips", 1.0)),
 		float(render_spec.get("glutes", 1.0)), float(render_spec.get("shoulders", 1.0)), float(render_spec.get("limb_tone", 1.0))]
 	if _cache.has(key):
@@ -78,12 +90,17 @@ func _init(render_spec: Dictionary) -> void:
 	glutes = float(spec.get("glutes", 1.0))
 	shoulders = float(spec.get("shoulders", 1.0))
 	tone = float(spec.get("limb_tone", 1.0))
+	refined = RenderStyle.refined(spec)
 	_build_contours()
 	_build_breasts()
 	torso = _torso_polygon()
 	neck = InkPen.smooth_closed(PackedVector2Array([
 		Vector2(-3.4, -93.6), Vector2(-2.5, -98.5), Vector2(-2.3, -104.0), Vector2(3.2, -104.0),
 		Vector2(3.2, -98.5), Vector2(4.6, -93.8), Vector2(0.6, -92.6)]), 3)
+	if refined: # a slimmer neck flaring into the shoulders
+		neck = InkPen.smooth_closed(PackedVector2Array([
+			Vector2(-3.8, -93.4), Vector2(-2.3, -97.0), Vector2(-2.0, -100.5), Vector2(-2.0, -104.0), Vector2(2.9, -104.0),
+			Vector2(2.85, -100.5), Vector2(3.1, -97.2), Vector2(5.0, -93.6), Vector2(0.6, -92.4)]), 3)
 	hip_joints = [Vector2(-4.0 * hips, HIP_JOINT_Y), Vector2(4.4 * hips, HIP_JOINT_Y)]
 	shoulder_joints = [Vector2(-6.4 * shoulders, -91.4), Vector2(7.3 * shoulders, -91.6)]
 
@@ -105,6 +122,13 @@ func _build_contours() -> void:
 		Vector2(-64.0, -7.1 * hm - 0.5 * (g - 1.0)), Vector2(-59.5, -8.3 * h - 1.5 * g + 0.3),
 		Vector2(-55.0, -8.6 * h - 2.0 * g), Vector2(-51.0, -8.2 * h - 1.5 * g), Vector2(-49.0, -7.7 * h - 0.9 * g),
 	])
+	if refined:
+		# A softer shoulder slope and a ribcage that tapers into the waist (waist, hip and seat
+		# widths are unchanged, so measurements read the same).
+		for i in REFINED_TAPER.size():
+			var f := float(REFINED_TAPER[i])
+			near_ctrl[i] = Vector2(near_ctrl[i].x, near_ctrl[i].y * f)
+			far_ctrl[i] = Vector2(far_ctrl[i].x, far_ctrl[i].y * f)
 
 
 func _build_breasts() -> void:
@@ -244,10 +268,11 @@ static func leg_sample(leg: Dictionary, t: float) -> Array:
 			dir = (knee - hip).normalized().lerp(dir, 0.5 + (t - 0.5) / 0.24).normalized()
 	var outer := 0.0
 	var inner := 0.0
-	for i in LEG_PROFILE.size() - 1:
-		var a: Array = LEG_PROFILE[i]
-		var b: Array = LEG_PROFILE[i + 1]
-		if t <= float(b[0]) or i == LEG_PROFILE.size() - 2:
+	var profile: Array = REFINED_LEG_PROFILE if bool(leg.get("refined", false)) else LEG_PROFILE
+	for i in profile.size() - 1:
+		var a: Array = profile[i]
+		var b: Array = profile[i + 1]
+		if t <= float(b[0]) or i == profile.size() - 2:
 			var u := clampf((t - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.001), 0.0, 1.0)
 			outer = lerpf(float(a[1]), float(b[1]), u)
 			inner = lerpf(float(a[2]), float(b[2]), u)
@@ -296,6 +321,13 @@ static func arm_polygon(arm: Dictionary, grow: float = 0.0) -> PackedVector2Arra
 	var t := float(arm["tone"])
 	var widths := [3.0 * t, 2.55 * t, 1.95, 1.9, 1.75, 1.25]
 	var path := [shoulder, shoulder.lerp(elbow, 0.45), elbow, elbow.lerp(wrist, 0.3), elbow.lerp(wrist, 0.6), wrist]
+	if bool(arm.get("refined", false)):
+		widths.clear()
+		path.clear()
+		for entry: Array in REFINED_ARM:
+			var u := float(entry[0])
+			path.append(shoulder.lerp(elbow, u) if u <= 1.0 else elbow.lerp(wrist, u - 1.0))
+			widths.append(float(entry[1]) * (t if u < 0.8 else 1.0))
 	var left := PackedVector2Array()
 	var right := PackedVector2Array()
 	for i in path.size():

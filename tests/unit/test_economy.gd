@@ -140,3 +140,26 @@ func test_house_cash_rate_positive_for_new_game() -> void:
 	var config := load_config()
 	var state := GameState.new_game(config)
 	assert_gt(Economy.house_cash_per_hour(state, config), 0.0)
+
+
+func test_sleeping_creators_keep_selling_content_at_a_fraction() -> void:
+	var config := load_config()
+	var state := GameState.new_game(config, 1)
+	var ava := state.creators[0]
+	var awake := float(Economy.work_breakdown(ava, state, config)["cash"])
+	assert_gt(awake, 0.0)
+	ava.activity_id = "sleep"
+	ava.room_id = "bedroom_1"
+	var fraction := float(config.activity("sleep")["passive_sales_fraction"])
+	assert_gt(fraction, 0.0)
+	assert_lt(fraction, 1.0, "overnight sales are a fraction of working income")
+	var asleep := Economy.current_rates(ava, state, config)
+	assert_almost(float(asleep["cash"]), awake * fraction, 0.0001, "posted content sells overnight")
+	assert_almost(float(asleep["followers"]), 0.0, 0.0001, "no audience growth while asleep")
+	var before := ava.lifetime_earnings
+	Simulation.advance(state, config, 60.0, 1.0)
+	assert_gt(ava.lifetime_earnings - before, Economy.subscription_cash_per_hour(ava, config) * 1.01, "the simulation pays it")
+	# Other non-work activities don't earn content sales.
+	ava.activity_id = "idle"
+	ava.room_id = "living_1"
+	assert_almost(Economy.passive_sales_per_hour(ava, state, config, config.activity("idle")), 0.0, 0.0001)
