@@ -13,6 +13,7 @@ const LOOKS := [
 	["Gym set", ["outfit:fitness", "hair_style:high_ponytail", "belly_piercing"]],
 	["Alt", ["hair_color:pink", "makeup:smoky_alt", "rose_tattoo", "arm_sleeve", "outfit:alt_punk", "hair_style:space_buns", "nose_piercing"]],
 	["Party + curls", ["outfit:party_dress", "hair_style:curls", "hair_color:cherry"]],
+	["Poolside bikini", ["outfit:bikini", "hair_color:honey", "makeup:glam"]],
 ]
 
 

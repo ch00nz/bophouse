@@ -84,11 +84,12 @@ creator.look ─► Appearance.render_spec ─► CreatorRenderer (layers)      
 * **Look** = single slots (hair_color, hair_style, outfit, makeup, bust, body, lips) + lists (piercings, tattoos).
   Options and purchasable items live in `data/appearance.json`; items carry tag deltas and optional recovery rules.
 * **Tags** are derived (never hand-edited) and cached on the creator; they're saved for future event eligibility.
-* **Rendering**: `CreatorRenderer` builds the torso from front/back silhouette curves bent by bust/hips/glutes and
-  draws garments by re-using the silhouette over a vertical range (`top`/`bottom` from/to in data), so outfits are data
-  and automatically follow body changes. Layer order: back hair, back arm, legs, legwear, shoes, torso skin, bust,
-  bottom, top, details (tattoo, belly piercing), front arm, head, makeup, front hair. Any layer can later be swapped
-  for textures from AI-generated art. Nipple piercings are intentionally never drawn (outfits cover the chest).
+* **Rendering** (milestone 5A, see [ART_DIRECTION.md](ART_DIRECTION.md)): `CreatorRenderer` orchestrates modular
+  layers in `src/art/character/`: `FigureModel` (body contours from measurements), `FigurePoses` (joint targets per
+  animation, two-bone IK), `BodyPainter`, `OutfitPainter` (garment `pieces` cut from the body contours, so outfits are
+  data and follow body changes), `HairPainter`, `FacePainter` (expressions) and `AccessoryPainter`, all drawn through
+  `InkPen` in screen space. Pose-independent layers are recorded once and replayed. Nipple piercings are intentionally
+  never drawn (outfits cover the chest).
 * **Audience segments**: appeal = 1 + Σ likes·tag − Σ dislikes·tag (clamped). For a content type, audience fit is the
   share × interest × spend weighted average appeal, and the income multiplier is fit^0.85. `creator.fan_mix` drifts toward
   the target mix while working; subscription value = Σ mix · spend · satisfaction.
@@ -168,7 +169,8 @@ data/              JSON configuration (balance, rooms, activities, creators, con
 src/core/          Pure simulation: state, economy, brain, navigation, save, offline, formatting
 src/autoload/      Game singleton (clock, autosave, signals)
 src/views/         House / room / creator rendering (Node2D)
-src/art/           ArtLibrary (real art lookup) + PlaceholderArt (procedural drawing)
+src/art/           ArtLibrary (real art lookup), PlaceholderArt (rooms, UI), CreatorRenderer
+src/art/character/ Modular character layers (model, poses, body, outfit, hair, face, accessories, pen)
 src/ui/            HUD, sidebar panels, theme
 src/main/          Composition root
 scenes/            .tscn entry points
@@ -188,6 +190,7 @@ build/             Export output (git-ignored)
 | 3 | **Adult focus, appearance & audiences** | Layered appearance, makeovers with recovery, appearance tags, 10 audience segments, fan mix, 8 content types, reputation, save v3 | **Done** |
 | 4 | **Automated multi-room production** | Room content support and production attributes, RoomPlanner (capacity, privacy, exclusivity, stability), bedroom production, props, optional photoshoot, save v4 | **Done** |
 | 5 | **Housemates, applications & bodies** | Applications (no fees) with living costs and expectations, bedrooms built on lots, revenue splits, body measurements driving visuals and audiences, loyalty, roster, management and applications screens, basic relationships, save v5 | **Done** |
+| 5A | **Character visual overhaul** | Western cartoon glamour renderer (modular body/outfit/hair/face/accessory layers, screen-space ink, shading, expressions), bikini outfit, hero showcase with close-up and line-up, makeover reveal, throttled sprite redraws | **Done** |
 | 6 | Collaboration & events | Housemate collabs (consent and chemistry), eligibility rules, weighted events, cooldowns, choices, event inbox; offline queues events | Next |
 | 7 | Relationships & storylines | Deeper relationship consequences, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |
@@ -207,6 +210,7 @@ Each milestone ships playable, with tests for any new economy or save logic.
 | Web: persistence | `user://` → IndexedDB; frequent autosave plus save on focus loss. Browsers may evict storage; export/import of saves is planned. |
 | Web: hidden tab stops `_process` | Frame-gap detection credits the gap as offline time. |
 | Web: JSON data missing from export | `include_filter="data/*.json"` in `export_presets.cfg`. |
-| Modular art (bodies, outfits, cosmetic changes) | Appearance is data (colours/tags now; layer paths later). Plan: layered `Sprite2D` stack (body, hair, outfit, accessories) with shared animation timing. |
+| Modular art (bodies, outfits, cosmetic changes) | Procedural layers driven by data and measurements (milestone 5A). Painted art can replace a layer later while keeping the same joints and draw order. |
+| Character draw cost | Cached pose-independent layers, pre-triangulated fills, detail tiers, and house sprites redrawn at 3–15 fps (about 4 ms per redraw on desktop; `tests/visual/render_benchmark.gd`). |
 | AI art consistency | Style bible plus fixed sprite dimensions and pivot (feet at origin) documented in `assets/README.md`. |
 | Adult content and platform compliance | Suggestive only; ages clamped to 18+ in code; boundaries modelled as data the player can't override. |

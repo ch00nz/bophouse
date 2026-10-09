@@ -7,6 +7,11 @@ extends Node2D
 ## Generous hit area so creators are easy to tap on touch screens.
 const STANDING_HIT := Rect2(-30, -150, 60, 172)
 const POPUP_INTERVAL := 1.2
+## Character animation frame rates. Moving between rooms is smooth (position needs no redraw);
+## only the pose is redrawn, like a sprite sheet, which keeps a full house cheap to draw.
+const ANIM_FPS := 15.0
+const CALM_FPS := 8.0
+const SLEEP_FPS := 3.0
 
 var creator: CreatorState
 var house: HouseView
@@ -18,6 +23,7 @@ var _sprite: AnimatedSprite2D = null
 var _last_earnings: float = 0.0
 var _popup_timer: float = 0.0
 var _spec: Dictionary = {}
+var _drawn_state: String = ""
 
 
 func setup(creator_state: CreatorState, house_view: HouseView) -> void:
@@ -39,6 +45,7 @@ func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 ## Re-resolves the layered look (call after appearance changes).
 func refresh_look() -> void:
 	_spec = Appearance.render_spec(creator, house.config)
+	_drawn_state = ""
 
 
 func _on_appearance_changed(creator_id: String, _item_id: String) -> void:
@@ -106,7 +113,11 @@ func _process(delta: float) -> void:
 		_last_earnings = creator.house_earnings
 		if earned >= 1.0:
 			house.spawn_floating_text(position + Vector2(0, -135), "+" + Fmt.money(earned), Color("7ae582"))
-	queue_redraw()
+	var fps := ANIM_FPS if anim == "walk" or anim == "celebrate" else (SLEEP_FPS if anim == "sleep" else CALM_FPS)
+	var state := "%d|%s|%d|%s|%s|%s|%s" % [int(_t * fps), anim, int(_facing), selected, creator.room_id, creator.activity_id, str(creator.reaction.get("kind", ""))]
+	if state != _drawn_state:
+		_drawn_state = state
+		queue_redraw()
 
 
 func _draw() -> void:

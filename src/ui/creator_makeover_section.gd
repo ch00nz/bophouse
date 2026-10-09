@@ -322,6 +322,7 @@ func _on_confirmed() -> void:
 	_selected = ""
 	# Before vs after of the real, now-applied change.
 	_preview.show_compare(_before_purchase, Appearance.render_spec(creator, Game.config))
+	_preview.reveal()
 	var card := UiTheme.card(UiTheme.PANEL_LIGHT, UiTheme.GOOD)
 	var body: VBoxContainer = card.get_child(0)
 	var label := Appearance.item_label(Game.config, Game.config.look_item(item_id))

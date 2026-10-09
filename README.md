@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 5, Housemates, Applications & Body Measurements
+## Current milestone: 5A, Character Visual Overhaul
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -94,6 +94,25 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
 * **Save v5:** v1 to v4 saves load; old single-creator saves get measurements derived from their procedures, a
   founder agreement for Ava, a ledger seeded from past earnings and the new lots, with nothing reset or duplicated.
 
+**Milestone 5A (character visual overhaul):**
+* **Western cartoon glamour style** for every creator: an adult three-quarter-view figure with bold ink outlines,
+  soft shading and rim light, a detailed face (almond eyes, lashes and liner, arched brows, full lips),
+  glossy layered hair and a clear hourglass. See [docs/ART_DIRECTION.md](docs/ART_DIRECTION.md).
+* **Modular renderer** (`src/art/character/`): body model from measurements, pose library with IK limbs,
+  and separate body, outfit, hair, face/expression and accessory layers. Garments are data `pieces` (tops,
+  dresses, skirts, bras, briefs) cut from the body, so breast augmentation, BBL, waist and height changes all
+  show, while tattoos and piercings stay aligned in every pose.
+* **Expressions:** smile, grin, laugh, smirk, sultry, wink, kiss, talk, annoyed and sleep, plus blinking.
+  Each creator has a signature expression from her personality.
+* **New outfit:** poolside bikini. Outfits now have accessories (hoops, drop earrings, choker, pendant,
+  bracelet, sunglasses) and makeup has lash styles and highlight.
+* **Hero showcase** on the management screen: a larger full-body stage with a name plate, close-up
+  (face and styling) and house line-up (true relative heights) views. Buying a look plays a "new look" reveal.
+* **House sprites:** the same art at gameplay size with a slightly larger head for readability, and
+  sleeping under a blanket. Sprites redraw at 3–15 fps, so a full house costs less than the old
+  prototype did.
+* Saves are unchanged (still v6). Outfit ids are the same, and older top/bottom outfit data still renders.
+
 **Economy rebalance:** start with $250, 350 followers and 8 subscribers (~$18 gross per productive hour).
 Running costs (rent, utilities, equipment maintenance, residents' living costs) are charged continuously and shown
 line by line in **Finances** (yesterday / today / lifetime). **Upgrades** (`data/upgrades.json`: ring light $150,
@@ -104,7 +123,9 @@ runs at 10% speed and 70% earnings, and new housemates need a bedroom plus a cas
 economy inspector (F9) to skip time and adjust cash. Balance report:
 `godot --headless --path . --script res://tests/balance/run_balance.gd -- [all|idle,casual,upgrades,recruitment,optimised] [days] [seed]`.
 
-Art review: `godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]` renders a grid of looks
+Art review: `tests/visual/character_sheet.gd -- out.png ava [items]` renders one creator in hero poses and every
+gameplay animation (with a 3x zoom of the sprites); `tests/visual/render_benchmark.gd` measures draw cost;
+`godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]` renders a grid of looks
 (`cast` = every creator side by side); `tests/visual/house_scene.gd -- <dir>` screenshots the house, management
 and applications screens with three residents;
 `tests/visual/room_scenes.gd` renders every production pose in its room.

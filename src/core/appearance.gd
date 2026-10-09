@@ -269,9 +269,22 @@ static func render_spec(creator: CreatorState, config: GameConfig) -> Dictionary
 		"piercings": creator.look_list("piercings").duplicate(),
 		"tattoos": creator.look_list("tattoos").duplicate(),
 		"recovering": creator.is_recovering(),
+		"expression": signature_expression(creator, config),
+		# Per-creator animation phase, so housemates don't blink and sway in sync.
+		"seed": float(absi(creator.id.hash()) % 1000) / 97.0,
 		"sprite_frames": str(ap.get("sprite_frames", "")),
 		"portrait": str(ap.get("portrait", "")),
 	}
+
+
+## Default portrait expression from her personality (first trait with one in appearance.json).
+static func signature_expression(creator: CreatorState, config: GameConfig) -> String:
+	var rules: Dictionary = config.appearance.get("portrait", {})
+	var by_trait: Dictionary = rules.get("trait_expressions", {})
+	for trait_name in creator.traits:
+		if by_trait.has(str(trait_name)):
+			return str(by_trait[str(trait_name)])
+	return str(rules.get("default_expression", "smile"))
 
 
 static func _add_tags(into: Dictionary, deltas: Dictionary) -> void:

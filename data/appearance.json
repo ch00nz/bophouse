@@ -23,6 +23,15 @@
     "mature": { "from_age": 28, "full_age": 38 }
   },
   "show_tag_threshold": 0.35,
+  "_portrait_comment": "Signature portrait expression from her first matching trait (see src/art/character/face_painter.gd EXPRESSIONS).",
+  "portrait": {
+    "default_expression": "smile",
+    "trait_expressions": {
+      "Bombshell": "sultry", "Luxury Obsessed": "sultry", "Girl Next Door": "smile", "Party Animal": "grin",
+      "Alt Icon": "smirk", "Drama Queen": "smirk", "Fitness Fanatic": "grin", "Shy": "soft", "Natural Beauty": "smile"
+    }
+  },
+  "_outfit_comment": "Outfits are layered garment 'pieces' (drawn in order) cut from the body contours, plus legwear, shoes and accessories. See src/art/character/outfit_painter.gd for kinds, necklines, cuts and patterns. 'midriff' shows the navel (belly piercing); 'covers_thighs' hides thigh tattoos.",
   "slots": {
     "hair_color": [
       { "id": "brunette", "label": "Brunette", "color": "#6b3b2a", "tags": { "natural": 0.2 } },
@@ -43,52 +52,81 @@
     "outfit": [
       {
         "id": "casual", "label": "Casual cute", "tags": { "cute": 0.4, "wholesome": 0.3 },
-        "top": { "from": -89, "to": -71, "color": "#ff7ab8", "trim": "#ffffff", "neckline": "scoop" },
-        "bottom": { "from": -64, "to": -45, "color": "#5b7db1", "flare": 3, "trim": "#3d5a80" },
-        "shoes": { "type": "sneakers", "color": "#ffffff" },
+        "pieces": [
+          { "kind": "skirt", "from": "low_waist", "to": "leg:0.27", "color": "#5b7db1", "trim": "#e9eef7", "flare": 2.2, "pattern": "denim" },
+          { "kind": "top", "from": "shoulder", "to": "ribs", "color": "#ff7ab8", "trim": "#ffffff", "neckline": "scoop", "straps": "wide", "pattern": "ribbed" }
+        ],
+        "shoes": { "type": "sneakers", "color": "#ffffff", "trim": "#ff7ab8" },
+        "accessories": ["hoops"],
         "midriff": true
       },
       {
         "id": "glamour", "label": "Sequin bodycon", "tags": { "glamour": 0.8, "luxury": 0.3, "bombshell": 0.2, "wholesome": -0.2 },
-        "top": { "from": -85, "to": -46, "color": "#b5179e", "trim": "#ffd166", "neckline": "sweetheart", "sparkle": true, "straps": true },
+        "pieces": [
+          { "kind": "dress", "from": "bust_top", "to": "leg:0.3", "color": "#b5179e", "trim": "#ffd166", "neckline": "sweetheart", "straps": "thin", "flare": 0.6, "pattern": "sequins" }
+        ],
         "shoes": { "type": "heels", "color": "#ffd166" },
+        "accessories": ["drop_earrings", "pendant", "bracelet"],
         "midriff": false
       },
       {
         "id": "lingerie", "label": "Lace lingerie set", "tags": { "bombshell": 0.5, "glamour": 0.4, "luxury": 0.2, "wholesome": -0.4, "cute": -0.2 },
-        "top": { "from": -84, "to": -45.5, "color": "#2b1d3f", "trim": "#ff7ab8", "neckline": "sweetheart", "lace": true, "straps": true },
-        "legwear": { "type": "stockings", "from": 0.45, "color": "#2b1d3fcc", "trim": "#ff7ab8" },
+        "pieces": [
+          { "kind": "briefs", "from": "low_waist", "cut": "high", "color": "#2b1d3f", "trim": "#ff7ab8", "pattern": "lace" },
+          { "kind": "top", "from": "bust_top", "to": "low_waist", "color": "#2b1d3f", "trim": "#ff7ab8", "neckline": "sweetheart", "straps": "thin", "pattern": "lace", "lacing": true }
+        ],
+        "legwear": { "type": "stockings", "from": 0.3, "color": "#2b1d3f", "trim": "#ff7ab8", "garters": true },
         "shoes": { "type": "heels", "color": "#2b1d3f" },
+        "accessories": ["choker", "studs"],
         "midriff": false
       },
       {
         "id": "fitness", "label": "Gym set", "tags": { "fitness": 1.0, "wholesome": 0.2 },
-        "top": { "from": -88, "to": -74, "color": "#4cc9f0", "trim": "#ffffff", "neckline": "high" },
-        "bottom": { "from": -63, "to": -45, "color": "#2b2d42" },
-        "legwear": { "type": "leggings", "from": 0.0, "color": "#2b2d42" },
-        "shoes": { "type": "sneakers", "color": "#f1faee" },
+        "pieces": [
+          { "kind": "briefs", "from": "navel", "cut": "full", "color": "#2b2d42", "trim": "#4cc9f0" },
+          { "kind": "top", "from": "shoulder", "to": "ribs", "color": "#4cc9f0", "trim": "#ffffff", "neckline": "scoop", "straps": "wide" }
+        ],
+        "legwear": { "type": "leggings", "from": 0.0, "color": "#2b2d42", "trim": "#4cc9f0" },
+        "shoes": { "type": "sneakers", "color": "#f1faee", "trim": "#4cc9f0" },
+        "accessories": ["studs"],
         "midriff": true,
         "covers_thighs": true
       },
       {
         "id": "alt_punk", "label": "Goth crop & plaid", "tags": { "alternative": 0.7, "cute": 0.1, "wholesome": -0.3 },
-        "top": { "from": -88, "to": -73, "color": "#1d1a24", "trim": "#ff5fa2", "neckline": "high", "straps": true },
-        "bottom": { "from": -63, "to": -42, "color": "#5b2a6e", "trim": "#1d1a24", "flare": 4, "plaid": "#ff8fc7" },
-        "legwear": { "type": "fishnets", "from": 0.15, "color": "#1d1a24" },
+        "pieces": [
+          { "kind": "skirt", "from": "low_waist", "to": "leg:0.25", "color": "#5b2a6e", "trim": "#1d1a24", "flare": 3.6, "pattern": "plaid", "plaid": "#ff8fc7", "pleats": true },
+          { "kind": "top", "from": "shoulder", "to": "ribs", "color": "#1d1a24", "trim": "#ff5fa2", "neckline": "straight", "straps": "thin", "pattern": "mesh" }
+        ],
+        "legwear": { "type": "fishnets", "from": 0.12, "color": "#1d1a24" },
         "shoes": { "type": "boots", "color": "#1d1a24" },
+        "accessories": ["choker", "hoops"],
         "midriff": true
       },
       {
         "id": "party_dress", "label": "Satin party mini", "tags": { "glamour": 0.4, "bombshell": 0.35, "luxury": 0.1, "wholesome": -0.3 },
-        "top": { "from": -84, "to": -43, "color": "#d7263d", "trim": "#ffb3c1", "neckline": "sweetheart", "straps": true, "flare": 2 },
+        "pieces": [
+          { "kind": "dress", "from": "bust_top", "to": "leg:0.28", "color": "#d7263d", "trim": "#ffb3c1", "neckline": "v", "straps": "thin", "flare": 2.4, "pattern": "satin" }
+        ],
         "shoes": { "type": "heels", "color": "#f4d35e" },
+        "accessories": ["hoops", "bracelet"],
         "midriff": false
+      },
+      {
+        "id": "bikini", "label": "Poolside bikini", "tags": { "glamour": 0.3, "bombshell": 0.35, "fitness": 0.15, "luxury": 0.1, "wholesome": -0.25 },
+        "pieces": [
+          { "kind": "briefs", "from": -60.0, "cut": "bikini", "color": "#ff6b9d", "trim": "#ffd166", "ties": true },
+          { "kind": "bra", "style": "triangle", "color": "#ff6b9d", "trim": "#ffd166" }
+        ],
+        "shoes": { "type": "sandals", "color": "#ffd166" },
+        "accessories": ["sunglasses", "hoops"],
+        "midriff": true
       }
     ],
     "makeup": [
-      { "id": "natural", "label": "Fresh-faced", "tags": { "natural": 0.3, "wholesome": 0.2 }, "lips": "#d16a7f", "lids": "", "liner": false, "blush": 0.3 },
-      { "id": "glam", "label": "Full glam", "tags": { "glamour": 0.5, "bombshell": 0.3, "natural": -0.3 }, "lips": "#c2185b", "lids": "#d4a373", "liner": true, "blush": 0.45 },
-      { "id": "smoky_alt", "label": "Smoky alt", "tags": { "alternative": 0.5, "luxury": 0.1, "wholesome": -0.3 }, "lips": "#6a1b4d", "lids": "#3c2a4d", "liner": true, "blush": 0.15 }
+      { "id": "natural", "label": "Fresh-faced", "tags": { "natural": 0.3, "wholesome": 0.2 }, "lips": "#d16a7f", "lids": "", "liner": false, "lashes": "natural", "highlight": false, "blush": 0.35 },
+      { "id": "glam", "label": "Full glam", "tags": { "glamour": 0.5, "bombshell": 0.3, "natural": -0.3 }, "lips": "#c2185b", "lids": "#c98b6a", "liner": true, "lashes": "glam", "highlight": true, "blush": 0.45 },
+      { "id": "smoky_alt", "label": "Smoky alt", "tags": { "alternative": 0.5, "luxury": 0.1, "wholesome": -0.3 }, "lips": "#6a1b4d", "lids": "#4b3260", "liner": true, "lashes": "glam", "highlight": false, "blush": 0.15 }
     ],
     "bust": [
       { "id": "natural", "label": "Natural", "size": 1.0 },
@@ -122,6 +160,7 @@
     { "id": "outfit:fitness", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "fitness", "price": 160, "description": "Matching sports bra and leggings." },
     { "id": "outfit:alt_punk", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "alt_punk", "price": 220, "description": "Goth crop top, plaid skirt, fishnets and boots." },
     { "id": "outfit:party_dress", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "party_dress", "price": 280, "description": "Satin party mini dress." },
+    { "id": "outfit:bikini", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "bikini", "price": 190, "description": "String bikini, sandals and sunnies. Made for poolside glamour." },
     { "id": "makeup:natural", "category": "styling", "group": "Makeup", "slot": "makeup", "value": "natural", "price": 40, "description": "Light, fresh-faced look." },
     { "id": "makeup:glam", "category": "styling", "group": "Makeup", "slot": "makeup", "value": "glam", "price": 140, "description": "Lashes, liner, sculpt and a bold lip." },
     { "id": "makeup:smoky_alt", "category": "styling", "group": "Makeup", "slot": "makeup", "value": "smoky_alt", "price": 140, "description": "Smoky lids and a dark lip." },
