@@ -5,7 +5,7 @@ extends PanelContainer
 signal selection_changed(kind: String, id: String)
 signal collapsed_changed(collapsed: bool)
 
-const WIDTH := 324.0
+const WIDTH := 352.0
 const MARGIN := 8.0
 
 var current_kind: String = ""

@@ -35,7 +35,9 @@ func refresh() -> void:
 		if not refs.has("projection"):
 			continue
 		var b := Economy.work_breakdown(creator, Game.state, Game.config, content_id)
-		(refs["projection"] as Label).text = "~%s/hr   +%s followers/hr" % [Fmt.money(float(b["cash"])), Fmt.compact(float(b["followers"]))]
+		var fit := float(b["multipliers"]["audience_fit"])
+		(refs["projection"] as Label).text = "~%s/hr   +%s fans/hr   look fit %s" % [
+			Fmt.money(float(b["cash"])), Fmt.compact(float(b["followers"])), Fmt.percent_change(fit)]
 		var trend_mult := float(b["multipliers"]["trend_income"])
 		var trend_label: Label = refs["trend"]
 		trend_label.visible = trend_mult > 1.005
@@ -62,6 +64,13 @@ func _build_card(creator: CreatorState, content_id: String) -> Control:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_row.add_child(title)
+	var role := str(content.get("role", ""))
+	if not role.is_empty():
+		var role_colour := UiTheme.ACCENT if role == "Earner" else (Color("4cc9f0") if role == "Funnel" else UiTheme.MUTED)
+		var role_chip := UiTheme.chip(role.to_upper(), role_colour,
+			"Funnel: grows followers and reputation. Earner: subscribers and direct income. Balanced/Hybrid: a bit of both.")
+		role_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		title_row.add_child(role_chip)
 	title_row.add_child(_status_chip(creator, content_id, status, is_focus))
 	body.add_child(title_row)
 
@@ -109,7 +118,7 @@ func _status_chip(creator: CreatorState, content_id: String, status: int, is_foc
 				color = UiTheme.BAD
 			ContentRules.Status.LOCKED:
 				text = "LOCKED"
-			ContentRules.Status.NEEDS_STATS:
+			ContentRules.Status.NEEDS_STATS, ContentRules.Status.NEEDS_SUBSCRIBERS:
 				text = "NOT YET"
 			_:
 				text = "LOVES IT" if ContentRules.loves(creator, content_id) else "WILLING"

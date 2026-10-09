@@ -13,6 +13,14 @@ var _subs: Label
 var _multipliers: VBoxContainer
 var _followers: Label
 var _subscribers: Label
+var _custom: Label
+var _custom_row: Control
+var _fees: Label
+var _fees_row: Control
+var _fan_value: Label
+var _reputation: Label
+var _segments: VBoxContainer
+var _segment_rows: Array[HBoxContainer] = []
 var _entries: Array = []
 var _value_labels: Array[Label] = []
 var _row_signature: String = ""
@@ -38,7 +46,15 @@ func _ready() -> void:
 	_subs = UiTheme.value_label()
 	add_child(UiTheme.tip(UiTheme.row("Content sales", _sales), "Base pay for the content, scaled by every multiplier below."))
 	add_child(UiTheme.tip(UiTheme.row("Audience earnings", _audience), "Ads, tips and sales that grow with her follower count (with diminishing returns)."))
-	add_child(UiTheme.tip(UiTheme.row("Subscriptions (always on)", _subs), "Paying subscribers pay around the clock, even while she sleeps."))
+	_custom = UiTheme.value_label()
+	_custom_row = UiTheme.tip(UiTheme.row("Custom requests", _custom), "Paid per existing subscriber while she makes custom content.")
+	add_child(_custom_row)
+	_fees = UiTheme.value_label("", UiTheme.BAD)
+	_fees_row = UiTheme.tip(UiTheme.row("Guest collaborator fees", _fees), "Booking fees for the off-screen guest collaborator.")
+	add_child(_fees_row)
+	add_child(UiTheme.tip(UiTheme.row("Subscriptions (always on)", _subs), "Paying subscribers pay around the clock, even while she sleeps. Their value depends on who her fans are and how much they like her current look."))
+	_fan_value = UiTheme.label("", 12, UiTheme.MUTED)
+	add_child(UiTheme.tip(_fan_value, "Average spend x satisfaction of her current subscribers. Changing her look can delight or disappoint them."))
 
 	add_child(HSeparator.new())
 	add_child(UiTheme.header("What's affecting it"))
@@ -51,7 +67,21 @@ func _ready() -> void:
 	_followers = UiTheme.value_label()
 	_subscribers = UiTheme.value_label()
 	add_child(UiTheme.tip(UiTheme.row("Followers", _followers), "Growth slows as her audience gets bigger, so it never runs away."))
-	add_child(UiTheme.tip(UiTheme.row("Subscribers", _subscribers), "Subscribers drift toward a target set by her followers and content type."))
+	add_child(UiTheme.tip(UiTheme.row("Subscribers", _subscribers), "Subscribers drift toward a target set by followers, content type, reputation and audience fit."))
+	_reputation = UiTheme.value_label()
+	add_child(UiTheme.tip(UiTheme.row("Reputation", _reputation), "Mainstream reputation. Socials build it; it makes followers likelier to subscribe to premium content."))
+
+	add_child(HSeparator.new())
+	add_child(UiTheme.header("Who's buying this content"))
+	add_child(UiTheme.label("Top audience segments for this content, and how much each likes her current look.", 11, UiTheme.MUTED, true))
+	_segments = VBoxContainer.new()
+	_segments.add_theme_constant_override("separation", 2)
+	add_child(_segments)
+	for i in 4:
+		var value := UiTheme.value_label("", UiTheme.TEXT, 12)
+		var row := UiTheme.row("", value)
+		_segment_rows.append(row)
+		_segments.add_child(row)
 	refresh()
 
 
@@ -76,6 +106,24 @@ func refresh() -> void:
 	_sales.text = "%s/hr" % Fmt.money(float(b["content_sales"]))
 	_audience.text = "%s/hr" % Fmt.money(float(b["audience_earnings"]))
 	_subs.text = "%s/hr" % Fmt.money(float(b["subscriptions"]))
+	_custom_row.visible = float(b["custom_sales"]) > 0.0
+	_custom.text = "%s/hr" % Fmt.money(float(b["custom_sales"]))
+	_fees_row.visible = float(b["fees"]) > 0.0
+	_fees.text = "-%s/hr" % Fmt.money(float(b["fees"]))
+	_fan_value.text = "Fan value x%.2f (spend x satisfaction of her %s subscribers)" % [float(b["fan_value"]), Fmt.compact(creator.subscribers)]
+	_reputation.text = "%d / 100  (x%.2f conversion)" % [roundi(creator.reputation), Economy.reputation_conversion_factor(creator, config)]
+	var segments: Array = b["market"]["segments"]
+	for i in _segment_rows.size():
+		var row := _segment_rows[i]
+		row.visible = i < segments.size()
+		if not row.visible:
+			continue
+		var seg: Dictionary = segments[i]
+		(row.get_child(0) as Label).text = str(seg["name"])
+		var appeal := float(seg["appeal"])
+		var value: Label = row.get_child(1)
+		value.text = "%d%% of buyers  |  likes her x%.1f" % [roundi(float(seg["buyer_share"]) * 100.0), appeal]
+		value.add_theme_color_override("font_color", UiTheme.GOOD if appeal > 1.05 else (UiTheme.BAD if appeal < 0.95 else UiTheme.TEXT))
 
 	_entries.clear()
 	var m: Dictionary = b["multipliers"]
@@ -96,6 +144,10 @@ func refresh() -> void:
 		_add_multiplier("Trend: " + str(effect["name"]), float(effect["income"]),
 			"Trend strength %d%%, from content match, her favoured stats and her adaptability." % roundi(float(effect["strength"]) * 100.0))
 	_add_multiplier("Experience", float(m["experience"]), "Settling into new content. Improves as she works; faster with high adaptability.")
+	_add_multiplier("Audience fit (look x content)", float(m["audience_fit"]),
+		"How much the audiences who buy this content like her look (appearance tags). See 'Who's buying' below.")
+	if creator.is_recovering():
+		_add_multiplier("Recovery", float(m["recovery"]), "Reduced output while she recovers from a procedure.")
 	_sync_multiplier_rows()
 
 	_followers.text = "+%s/hr" % Fmt.compact(float(b["followers"]))

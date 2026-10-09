@@ -37,6 +37,20 @@
       }
     },
     {
+      "id": "recover",
+      "label": "Resting and recovering",
+      "room_type": "bedroom",
+      "spot": 0.33,
+      "anim": "sleep",
+      "bubble": "heal",
+      "min_minutes": 60,
+      "max_minutes": 0,
+      "rates_per_hour": {
+        "energy": 6,
+        "mood": 1
+      }
+    },
+    {
       "id": "sleep",
       "label": "Sleeping",
       "room_type": "bedroom",

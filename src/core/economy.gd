@@ -91,8 +91,16 @@ static func experience_rate_per_hour(creator: CreatorState, config: GameConfig) 
 
 
 ## Recurring subscription revenue; paid regardless of current activity (the idle backbone).
+## Scaled by fan value: who her subscribers are and how much they like her current look.
 static func subscription_cash_per_hour(creator: CreatorState, config: GameConfig) -> float:
-	return maxf(creator.subscribers, 0.0) * config.tuning_f("economy", "subscription_cash_per_sub_hour", 0.4)
+	return maxf(creator.subscribers, 0.0) * config.tuning_f("economy", "subscription_cash_per_sub_hour", 0.3) \
+		* AudienceModel.fan_value(creator, config)
+
+
+## Reputation (0..100) makes followers more willing to subscribe.
+static func reputation_conversion_factor(creator: CreatorState, config: GameConfig) -> float:
+	return lerpf(config.tuning_f("reputation", "min_conversion_factor", 0.6),
+		config.tuning_f("reputation", "max_conversion_factor", 1.4), clampf(creator.reputation / 100.0, 0.0, 1.0))
 
 
 # ---------------------------------------------------------------------------
@@ -112,19 +120,32 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 	var prod := productivity(creator, config)
 	var trend := TrendSystem.modifiers(state, config, creator, content_id)
 	var experience := experience_multiplier(creator, content_id, config)
+	var market := AudienceModel.market(creator.appearance_tags, content_id, config)
+	var audience_fit := float(market["multiplier"])
+	var recovery := Appearance.recovery_output(creator, config)
 
-	var cash_multiplier := fit * quality * prod * float(trend["income"]) * experience
-	var follower_multiplier := fit * quality * prod * float(trend["followers"]) * experience
+	var common := fit * quality * prod * experience * audience_fit * recovery
+	var cash_multiplier := common * float(trend["income"])
+	var follower_multiplier := common * float(trend["followers"])
 	var content_sales := float(rates.get("cash", 0.0)) * cash_multiplier
 	var audience_earnings := float(rates.get("audience_cash", 0.0)) * audience_value(creator.followers, config) * cash_multiplier
+	var custom_sales := float(rates.get("per_subscriber_cash", 0.0)) * maxf(creator.subscribers, 0.0) * cash_multiplier
+	var fees := float(rates.get("fee_per_hour", 0.0))
 	var followers := follower_growth(float(rates.get("followers", 0.0)), float(rates.get("viral", 0.0)),
 		creator.followers, follower_multiplier, config)
-	var target_subscribers := creator.followers * float(rates.get("subscriber_conversion", 0.0))
-	var gap := target_subscribers - creator.subscribers
-	var subscribers := gap * float(rates.get("conversion_speed", 0.0)) * quality
-	if gap < 0.0:
-		# Fans cancel more slowly than they sign up, so switching strategy isn't brutally punished.
-		subscribers = gap * config.tuning_f("economy", "subscriber_churn_speed", 0.04)
+
+	# Subscribers converge toward a target set by followers, content, reputation and audience fit.
+	# Content without a conversion rate (e.g. customs) leaves the subscriber count alone.
+	var target_subscribers := creator.subscribers
+	var subscribers := 0.0
+	if rates.has("subscriber_conversion"):
+		target_subscribers = creator.followers * float(rates["subscriber_conversion"]) \
+			* reputation_conversion_factor(creator, config) * audience_fit
+		var gap := target_subscribers - creator.subscribers
+		subscribers = gap * float(rates.get("conversion_speed", 0.0)) * quality
+		if gap < 0.0:
+			# Fans cancel more slowly than they sign up, so switching strategy isn't brutally punished.
+			subscribers = gap * config.tuning_f("economy", "subscriber_churn_speed", 0.04)
 
 	var energy := float(rates.get("energy", 0.0))
 	energy *= stamina_drain_factor(creator, config) if energy < 0.0 else quality
@@ -136,10 +157,16 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 	return {
 		"content_id": content_id,
 		"room_id": room.id if room != null else "",
-		"cash": content_sales + audience_earnings,
+		"cash": content_sales + audience_earnings + custom_sales - fees,
 		"content_sales": content_sales,
 		"audience_earnings": audience_earnings,
+		"custom_sales": custom_sales,
+		"fees": fees,
 		"subscriptions": subscription_cash_per_hour(creator, config),
+		"fan_value": AudienceModel.fan_value(creator, config),
+		"reputation": float(rates.get("reputation", 0.0)),
+		"market": market,
+		"recovering": creator.is_recovering(),
 		"followers": followers,
 		"subscribers": subscribers,
 		"target_subscribers": target_subscribers,
@@ -149,7 +176,7 @@ static func work_breakdown(creator: CreatorState, state: GameState, config: Game
 		"multipliers": {
 			"fit": fit, "room": quality, "productivity": prod,
 			"trend_income": float(trend["income"]), "trend_followers": float(trend["followers"]),
-			"experience": experience,
+			"experience": experience, "audience_fit": audience_fit, "recovery": recovery,
 		},
 		"trend_effects": trend["effects"],
 	}
@@ -170,13 +197,14 @@ static func activity_rates(creator: CreatorState, activity: Dictionary, quality:
 		"subscribers": 0.0,
 		"energy": energy,
 		"mood": mood,
+		"reputation": 0.0,
 	}
 
 
 ## What the creator is producing right now (zero while walking).
 static func current_rates(creator: CreatorState, state: GameState, config: GameConfig) -> Dictionary:
 	if creator.is_travelling():
-		return {"cash": 0.0, "followers": 0.0, "subscribers": 0.0, "energy": 0.0, "mood": 0.0}
+		return {"cash": 0.0, "followers": 0.0, "subscribers": 0.0, "energy": 0.0, "mood": 0.0, "reputation": 0.0}
 	var activity := config.activity(creator.activity_id)
 	if ActivityResolver.is_content_driven(activity):
 		return work_breakdown(creator, state, config)

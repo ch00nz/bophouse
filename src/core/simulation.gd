@@ -33,6 +33,13 @@ static func _step(state: GameState, config: GameConfig, dt: float, output_multip
 static func _step_creator(state: GameState, config: GameConfig, creator: CreatorState, dt: float, output_multiplier: float, totals: Dictionary) -> void:
 	var hours := dt / 60.0
 	_earn(state, creator, Economy.subscription_cash_per_hour(creator, config) * hours * output_multiplier, totals)
+	if Appearance.advance_recovery(creator, config, dt):
+		var recovered: Array = totals.get("recovered", [])
+		recovered.append(creator.id)
+		totals["recovered"] = recovered
+	# Reputation drifts back toward a baseline unless mainstream work keeps it up.
+	var baseline := config.tuning_f("reputation", "baseline", 30.0)
+	creator.reputation += (baseline - creator.reputation) * config.tuning_f("reputation", "decay_per_hour", 0.015) * hours
 
 	if creator.is_travelling():
 		creator.energy = clampf(creator.energy + config.tuning_f("movement", "energy_per_hour", -2.0) * hours, 0.0, 100.0)
@@ -52,10 +59,12 @@ static func _step_creator(state: GameState, config: GameConfig, creator: Creator
 
 	creator.energy = clampf(creator.energy + float(rates["energy"]) * hours, 0.0, 100.0)
 	creator.mood = clampf(creator.mood + float(rates["mood"]) * hours, 0.0, 100.0)
+	creator.reputation = clampf(creator.reputation + float(rates.get("reputation", 0.0)) * hours, 0.0, 100.0)
 	creator.activity_minutes += dt
 	if ActivityResolver.is_content_driven(config.activity(creator.activity_id)) and not creator.content_focus.is_empty():
 		var gained := Economy.experience_rate_per_hour(creator, config) * hours
 		creator.content_experience[creator.content_focus] = minf(1.0, creator.experience(creator.content_focus) + gained)
+		AudienceModel.drift_mix(creator, config, creator.content_focus, hours)
 
 	var decision := CreatorBrain.decide(creator, state, config)
 	if not decision.is_empty():

@@ -75,7 +75,8 @@ func test_breakdown_components_add_up() -> void:
 	assert_almost(float(b["cash"]), float(b["content_sales"]) + float(b["audience_earnings"]), 0.0001)
 	var m: Dictionary = b["multipliers"]
 	var expected_sales := float(config.content("glamour")["rates_per_hour"]["cash"]) \
-		* float(m["fit"]) * float(m["room"]) * float(m["productivity"]) * float(m["trend_income"]) * float(m["experience"])
+		* float(m["fit"]) * float(m["room"]) * float(m["productivity"]) * float(m["trend_income"]) * float(m["experience"]) \
+		* float(m["audience_fit"]) * float(m["recovery"])
 	assert_almost(float(b["content_sales"]), expected_sales, 0.0001, "sales = base x every multiplier shown in the UI")
 
 

@@ -12,6 +12,8 @@ signal speed_changed(speed: int, paused: bool)
 signal content_focus_changed(creator_id: String, content_id: String)
 signal content_unlocked(content_id: String)
 signal trends_changed(started_ids: Array)
+signal appearance_changed(creator_id: String, item_id: String)
+signal recovery_finished(creator_id: String)
 
 var config: GameConfig
 var state: GameState
@@ -60,6 +62,8 @@ func _process(delta: float) -> void:
 		var totals := Simulation.advance(state, config, minutes, config.tuning_f("time", "max_sim_step_minutes", 1.0))
 		if totals.has("trends_started"):
 			trends_changed.emit(totals["trends_started"])
+		for creator_id in totals.get("recovered", []):
+			recovery_finished.emit(str(creator_id))
 		ticked.emit()
 	_autosave_elapsed += delta
 	if _autosave_elapsed >= config.tuning_f("save", "autosave_seconds", 15.0):
@@ -97,6 +101,18 @@ func upgrade_room(room_id: String) -> bool:
 		content_unlocked.emit(content_id)
 	save_game()
 	return true
+
+
+## Buys a makeover item for a creator (she must be willing). Returns Appearance.check_item().
+func purchase_appearance(creator_id: String, item_id: String) -> Dictionary:
+	var creator := state.get_creator(creator_id)
+	if creator == null:
+		return {"ok": false, "reason": "Unknown creator"}
+	var result := Appearance.purchase(state, config, creator, item_id)
+	if bool(result["ok"]):
+		appearance_changed.emit(creator_id, item_id)
+		save_game()
+	return result
 
 
 ## Assigns a creator's content specialisation. Returns ContentRules.check() so the UI can

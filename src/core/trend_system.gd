@@ -95,15 +95,22 @@ static func modifiers(state: GameState, config: GameConfig, creator: CreatorStat
 	return {"income": income, "followers": followers, "effects": effects}
 
 
-## 0..1 average of the trend's favoured stats.
+## 0..1 fit with the trend's favoured stats and (if any) favoured appearance tags, averaged.
 static func favoured_stat_score(creator: CreatorState, trend: Dictionary) -> float:
 	var stats: Array = trend.get("stats", [])
-	if stats.is_empty():
-		return 1.0
-	var total := 0.0
-	for stat_id in stats:
-		total += creator.stat(str(stat_id))
-	return clampf(total / stats.size() / 100.0, 0.0, 1.0)
+	var stat_score := 1.0
+	if not stats.is_empty():
+		var total := 0.0
+		for stat_id in stats:
+			total += creator.stat(str(stat_id))
+		stat_score = clampf(total / stats.size() / 100.0, 0.0, 1.0)
+	var tags: Array = trend.get("tags", [])
+	if tags.is_empty():
+		return stat_score
+	var tag_total := 0.0
+	for tag_id in tags:
+		tag_total += creator.tag(str(tag_id))
+	return (stat_score + clampf(tag_total / tags.size(), 0.0, 1.0)) * 0.5
 
 
 ## High adaptability lets a creator ride trends harder (0.6x .. 1.4x by default).

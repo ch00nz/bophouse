@@ -1,0 +1,129 @@
+{
+  "_comment": "Appearance system. 'slots' define every look option; 'items' are purchasable changes shown in the Makeover tab. Tag deltas are added to a creator's base tags and clamped to 0..1. Presentation is always non-explicit: garments cover the body; some modifications are tags/summary items only.",
+  "tags": [
+    { "id": "natural", "label": "Natural", "color": "#8bd17c" },
+    { "id": "enhanced", "label": "Enhanced", "color": "#ff7ab8" },
+    { "id": "glamour", "label": "Glamour", "color": "#ffd166" },
+    { "id": "alternative", "label": "Alternative", "color": "#9d7cff" },
+    { "id": "fitness", "label": "Fitness", "color": "#4cc9f0" },
+    { "id": "luxury", "label": "Luxury", "color": "#f4a261" },
+    { "id": "cute", "label": "Cute", "color": "#ffb3d1" },
+    { "id": "bombshell", "label": "Bombshell", "color": "#ff4f8b" },
+    { "id": "wholesome", "label": "Wholesome", "color": "#c7f9cc" },
+    { "id": "mature", "label": "Mature", "color": "#d4a5a5" }
+  ],
+  "age_tags": {
+    "mature": { "from_age": 28, "full_age": 38 }
+  },
+  "show_tag_threshold": 0.35,
+  "slots": {
+    "hair_color": [
+      { "id": "brunette", "label": "Brunette", "color": "#6b3b2a", "tags": { "natural": 0.2 } },
+      { "id": "blonde", "label": "Platinum blonde", "color": "#ecd18a", "tags": { "bombshell": 0.35, "glamour": 0.2, "natural": -0.15 } },
+      { "id": "pink", "label": "Pastel pink", "color": "#ff8fc7", "tags": { "alternative": 0.6, "cute": 0.3, "natural": -0.3 } }
+    ],
+    "hair_style": [
+      { "id": "long_waves", "label": "Long waves", "tags": { "glamour": 0.1 } },
+      { "id": "high_ponytail", "label": "High ponytail", "tags": { "fitness": 0.3, "cute": 0.2 } }
+    ],
+    "outfit": [
+      {
+        "id": "casual", "label": "Casual cute", "tags": { "cute": 0.4, "wholesome": 0.3 },
+        "top": { "from": -89, "to": -71, "color": "#ff7ab8", "trim": "#ffffff", "neckline": "scoop" },
+        "bottom": { "from": -64, "to": -45, "color": "#5b7db1", "flare": 3, "trim": "#3d5a80" },
+        "shoes": { "type": "sneakers", "color": "#ffffff" },
+        "midriff": true
+      },
+      {
+        "id": "glamour", "label": "Sequin bodycon", "tags": { "glamour": 0.8, "luxury": 0.3, "bombshell": 0.2, "wholesome": -0.2 },
+        "top": { "from": -85, "to": -46, "color": "#b5179e", "trim": "#ffd166", "neckline": "sweetheart", "sparkle": true, "straps": true },
+        "shoes": { "type": "heels", "color": "#ffd166" },
+        "midriff": false
+      },
+      {
+        "id": "lingerie", "label": "Lace lingerie set", "tags": { "bombshell": 0.5, "glamour": 0.4, "luxury": 0.2, "wholesome": -0.4, "cute": -0.2 },
+        "top": { "from": -84, "to": -45.5, "color": "#2b1d3f", "trim": "#ff7ab8", "neckline": "sweetheart", "lace": true, "straps": true },
+        "legwear": { "type": "stockings", "from": 0.45, "color": "#2b1d3fcc", "trim": "#ff7ab8" },
+        "shoes": { "type": "heels", "color": "#2b1d3f" },
+        "midriff": false
+      },
+      {
+        "id": "fitness", "label": "Gym set", "tags": { "fitness": 1.0, "wholesome": 0.2 },
+        "top": { "from": -88, "to": -74, "color": "#4cc9f0", "trim": "#ffffff", "neckline": "high" },
+        "bottom": { "from": -63, "to": -45, "color": "#2b2d42" },
+        "legwear": { "type": "leggings", "from": 0.0, "color": "#2b2d42" },
+        "shoes": { "type": "sneakers", "color": "#f1faee" },
+        "midriff": true,
+        "covers_thighs": true
+      }
+    ],
+    "makeup": [
+      { "id": "natural", "label": "Fresh-faced", "tags": { "natural": 0.3, "wholesome": 0.2 }, "lips": "#d16a7f", "lids": "", "liner": false, "blush": 0.3 },
+      { "id": "glam", "label": "Full glam", "tags": { "glamour": 0.5, "bombshell": 0.3, "natural": -0.3 }, "lips": "#c2185b", "lids": "#d4a373", "liner": true, "blush": 0.45 },
+      { "id": "smoky_alt", "label": "Smoky alt", "tags": { "alternative": 0.5, "luxury": 0.1, "wholesome": -0.3 }, "lips": "#6a1b4d", "lids": "#3c2a4d", "liner": true, "blush": 0.15 }
+    ],
+    "bust": [
+      { "id": "natural", "label": "Natural", "size": 1.0 },
+      { "id": "enhanced", "label": "Enhanced", "size": 1.75 }
+    ],
+    "body": [
+      { "id": "natural", "label": "Natural", "hips": 1.0, "glutes": 1.0 },
+      { "id": "curvy", "label": "BBL curves", "hips": 1.25, "glutes": 1.8 }
+    ],
+    "lips": [
+      { "id": "natural", "label": "Natural", "size": 1.0 },
+      { "id": "full", "label": "Filled", "size": 1.45 }
+    ]
+  },
+  "items": [
+    { "id": "hair_color:blonde", "category": "styling", "group": "Hair colour", "slot": "hair_color", "value": "blonde", "price": 180, "description": "Salon platinum. Pops on camera." },
+    { "id": "hair_color:pink", "category": "styling", "group": "Hair colour", "slot": "hair_color", "value": "pink", "price": 220, "description": "Pastel pink. A statement for alt audiences." },
+    { "id": "hair_color:brunette", "category": "styling", "group": "Hair colour", "slot": "hair_color", "value": "brunette", "price": 120, "description": "Back to her natural brunette." },
+    { "id": "hair_style:high_ponytail", "category": "styling", "group": "Hairstyle", "slot": "hair_style", "value": "high_ponytail", "price": 60, "description": "Sporty, playful high ponytail." },
+    { "id": "hair_style:long_waves", "category": "styling", "group": "Hairstyle", "slot": "hair_style", "value": "long_waves", "price": 60, "description": "Long glossy waves." },
+    { "id": "outfit:casual", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "casual", "price": 80, "description": "Crop top and denim mini." },
+    { "id": "outfit:glamour", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "glamour", "price": 350, "description": "Sequin bodycon for glamour shoots." },
+    { "id": "outfit:lingerie", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "lingerie", "price": 300, "description": "Lingerie-inspired lace set with stockings." },
+    { "id": "outfit:fitness", "category": "styling", "group": "Wardrobe", "slot": "outfit", "value": "fitness", "price": 160, "description": "Matching sports bra and leggings." },
+    { "id": "makeup:natural", "category": "styling", "group": "Makeup", "slot": "makeup", "value": "natural", "price": 40, "description": "Light, fresh-faced look." },
+    { "id": "makeup:glam", "category": "styling", "group": "Makeup", "slot": "makeup", "value": "glam", "price": 140, "description": "Lashes, liner, sculpt and a bold lip." },
+    { "id": "makeup:smoky_alt", "category": "styling", "group": "Makeup", "slot": "makeup", "value": "smoky_alt", "price": 140, "description": "Smoky lids and a dark lip." },
+
+    {
+      "id": "lip_filler", "label": "Lip filler", "category": "procedures", "group": "Procedures", "slot": "lips", "value": "full", "price": 900,
+      "description": "Fuller lips. Quick recovery.",
+      "tags": { "enhanced": 0.35, "bombshell": 0.25, "natural": -0.25 },
+      "recovery": { "hours": 12, "output": 0.85, "mood_per_hour": -0.5, "allowed_content": [] }
+    },
+    {
+      "id": "breast_augmentation", "label": "Breast augmentation", "category": "procedures", "group": "Procedures", "slot": "bust", "value": "enhanced", "price": 6500,
+      "description": "Breast augmentation. A bigger silhouette that bombshell and premium audiences love; natural-beauty fans may drift away.",
+      "tags": { "enhanced": 1.0, "bombshell": 0.7, "glamour": 0.2, "natural": -0.7 },
+      "recovery": { "hours": 96, "output": 0.5, "mood_per_hour": -0.6, "allowed_content": ["social_media"] }
+    },
+    {
+      "id": "bbl", "label": "Brazilian butt lift", "category": "procedures", "group": "Procedures", "slot": "body", "value": "curvy", "price": 7500,
+      "description": "Brazilian butt lift. Dramatic curves; a long recovery.",
+      "tags": { "enhanced": 0.8, "bombshell": 0.6, "fitness": 0.1, "natural": -0.5 },
+      "recovery": { "hours": 120, "output": 0.5, "mood_per_hour": -0.6, "allowed_content": ["social_media"] }
+    },
+    {
+      "id": "belly_piercing", "label": "Belly piercing", "category": "modifications", "group": "Piercings", "slot": "piercings", "add": "belly", "price": 90,
+      "description": "Sparkly navel piercing. Visible with crop tops and gym sets.",
+      "tags": { "alternative": 0.2, "fitness": 0.15, "cute": 0.1 },
+      "recovery": { "hours": 6, "output": 0.95, "mood_per_hour": 0.0, "allowed_content": [] }
+    },
+    {
+      "id": "nipple_piercing", "label": "Nipple piercings", "category": "modifications", "group": "Piercings", "slot": "piercings", "add": "nipple", "price": 160,
+      "description": "Nipple piercings. Popular with alt and premium audiences. Not shown on screen (non-explicit presentation).",
+      "tags": { "alternative": 0.5, "bombshell": 0.1, "wholesome": -0.2 },
+      "recovery": { "hours": 24, "output": 0.9, "mood_per_hour": -0.3, "allowed_content": [] }
+    },
+    {
+      "id": "rose_tattoo", "label": "Rose thigh tattoo", "category": "modifications", "group": "Tattoos", "slot": "tattoos", "add": "rose_thigh", "price": 450,
+      "description": "Rose tattoo on the thigh.",
+      "tags": { "alternative": 0.6, "wholesome": -0.2 },
+      "recovery": { "hours": 24, "output": 0.9, "mood_per_hour": 0.0, "allowed_content": [] }
+    }
+  ]
+}

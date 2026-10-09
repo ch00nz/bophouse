@@ -65,6 +65,17 @@ static func card(bg: Color = PANEL_LIGHT, border: Color = Color.TRANSPARENT) -> 
 	return panel
 
 
+## Small coloured pill (traits, appeal tags). Passes mouse events so tooltips work and lists scroll.
+static func chip(text: String, colour: Color, tooltip: String = "") -> Control:
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.add_theme_stylebox_override("panel", box(colour.darkened(0.62), 6, 3, colour.darkened(0.2), 1))
+	panel.add_child(label(text, 12, colour.lightened(0.15)))
+	if not tooltip.is_empty():
+		panel.tooltip_text = tooltip
+	return panel
+
+
 ## Segmented tab button.
 static func tab_button(text: String) -> Button:
 	var b := Button.new()
@@ -72,6 +83,7 @@ static func tab_button(text: String) -> Button:
 	b.toggle_mode = true
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size = Vector2(0, 30)
+	b.add_theme_font_size_override("font_size", 13)
 	b.add_theme_stylebox_override("normal", box(PANEL_LIGHT, 8, 4))
 	b.add_theme_stylebox_override("hover", box(PANEL_LIGHT.lightened(0.15), 8, 4))
 	return b

@@ -3,7 +3,7 @@ extends RefCounted
 ## Who may make which content. A creator's declines are hard boundaries the player can
 ## never override; everything else is gated by house equipment (unlocks) and stat requirements.
 
-enum Status { AVAILABLE, LOCKED, NEEDS_STATS, DECLINED, UNAVAILABLE }
+enum Status { AVAILABLE, LOCKED, NEEDS_STATS, DECLINED, UNAVAILABLE, NEEDS_SUBSCRIBERS }
 
 
 static func assignable_ids(config: GameConfig) -> Array[String]:
@@ -31,6 +31,9 @@ static func check(creator: CreatorState, content_id: String, state: GameState, c
 			missing.append("%s %d (has %d)" % [config.stat_label(str(stat_id)), int(needed), int(creator.stat(str(stat_id)))])
 	if not missing.is_empty():
 		return _result(Status.NEEDS_STATS, "Needs " + ", ".join(missing))
+	var min_subs := float(content.get("requirements", {}).get("min_subscribers", 0))
+	if creator.subscribers < min_subs:
+		return _result(Status.NEEDS_SUBSCRIBERS, "Needs %d paying subscribers (has %d)" % [int(min_subs), int(creator.subscribers)])
 	return _result(Status.AVAILABLE, "")
 
 

@@ -32,6 +32,25 @@
         "sprite_frames": "res://assets/characters/ava/ava_frames.tres",
         "portrait": "res://assets/characters/ava/portrait.png"
       },
+      "look": {
+        "hair_color": "brunette",
+        "hair_style": "long_waves",
+        "outfit": "casual",
+        "makeup": "natural",
+        "bust": "natural",
+        "body": "natural",
+        "lips": "natural",
+        "piercings": [],
+        "tattoos": []
+      },
+      "owned_styles": ["hair_color:brunette", "hair_style:long_waves", "outfit:casual", "makeup:natural"],
+      "base_tags": { "natural": 0.6, "wholesome": 0.6, "cute": 0.3 },
+      "_appearance_prefs_comment": "Her own choices: the player can offer to fund changes but never force them. 'declines' items are refused; 'wishes' give a mood boost when funded.",
+      "appearance_prefs": {
+        "declines": [],
+        "wishes": ["lip_filler", "outfit:glamour"]
+      },
+      "reputation": 40,
       "starting": {
         "followers": 500,
         "subscribers": 20,

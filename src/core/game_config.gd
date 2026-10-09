@@ -16,6 +16,14 @@ var trend_order: Array[String] = []    # trend ids in data-file order (determini
 var stat_defs: Dictionary = {}         # stat_id -> {label, description}
 var trait_defs: Dictionary = {}        # trait name -> {description}
 var house_layout: Array = []           # starting room slots
+var appearance: Dictionary = {}        # raw appearance.json (age_tags, thresholds...)
+var tag_defs: Dictionary = {}          # tag_id -> {label, color}
+var tag_order: Array[String] = []
+var look_options: Dictionary = {}      # slot -> {option_id -> definition}
+var look_items: Dictionary = {}        # item_id -> definition (makeover catalogue)
+var look_item_order: Array[String] = []
+var audience: Dictionary = {}          # raw audiences.json
+var segments: Array = []               # audience segment definitions, in order
 
 
 static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
@@ -36,7 +44,31 @@ static func load_from_dir(dir: String = DEFAULT_DIR) -> GameConfig:
 	config.stat_defs = _index_by_id(stats_file.get("stats", []))
 	config.trait_defs = _index_by_id(stats_file.get("traits", []))
 	config.house_layout = _read_json(dir.path_join("house_layout.json")).get("rooms", [])
+	config.appearance = _read_json(dir.path_join("appearance.json"))
+	for tag_def in config.appearance.get("tags", []):
+		config.tag_defs[str(tag_def["id"])] = tag_def
+		config.tag_order.append(str(tag_def["id"]))
+	var slots: Dictionary = config.appearance.get("slots", {})
+	for slot in slots:
+		config.look_options[str(slot)] = _index_by_id(slots[slot])
+	for item in config.appearance.get("items", []):
+		config.look_items[str(item["id"])] = item
+		config.look_item_order.append(str(item["id"]))
+	config.audience = _read_json(dir.path_join("audiences.json"))
+	config.segments = config.audience.get("segments", [])
 	return config
+
+
+func look_option(slot: String, option_id: String) -> Dictionary:
+	return look_options.get(slot, {}).get(option_id, {})
+
+
+func look_item(item_id: String) -> Dictionary:
+	return look_items.get(item_id, {})
+
+
+func tag_label(tag_id: String) -> String:
+	return str(tag_defs.get(tag_id, {}).get("label", tag_id.capitalize()))
 
 
 ## Returns balance[section][key], or `default` when missing.

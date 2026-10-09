@@ -5,6 +5,7 @@ extends RefCounted
 ## "work" is content-driven: where she works depends on her chosen content specialisation.
 
 const WORK := "work"
+const RECOVER := "recover"
 
 
 ## Returns {"activity_id", "room_id"} for a change of activity, or {} to keep going.
@@ -50,6 +51,10 @@ static func desired_activity(creator: CreatorState, state: GameState, config: Ga
 	# No valid content to make (e.g. everything outside her boundaries): just relax.
 	if creator.content_focus.is_empty():
 		return "socialise"
+
+	# Recovering from a procedure: rest unless her content is fine to do while healing.
+	if not Appearance.recovery_allows(creator, config, creator.content_focus):
+		return RECOVER
 
 	# Long work sessions end with a break.
 	if current == WORK:

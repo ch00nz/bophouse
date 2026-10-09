@@ -17,12 +17,12 @@ func test_new_game_has_distinct_active_trends_and_forecast() -> void:
 	assert_false(ids.has(state.next_trend_id), "forecast isn't already active")
 
 
-func test_five_trends_defined_with_required_fields() -> void:
+func test_at_least_five_trends_defined_with_required_fields() -> void:
 	var config := load_config()
-	assert_eq(config.trends.size(), 5)
+	assert_true(config.trends.size() >= 5)
 	for trend_id in config.trend_order:
 		var t := config.trend(trend_id)
-		for key in ["name", "description", "duration_hours", "content", "stats", "income", "followers"]:
+		for key in ["name", "description", "duration_hours", "content", "stats", "tags", "income", "followers"]:
 			assert_true(t.has(key), "%s has %s" % [trend_id, key])
 
 
@@ -100,7 +100,7 @@ func test_trends_keep_rotating_over_many_days() -> void:
 		for trend_id in TrendSystem.active_ids(state):
 			seen[trend_id] = true
 		assert_eq(state.active_trends.size(), 2)
-	assert_eq(seen.size(), 5, "every trend appears over 60 days")
+	assert_eq(seen.size(), config.trends.size(), "every trend appears over 60 days")
 
 
 func test_trend_rolls_are_deterministic_for_a_seed() -> void:

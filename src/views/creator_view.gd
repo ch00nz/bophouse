@@ -17,12 +17,16 @@ var _facing: float = 1.0
 var _sprite: AnimatedSprite2D = null
 var _last_earnings: float = 0.0
 var _popup_timer: float = 0.0
+var _spec: Dictionary = {}
 
 
 func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 	creator = creator_state
 	house = house_view
 	_last_earnings = creator.lifetime_earnings
+	refresh_look()
+	Game.appearance_changed.connect(_on_appearance_changed)
+	Game.recovery_finished.connect(_on_appearance_changed.bind(""))
 	position = house.logical_to_pixel(creator.position)
 	var frames := ArtLibrary.sprite_frames(str(creator.appearance.get("sprite_frames", "")))
 	if frames != null:
@@ -30,6 +34,16 @@ func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 		_sprite.sprite_frames = frames
 		_sprite.centered = false
 		add_child(_sprite)
+
+
+## Re-resolves the layered look (call after appearance changes).
+func refresh_look() -> void:
+	_spec = Appearance.render_spec(creator, house.config)
+
+
+func _on_appearance_changed(creator_id: String, _item_id: String) -> void:
+	if creator_id == creator.id:
+		refresh_look()
 
 
 func current_activity() -> Dictionary:
@@ -94,7 +108,7 @@ func _draw() -> void:
 		else:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2.ZERO, Vector2(22, 6), Color("ffd166"), 2.5)
 	if _sprite == null:
-		PlaceholderArt.draw_creator(self, creator.appearance, anim, _t, Vector2.ZERO, _facing, 1.0, lift)
+		CreatorRenderer.draw(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift)
 	_draw_bubble(anim, lift)
 	var name_y := 18.0 if anim != "sleep" else 14.0
 	PlaceholderArt.draw_text(self, Vector2(-60, name_y), creator.display_name.get_slice(" ", 0), 13,
@@ -128,6 +142,16 @@ func _draw_bubble(anim: String, lift: float) -> void:
 		"live":
 			PlaceholderArt.draw_rounded_rect(self, Rect2(centre + Vector2(-12, -6), Vector2(24, 12)), Color("e63946"), 3)
 			PlaceholderArt.draw_text(self, centre + Vector2(-12, 4), "LIVE", 9, Color.WHITE, 24, HORIZONTAL_ALIGNMENT_CENTER)
+		"heal":
+			draw_rect(Rect2(centre + Vector2(-2, -7), Vector2(4, 14)), Color("2ec4b6"))
+			draw_rect(Rect2(centre + Vector2(-7, -2), Vector2(14, 4)), Color("2ec4b6"))
+		"mail":
+			draw_rect(Rect2(centre + Vector2(-8, -5), Vector2(16, 11)), Color("ffd166"))
+			draw_polyline(PackedVector2Array([centre + Vector2(-8, -5), centre + Vector2(0, 1), centre + Vector2(8, -5)]), Color("b5838d"), 1.5)
+			PlaceholderArt.draw_heart(self, centre + Vector2(5, 4), 7.0, Color("ff4f8b"))
+		"collab":
+			PlaceholderArt.draw_heart(self, centre + Vector2(-3.5, 0), 11.0, Color("ff4f8b"))
+			PlaceholderArt.draw_heart(self, centre + Vector2(3.5, 1), 11.0 + sin(_t * 5.0), Color("9d4edd"))
 		"zz":
 			PlaceholderArt.draw_text(self, centre + Vector2(-9, 6), "Zz", 15, Color("5b6ee1"))
 		"heart":

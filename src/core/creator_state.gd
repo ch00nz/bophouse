@@ -19,6 +19,26 @@ var content_focus: String = ""
 ## New content starts at 0, so switching strategy has a short settling-in cost.
 var content_experience: Dictionary = {}
 
+## Appearance slots (see data/appearance.json): hair_color, hair_style, outfit, makeup,
+## bust, body, lips (single values) and piercings, tattoos (arrays).
+var look: Dictionary = {}
+## Styling items she owns ("slot:value"); owned styles can be switched back to for free.
+var owned_styles: Array = []
+## [{item_id, day}] in purchase order. Kept for future events (e.g. complications, regrets).
+var procedure_history: Array = []
+## {item_id, remaining_minutes, total_minutes} while recovering, else empty.
+var recovery: Dictionary = {}
+## Tags she has regardless of styling (personality / natural look).
+var base_tags: Dictionary = {}
+## Cached, derived from base_tags + look (Appearance.refresh). Saved for future event eligibility.
+var appearance_tags: Dictionary = {}
+## Her own say over her appearance: {declines: [item ids], wishes: [item ids]}.
+var appearance_prefs: Dictionary = {}
+## Subscriber composition by audience segment (fractions summing to 1).
+var fan_mix: Dictionary = {}
+## 0..100 mainstream reputation. Socials raise it; it boosts subscriber conversion.
+var reputation: float = 40.0
+
 var energy: float = 100.0
 var mood: float = 70.0
 var followers: float = 0.0
@@ -58,7 +78,34 @@ static func from_template(template: Dictionary) -> CreatorState:
 	c.subscribers = float(start.get("subscribers", 0))
 	c.energy = float(start.get("energy", 100))
 	c.mood = float(start.get("mood", 70))
+	c.look = template.get("look", {}).duplicate(true)
+	c.owned_styles = template.get("owned_styles", []).duplicate()
+	c.base_tags = template.get("base_tags", {}).duplicate()
+	c.appearance_prefs = template.get("appearance_prefs", {}).duplicate(true)
+	c.reputation = float(template.get("reputation", 40))
 	return c
+
+
+## Deep, independent copy (used for makeover previews so nothing is applied for real).
+func clone() -> CreatorState:
+	return CreatorState.from_dict(JSON.parse_string(JSON.stringify(to_dict())))
+
+
+func is_recovering() -> bool:
+	return not recovery.is_empty() and float(recovery.get("remaining_minutes", 0.0)) > 0.0
+
+
+func look_value(slot: String, default: String = "") -> String:
+	return str(look.get(slot, default))
+
+
+func look_list(slot: String) -> Array:
+	var value: Variant = look.get(slot, [])
+	return value if value is Array else []
+
+
+func tag(tag_id: String) -> float:
+	return float(appearance_tags.get(tag_id, 0.0))
 
 
 func stat(stat_name: String) -> float:
@@ -87,6 +134,9 @@ func to_dict() -> Dictionary:
 		"stats": stats, "traits": traits, "appearance": appearance,
 		"content_accepts": content_accepts, "content_declines": content_declines,
 		"content_focus": content_focus, "content_experience": content_experience,
+		"look": look, "owned_styles": owned_styles, "procedure_history": procedure_history,
+		"recovery": recovery, "base_tags": base_tags, "appearance_tags": appearance_tags,
+		"appearance_prefs": appearance_prefs, "fan_mix": fan_mix, "reputation": reputation,
 		"energy": energy, "mood": mood, "followers": followers, "subscribers": subscribers,
 		"lifetime_earnings": lifetime_earnings,
 		"activity_id": activity_id, "activity_minutes": activity_minutes, "room_id": room_id,
@@ -111,6 +161,15 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	var experience: Dictionary = data.get("content_experience", {})
 	for content_id in experience:
 		c.content_experience[str(content_id)] = clampf(float(experience[content_id]), 0.0, 1.0)
+	c.look = _dict(data.get("look", {}))
+	c.owned_styles = _arr(data.get("owned_styles", []))
+	c.procedure_history = _arr(data.get("procedure_history", []))
+	c.recovery = _dict(data.get("recovery", {}))
+	c.base_tags = _float_dict(data.get("base_tags", {}))
+	c.appearance_tags = _float_dict(data.get("appearance_tags", {}))
+	c.appearance_prefs = _dict(data.get("appearance_prefs", {}))
+	c.fan_mix = _float_dict(data.get("fan_mix", {}))
+	c.reputation = clampf(float(data.get("reputation", 40.0)), 0.0, 100.0)
 	c.energy = float(data.get("energy", 100))
 	c.mood = float(data.get("mood", 70))
 	c.followers = float(data.get("followers", 0))
@@ -126,6 +185,22 @@ static func from_dict(data: Dictionary) -> CreatorState:
 	c.target_activity_id = str(data.get("target_activity_id", ""))
 	c.target_room_id = str(data.get("target_room_id", ""))
 	return c
+
+
+static func _dict(value: Variant) -> Dictionary:
+	return (value as Dictionary).duplicate(true) if value is Dictionary else {}
+
+
+static func _arr(value: Variant) -> Array:
+	return (value as Array).duplicate(true) if value is Array else []
+
+
+static func _float_dict(value: Variant) -> Dictionary:
+	var result := {}
+	if value is Dictionary:
+		for key in value:
+			result[str(key)] = float(value[key])
+	return result
 
 
 static func _vec(value: Variant) -> Vector2:

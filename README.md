@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 2, Creator Management & Content Trends
+## Current milestone: 3, Adult Creator Focus, Appearance & Subscriber Preferences
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -27,6 +27,28 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
 * **Creator panel tabs** (Profile / Content / Income) with tooltips on stats, traits and every income line.
 * **Collapsible sidebar**; the house re-centres.
 * **Save v2** with automatic migration of v1 prototype saves.
+
+**Milestone 3 (adult creator focus):**
+* **Layered appearance system** (`data/appearance.json`): 3 hair colours, 2 hairstyles, 4 outfits (casual,
+  sequin bodycon, lace lingerie set, gym set), 3 makeup styles, breast augmentation, BBL, lip filler,
+  belly and nipple piercings, and a rose thigh tattoo. Body shape bends a silhouette that garments follow.
+* **Makeover tab**: big animated preview with before/after comparison, estimated effects on income, audiences and
+  subscriptions, recovery info, greyed-out unaffordable or declined items, and confirmation before spending.
+  Creators can decline changes (`appearance_prefs`); wished-for changes boost mood.
+* **Appearance tags** (Natural, Enhanced, Glamour, Alternative, Fitness, Luxury, Cute, Bombshell, Wholesome, Mature)
+  derived from base tags, age, styling and procedures. They feed audiences, trends and (later) events.
+* **Subscriber preference segments** (`data/audiences.json`): 10 audiences with tag likes/dislikes and content interest.
+  Audience fit multiplies content income; each creator's **fan mix** drifts toward whoever her content and look attract,
+  and subscription value depends on how happy those fans are. No change is a universal upgrade.
+* **Adult content economy**: 8 categories (adds boy/girl and girl/girl collabs with guest fees, and custom subscriber content).
+  Socials are a follower and reputation funnel; premium content is the earner. Reputation boosts subscriber conversion.
+* **Recovery**: procedures and modifications have recovery time, reduced output, content restrictions and mood effects.
+  Creators rest in the bedroom while recovering.
+* **Bigger portrait header** with appeal tags and status; Income tab explains audience fit, fan value, reputation and
+  who's buying.
+* **Save v3** (v1 and v2 saves migrate; both are tested against real saved files).
+
+Art review: `godot --path . --script res://tests/visual/lookbook.gd -- out.png` renders a grid of looks.
 
 ## Running
 

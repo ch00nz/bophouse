@@ -72,6 +72,31 @@ never touches game logic. Offline catch-up handles travel the same way.
   (as strings, because JSON doubles can't hold 64-bit integers), so rotations are reproducible across reloads.
 * Trend strength = content match x favoured-stat fit x adaptability factor (0.6 to 1.4).
 
+### Appearance, tags and audiences (milestone 3)
+
+```
+creator.look (slots) ─► Appearance.compute_tags ─► creator.appearance_tags ─┬─► AudienceModel.market(tags, content)
+creator.base_tags, age ─┘                                                     │      └─ audience_fit multiplier
+                                                                              ├─► TrendSystem (favoured tags)
+creator.look ─► Appearance.render_spec ─► CreatorRenderer (layers)            └─► fan_value (existing fans' satisfaction)
+```
+
+* **Look** = single slots (hair_color, hair_style, outfit, makeup, bust, body, lips) + lists (piercings, tattoos).
+  Options and purchasable items live in `data/appearance.json`; items carry tag deltas and optional recovery rules.
+* **Tags** are derived (never hand-edited) and cached on the creator; they're saved for future event eligibility.
+* **Rendering**: `CreatorRenderer` builds the torso from front/back silhouette curves bent by bust/hips/glutes and
+  draws garments by re-using the silhouette over a vertical range (`top`/`bottom` from/to in data), so outfits are data
+  and automatically follow body changes. Layer order: back hair, back arm, legs, legwear, shoes, torso skin, bust,
+  bottom, top, details (tattoo, belly piercing), front arm, head, makeup, front hair. Any layer can later be swapped
+  for textures from AI-generated art. Nipple piercings are intentionally never drawn (outfits cover the chest).
+* **Audience segments**: appeal = 1 + Σ likes·tag − Σ dislikes·tag (clamped). For a content type, audience fit is the
+  share × interest × spend weighted average appeal, and the income multiplier is fit^0.85. `creator.fan_mix` drifts toward
+  the target mix while working; subscription value = Σ mix · spend · satisfaction.
+* **Autonomy**: `appearance_prefs.declines` blocks purchases in `Appearance.check_item`, and content boundaries are
+  unchanged. `MakeoverEvaluator` estimates effects on a cloned creator; previews never touch real state.
+* **Extension points**: `procedure_history` (complications or regret events), `appearance_tags` (event eligibility), and
+  guest collab content (becomes housemate collabs once recruitment exists), with `age_tags` driving the MILF segment.
+
 ### Saving
 
 * `SaveSystem` writes versioned JSON (`version`, `saved_at_unix`, `state`) to `user://savegame.json`
@@ -105,7 +130,8 @@ build/             Export output (git-ignored)
 |---|-----------|-----------|--------|
 | 1 | **First playable** | 3-room house, 1 creator, walking, idle/walk/film/sleep/socialise, clock, income, profile, room upgrades, autosave, offline progress, tests, web export | **Done** |
 | 2 | **Creator management & trends** | Content specialisation and boundaries, unlocks, experience, 5 rotating trends, income breakdown, tabbed profile, collapsible sidebar, save v2 | **Done** |
-| 3 | Recruitment & capacity | Recruit pool (data), 3+ creators, room capacity contention, house-wide income overview, camera pan/zoom, money sinks (wages, rent) | Next |
+| 3 | **Adult focus, appearance & audiences** | Layered appearance, makeovers with recovery, appearance tags, 10 audience segments, fan mix, 8 content types, reputation, save v3 | **Done** |
+| 4 | Recruitment & capacity | Recruit pool (data), 3+ creators, housemate collabs, room capacity contention, house-wide income overview, camera pan/zoom, money sinks (wages, rent) | Next |
 | 5 | Events | Eligibility rules, weighted selection, cooldowns, choices, event inbox; offline queues events | |
 | 6 | Relationships & storylines | Pairwise friendship/rivalry, first multi-stage arc, journal | |
 | 7 | Building | Build rooms on empty lots, more storeys, more room types (gym, livestream, glam...) | |

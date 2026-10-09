@@ -3,7 +3,8 @@ extends RefCounted
 ## Versioned JSON persistence. On the web, user:// is backed by IndexedDB.
 
 ## v1: first prototype. v2: content specialisation, experience, unlocks, trends.
-const SAVE_VERSION := 2
+## v3: appearance (look, owned styles, procedures, recovery, tags), fan mix, reputation.
+const SAVE_VERSION := 3
 
 ## Content ids renamed in v2.
 const V2_CONTENT_RENAMES := {"solo_subscription": "solo_premium", "premium": "topless_premium"}
@@ -38,6 +39,10 @@ static func _migrate(data: Dictionary, from_version: int) -> Dictionary:
 	if version == 1:
 		_migrate_v1_to_v2(migrated)
 		version = 2
+	if version == 2:
+		# v3 only adds fields. Creator defaults (look, tags, fan mix) need the creator templates,
+		# so post_load() fills them in; nothing to rewrite here.
+		version = 3
 	migrated["version"] = version
 	return migrated
 
@@ -71,6 +76,8 @@ static func post_load(state: GameState, config: GameConfig) -> void:
 	ContentRules.refresh_unlocks(state, config)
 	TrendSystem.ensure_initialized(state, config)
 	for creator in state.creators:
+		Appearance.ensure_look(creator, config)
+		AudienceModel.ensure_mix(creator, config)
 		creator.content_focus = ContentRules.valid_focus(creator, state, config)
 		if config.activity(creator.activity_id).is_empty():
 			creator.activity_id = "idle"

@@ -14,7 +14,7 @@
     "stat_baseline": 50,
     "audience_exponent": 0.85,
     "subscriber_conversion": 0.06,
-    "subscription_cash_per_sub_hour": 0.4,
+    "subscription_cash_per_sub_hour": 0.3,
     "min_energy_efficiency": 0.4,
     "min_mood_efficiency": 0.6,
     "stamina_drain_base": 1.5,
@@ -26,6 +26,25 @@
     "ramp_floor": 0.7,
     "ramp_base_per_hour": 0.08,
     "ramp_adaptability_per_hour": 0.22
+  },
+  "audience": {
+    "fit_exponent": 0.85,
+    "min_segment_appeal": 0.15,
+    "max_segment_appeal": 4.0,
+    "min_fan_satisfaction": 0.5,
+    "max_fan_satisfaction": 1.5,
+    "fan_mix_drift_per_hour": 0.03
+  },
+  "reputation": {
+    "start": 40,
+    "baseline": 30,
+    "decay_per_hour": 0.015,
+    "min_conversion_factor": 0.6,
+    "max_conversion_factor": 1.4
+  },
+  "appearance": {
+    "wish_mood_bonus": 15,
+    "change_mood_bonus": 4
   },
   "trends": {
     "active_count": 2,

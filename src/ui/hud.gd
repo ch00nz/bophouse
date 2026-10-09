@@ -60,6 +60,7 @@ func _ready() -> void:
 	Game.state_replaced.connect(sidebar.show_overview)
 	Game.trends_changed.connect(_on_trends_changed)
 	Game.content_unlocked.connect(_on_content_unlocked)
+	Game.recovery_finished.connect(_on_recovery_finished)
 	_on_speed_changed(Game.speed, Game.paused)
 	_refresh()
 
@@ -170,6 +171,12 @@ func _on_trends_changed(started: Array) -> void:
 
 func _on_content_unlocked(content_id: String) -> void:
 	show_toast("%s unlocked! Assign it from a creator's Content tab." % Game.config.content_label(content_id), UiTheme.GOOD)
+
+
+func _on_recovery_finished(creator_id: String) -> void:
+	var creator := Game.state.get_creator(creator_id)
+	if creator != null:
+		show_toast("%s has fully recovered and is back to work!" % ContentRules.first_name(creator), Color("2ec4b6"))
 
 
 func _boost_summary(trend: Dictionary) -> String:

@@ -40,6 +40,8 @@ static func new_game(config: GameConfig, seed: int = 0) -> GameState:
 			push_warning("GameState: unknown starting creator '%s'" % creator_id)
 			continue
 		var creator := CreatorState.from_template(template)
+		Appearance.ensure_look(creator, config)
+		AudienceModel.ensure_mix(creator, config)
 		var bedroom := state.first_room_of_type("bedroom")
 		if bedroom != null:
 			creator.room_id = bedroom.id
