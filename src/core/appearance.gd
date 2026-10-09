@@ -270,11 +270,72 @@ static func render_spec(creator: CreatorState, config: GameConfig) -> Dictionary
 		"tattoos": creator.look_list("tattoos").duplicate(),
 		"recovering": creator.is_recovering(),
 		"expression": signature_expression(creator, config),
+		"creator_id": creator.id,
+		"look": creator.look.duplicate(true),
+		# Painted art (milestone 5B): the creator's entry in illustrated_art.json and whether it
+		# matches her current look (IllustratedArt decides what to draw from these).
+		"illustrated": config.illustrated.get("creators", {}).get(creator.id, {}),
+		"art_cover": illustrated_coverage(creator, config),
 		# Per-creator animation phase, so housemates don't blink and sway in sync.
 		"seed": float(absi(creator.id.hash()) % 1000) / 97.0,
 		"sprite_frames": str(ap.get("sprite_frames", "")),
 		"portrait": str(ap.get("portrait", "")),
 	}
+
+
+## Whether a creator's painted art depicts her current look: {ok, missing (labels of what the
+## paintings don't show yet), outfit (painted outfit id or "")}. Procedures, other hairstyles and
+## colours, tattoos, visible piercings and outfits without paintings all fall back to the
+## procedural renderer, so changes are never hidden by a stretched or wrong illustration.
+static func illustrated_coverage(creator: CreatorState, config: GameConfig) -> Dictionary:
+	var def: Dictionary = config.illustrated.get("creators", {}).get(creator.id, {})
+	if def.is_empty():
+		return {"ok": false, "missing": ["No illustrated art"], "outfit": "", "missing_outfit": ""}
+	var missing: Array[String] = []
+	var base: Dictionary = def.get("base_look", {})
+	for slot in base:
+		var value := creator.look_value(str(slot))
+		if value != str(base[slot]):
+			missing.append(_look_label(config, str(slot), value))
+	var makeup := creator.look_value("makeup")
+	if not (def.get("allowed_makeup", []) as Array).has(makeup):
+		missing.append(_look_label(config, "makeup", makeup))
+	var outfit := creator.look_value("outfit")
+	var painted := str(def.get("outfits", {}).get(outfit, ""))
+	var missing_outfit := ""
+	if painted.is_empty():
+		missing_outfit = _look_label(config, "outfit", outfit)
+		missing.append(missing_outfit)
+	for tattoo in creator.look_list("tattoos"):
+		missing.append(_list_label(config, "tattoos", str(tattoo)))
+	for piercing in creator.look_list("piercings"):
+		if str(piercing) != "nipple": # never drawn in any art (non-explicit presentation)
+			missing.append(_list_label(config, "piercings", str(piercing)))
+	if creator.measurements != null and missing.is_empty():
+		var body: Dictionary = def.get("body", {})
+		var params := BodyShape.render_params(creator.measurements, config)
+		var tolerance := float(body.get("tolerance", 0.08))
+		for key in ["bust", "waist", "hips", "glutes"]:
+			if body.has(key) and absf(float(params[key]) - float(body[key])) > tolerance:
+				missing.append("Body measurements")
+				break
+	return {"ok": missing.is_empty(), "missing": missing, "outfit": painted, "missing_outfit": missing_outfit}
+
+
+static func _look_label(config: GameConfig, slot: String, value: String) -> String:
+	for item_id in config.look_item_order:
+		var item := config.look_item(item_id)
+		if str(item.get("slot", "")) == slot and str(item.get("value", "")) == value:
+			return item_label(config, item)
+	return str(config.look_option(slot, value).get("label", value))
+
+
+static func _list_label(config: GameConfig, slot: String, value: String) -> String:
+	for item_id in config.look_item_order:
+		var item := config.look_item(item_id)
+		if str(item.get("slot", "")) == slot and str(item.get("add", "")) == value:
+			return item_label(config, item)
+	return value
 
 
 ## Default portrait expression from her personality (first trait with one in appearance.json).

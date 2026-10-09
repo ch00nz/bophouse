@@ -58,6 +58,7 @@ func _load_or_create() -> void:
 		state = GameState.new_game(config)
 		state.last_seen_unix = now
 	_last_frame_unix = now
+	IllustratedArt.mode = art_mode()
 	save_game()
 
 
@@ -150,6 +151,20 @@ func imperial_units() -> bool:
 func set_imperial_units(value: bool) -> void:
 	state.settings["imperial"] = value
 	settings_changed.emit()
+
+
+## Painted character art mode (milestone 5B): "auto" (use paintings that match her look),
+## "always" (show them even when they don't, for reviewing the art) or "off".
+func art_mode() -> String:
+	var value := str(state.settings.get("illustrated_art", "auto"))
+	return value if IllustratedArt.MODES.has(value) else "auto"
+
+
+func set_art_mode(value: String) -> void:
+	state.settings["illustrated_art"] = value if IllustratedArt.MODES.has(value) else "auto"
+	IllustratedArt.mode = art_mode()
+	settings_changed.emit()
+	save_game()
 
 
 ## Developer tools (debug builds only): advance time through the real simulation at full efficiency.
@@ -247,6 +262,7 @@ func reset_game() -> void:
 	state = GameState.new_game(config)
 	state.last_seen_unix = now_unix()
 	pending_offline_summary = {}
+	IllustratedArt.mode = art_mode()
 	state_replaced.emit()
 	save_game()
 

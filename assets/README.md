@@ -22,4 +22,8 @@ assets/
   ui/
 ```
 
+Painted character sheets go in `assets/characters/<id>/references/` (excluded from builds by `.gdignore`) and
+are turned into game assets with `art_pipeline/extract_sheets.py` (see `docs/ILLUSTRATED_ART.md`); the output
+lands in `assets/characters/<id>/illustrated/` and is wired up in `data/illustrated_art.json`.
+
 Keep a record of source, prompt/model (for AI-generated art) and licence for every file in `assets/CREDITS.md`.

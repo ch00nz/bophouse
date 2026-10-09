@@ -4,7 +4,7 @@ Adult-themed (suggestive, non-explicit) cartoon idle management game built with 
 All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vision and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code structure, milestones and risks.
 
-## Current milestone: 5A, Character Visual Overhaul
+## Current milestone: 5B, Illustrated Artwork Integration
 
 **Milestone 1 (first playable):**
 * Side-on cutaway house: bedroom, living room, content studio, stairwell and an empty lot for later.
@@ -113,6 +113,20 @@ All characters are adults (18+). See [GAME_DESIGN.md](GAME_DESIGN.md) for the vi
   prototype did.
 * Saves are unchanged (still v6). Outfit ids are the same, and older top/bottom outfit data still renders.
 
+**Milestone 5B (illustrated artwork, prototype):** see [docs/ILLUSTRATED_ART.md](docs/ILLUSTRATED_ART.md).
+* **Asset pipeline** (`art_pipeline/`, Python): crops every figure, bust and pose from the painted reference sheets,
+  removes the paper background and floor shadows with clean edges, keeps one scale per sheet with feet anchors,
+  paints out a real brand logo, and writes full-size and sprite PNGs plus a manifest. The references are never
+  modified and are excluded from builds.
+* **Ava's paintings in the game** whenever they truthfully match her look: hero full body, close-up expression busts,
+  roster faces, and house sprites (standing, walking, filming, selfie, back view on the stairs). Procedures, other
+  hair, tattoos and unpainted outfits fall back to the procedural art, and the profile says what isn't painted yet.
+  Sleep and recline keep the procedural animation; the painted walk is one pose, not a cycle.
+* **Mood expressions** (happy, confident, sad, angry, surprised, playful) from mood, energy, recovery, work and
+  housemate reactions, for painted and procedural creators alike.
+* **Wardrobe preview** (casual, glamour, fitness, swimwear) on the profile hero: display only. An **Art** mode
+  button (Auto / Always / Off) is saved in settings; old saves default to Auto.
+
 **Economy rebalance:** start with $250, 350 followers and 8 subscribers (~$18 gross per productive hour).
 Running costs (rent, utilities, equipment maintenance, residents' living costs) are charged continuously and shown
 line by line in **Finances** (yesterday / today / lifetime). **Upgrades** (`data/upgrades.json`: ring light $150,
@@ -123,7 +137,9 @@ runs at 10% speed and 70% earnings, and new housemates need a bedroom plus a cas
 economy inspector (F9) to skip time and adjust cash. Balance report:
 `godot --headless --path . --script res://tests/balance/run_balance.gd -- [all|idle,casual,upgrades,recruitment,optimised] [days] [seed]`.
 
-Art review: `tests/visual/character_sheet.gd -- out.png ava [items]` renders one creator in hero poses and every
+Art review: `tests/visual/illustrated_sheet.gd -- out.png` (painted vs procedural sprites, expressions, outfits),
+`tests/visual/house_walk.gd -- out.png` (a creator walking upstairs to bed in the real house),
+`tests/visual/character_sheet.gd -- out.png ava [items]` renders one creator in hero poses and every
 gameplay animation (with a 3x zoom of the sprites); `tests/visual/render_benchmark.gd` measures draw cost;
 `godot --path . --script res://tests/visual/lookbook.gd -- out.png [cast]` renders a grid of looks
 (`cast` = every creator side by side); `tests/visual/house_scene.gd -- <dir>` screenshots the house, management

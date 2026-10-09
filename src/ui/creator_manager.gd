@@ -17,6 +17,8 @@ var _switcher: HBoxContainer
 var _switch_buttons: Dictionary = {}
 var _preview: CreatorPreview
 var _view_buttons: Dictionary = {}
+var _wardrobe: HBoxContainer
+var _art_note: Label
 var _identity: Label
 var _measure: Label
 var _tags: HFlowContainer
@@ -69,9 +71,17 @@ func _build() -> void:
 		views.add_child(button)
 		_view_buttons[str(entry[0])] = button
 	views.reset_size()
+	# Painted art (milestone 5B): preview-only wardrobe and the art mode, under the view toggles.
+	_wardrobe = HBoxContainer.new()
+	_wardrobe.add_theme_constant_override("separation", 3)
+	_wardrobe.position = Vector2(8, 36)
+	_preview.add_child(_wardrobe)
 	_identity = UiTheme.label("", 13, UiTheme.MUTED, true)
 	_identity.custom_minimum_size = Vector2(372, 0)
 	left.add_child(_identity)
+	_art_note = UiTheme.label("", 11, Color("ffb3c1"), true)
+	_art_note.custom_minimum_size = Vector2(372, 0)
+	left.add_child(_art_note)
 	_measure = UiTheme.label("", 15, UiTheme.GOLD)
 	left.add_child(UiTheme.tip(_measure, "Height, bust / waist / hips. Toggle units in Stats & Measurements."))
 	_tags = HFlowContainer.new()
@@ -108,6 +118,8 @@ func _build() -> void:
 func show_creator(id: String) -> void:
 	if Game.state.get_creator(id) == null:
 		return
+	if id != creator_id and _preview != null:
+		_preview.preview_outfit("")
 	creator_id = id
 	for key: String in _switch_buttons:
 		(_switch_buttons[key] as Button).set_pressed_no_signal(key == id)
@@ -194,10 +206,68 @@ func _show_hero(creator: CreatorState) -> void:
 			specs.append(Appearance.render_spec(other, Game.config))
 			names.append(("> %s <" if other.id == creator.id else "%s") % other.first_name())
 		_preview.set_framing("full")
+		_preview.preview_outfit("")
 		_preview.show_lineup(specs, names)
+		_build_wardrobe(Appearance.render_spec(creator, Game.config))
 		return
 	_preview.set_framing("closeup" if hero_view == "closeup" else "full")
-	_preview.show_look(Appearance.render_spec(creator, Game.config))
+	var spec := Appearance.render_spec(creator, Game.config)
+	_preview.show_look(spec)
+	_preview.set_mood(CreatorMood.expression(creator, Game.state.game_minutes))
+	_build_wardrobe(spec)
+
+
+## Wardrobe preview chips for painted outfits, plus the art mode. Previewing never changes her look.
+func _build_wardrobe(spec: Dictionary) -> void:
+	for child in _wardrobe.get_children():
+		_wardrobe.remove_child(child)
+		child.queue_free()
+	_art_note.text = _art_status(spec)
+	if not IllustratedArt.has_art(spec):
+		_preview.preview_outfit("")
+		return
+	var current := _preview.previewed_outfit()
+	var chips: Array = [["", "Her look"]]
+	chips.append_array(IllustratedArt.outfits(spec))
+	if hero_view != "lineup" and IllustratedArt.mode != "off":
+		for entry: Array in chips:
+			var id := str(entry[0])
+			var button := UiTheme.tab_button(str(entry[1]))
+			button.add_theme_font_size_override("font_size", 10)
+			button.clip_text = false
+			button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			button.custom_minimum_size = Vector2(0, 22)
+			button.set_pressed_no_signal(id == current)
+			button.tooltip_text = "Preview only: her outfit and purchases don't change." if not id.is_empty() else "Show her current look"
+			button.pressed.connect(func() -> void:
+				_preview.preview_outfit(id)
+				_build_wardrobe(spec))
+			_wardrobe.add_child(button)
+	var mode := Button.new()
+	mode.text = "Art: %s" % IllustratedArt.MODE_LABELS.get(IllustratedArt.mode, "Auto")
+	mode.add_theme_font_size_override("font_size", 10)
+	mode.custom_minimum_size = Vector2(0, 22)
+	mode.tooltip_text = "Painted art (prototype).\nAuto: paintings when they match her look.\nAlways: show paintings even if they don't (review).\nOff: classic art only."
+	mode.pressed.connect(func() -> void:
+		var modes := IllustratedArt.MODES
+		Game.set_art_mode(modes[(modes.find(IllustratedArt.mode) + 1) % modes.size()])
+		_show_hero(Game.state.get_creator(creator_id)))
+	_wardrobe.add_child(mode)
+	_wardrobe.reset_size()
+
+
+static func _art_status(spec: Dictionary) -> String:
+	if not IllustratedArt.has_art(spec):
+		return ""
+	if IllustratedArt.mode == "off":
+		return "Painted art is off (classic art shown)."
+	var cover: Dictionary = spec.get("art_cover", {})
+	if bool(cover.get("ok", false)):
+		return "Painted art matches her current look."
+	var missing := PackedStringArray((cover.get("missing", []) as Array).map(func(m: Variant) -> String: return str(m).to_lower()))
+	if IllustratedArt.mode == "always":
+		return "Showing paintings anyway; they don't show: %s." % ", ".join(missing)
+	return "Classic art shown. Not painted yet: %s." % ", ".join(missing)
 
 
 func _process(delta: float) -> void:
@@ -205,6 +275,9 @@ func _process(delta: float) -> void:
 	if _refresh_timer < 0.25:
 		return
 	_refresh_timer = 0.0
+	var creator := Game.state.get_creator(creator_id)
+	if creator != null:
+		_preview.set_mood(CreatorMood.expression(creator, Game.state.game_minutes))
 	if _section != null and is_instance_valid(_section) and _section.has_method("refresh"):
 		_section.call("refresh")
 

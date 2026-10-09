@@ -91,6 +91,7 @@ func refresh() -> void:
 		(refs["activity"] as Label).text = Game.describe_activity(creator)
 		(refs["energy"] as ProgressBar).value = creator.energy
 		(refs["mood"] as ProgressBar).value = creator.mood
+		(refs["portrait"] as CreatorPreview).set_mood(CreatorMood.expression(creator, state.game_minutes))
 		(refs["stats"] as Label).text = "%s fans  |  %s/hr" % [Fmt.compact(creator.followers),
 			Fmt.money(Economy.creator_house_cash_per_hour(creator, state, Game.config))]
 		var status: Label = refs["status"]
@@ -166,7 +167,7 @@ func _build_card(creator: CreatorState) -> Control:
 	var status := UiTheme.label("", 11, Color("2ec4b6"))
 	status.visible = false
 	info.add_child(status)
-	_cards[id] = {"card": card, "activity": activity, "energy": energy, "mood": mood, "stats": stats, "status": status}
+	_cards[id] = {"card": card, "activity": activity, "energy": energy, "mood": mood, "stats": stats, "status": status, "portrait": portrait}
 	_style_card(id)
 	return card
 

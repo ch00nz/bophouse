@@ -24,6 +24,9 @@ var _last_earnings: float = 0.0
 var _popup_timer: float = 0.0
 var _spec: Dictionary = {}
 var _drawn_state: String = ""
+## On the stairs (moving between storeys): painted creators show their back view.
+var _on_stairs: bool = false
+var _last_logical: Vector2 = Vector2.INF
 
 
 func setup(creator_state: CreatorState, house_view: HouseView) -> void:
@@ -34,6 +37,8 @@ func setup(creator_state: CreatorState, house_view: HouseView) -> void:
 	Game.appearance_changed.connect(_on_appearance_changed)
 	Game.recovery_finished.connect(_on_appearance_changed.bind(""))
 	position = house.logical_to_pixel(creator.position)
+	# Painted sprites are downscaled several times; mipmaps keep them smooth.
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	var frames := ArtLibrary.sprite_frames(str(creator.appearance.get("sprite_frames", "")))
 	if frames != null:
 		_sprite = AnimatedSprite2D.new()
@@ -98,6 +103,15 @@ func _process(delta: float) -> void:
 		if face != 0.0:
 			_facing = signf(face)
 	position = target
+	if creator.is_travelling() and _last_logical != Vector2.INF:
+		var moved := creator.position - _last_logical
+		if absf(moved.y) > 0.00001:
+			_on_stairs = true
+		elif absf(moved.x) > 0.00001:
+			_on_stairs = false
+	else:
+		_on_stairs = false
+	_last_logical = creator.position
 
 	if _sprite != null:
 		if _sprite.sprite_frames.has_animation(anim) and _sprite.animation != anim:
@@ -114,7 +128,8 @@ func _process(delta: float) -> void:
 		if earned >= 1.0:
 			house.spawn_floating_text(position + Vector2(0, -135), "+" + Fmt.money(earned), Color("7ae582"))
 	var fps := ANIM_FPS if anim == "walk" or anim == "celebrate" else (SLEEP_FPS if anim == "sleep" else CALM_FPS)
-	var state := "%d|%s|%d|%s|%s|%s|%s" % [int(_t * fps), anim, int(_facing), selected, creator.room_id, creator.activity_id, str(creator.reaction.get("kind", ""))]
+	var state := "%d|%s|%d|%s|%s|%s|%s|%s|%s" % [int(_t * fps), anim, int(_facing), selected, creator.room_id, creator.activity_id,
+		str(creator.reaction.get("kind", "")), _on_stairs, IllustratedArt.mode]
 	if state != _drawn_state:
 		_drawn_state = state
 		queue_redraw()
@@ -132,13 +147,35 @@ func _draw() -> void:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2(-4, -lift - 12), Vector2(66, 22), Color("ffd166"), 2.5)
 		else:
 			PlaceholderArt.draw_ellipse_outline(self, Vector2.ZERO, Vector2(22, 6), Color("ffd166"), 2.5)
-	if _sprite == null:
+	if _sprite == null and not _draw_painted(anim, props):
 		CreatorRenderer.draw_with_props(self, _spec, anim, _t, Vector2.ZERO, _facing, 1.0, lift, props,
 			house.config.look_option("outfit", "glamour"))
 	_draw_bubble(anim, lift)
 	var name_y := 18.0 if not lying else 14.0
 	PlaceholderArt.draw_text(self, Vector2(-60, name_y), creator.display_name.get_slice(" ", 0), 13,
 		Color.WHITE, 120, HORIZONTAL_ALIGNMENT_CENTER, 4)
+
+
+## Painted sprite prototype (milestone 5B): standing, walking, filming, selfie and the back view on
+## the stairs. Returns false (procedural renderer) when there's no painted pose for this moment:
+## sleeping, reclining, collabs with props, or a look the paintings don't show.
+## The painted walk is a single pose with a step bounce, not an animated walk cycle.
+func _draw_painted(anim: String, props: Array) -> bool:
+	if not props.is_empty() or not IllustratedArt.use_art(_spec):
+		return false
+	var art := IllustratedArt.sprite(_spec, anim, _on_stairs)
+	if art.is_empty():
+		return false
+	var origin := Vector2.ZERO
+	var mirror := false
+	if anim == "walk":
+		origin.y = -absf(sin(_t * 9.0)) * 1.6
+		if not _on_stairs:
+			var walk_facing := float((_spec.get("illustrated", {}) as Dictionary).get("walk_facing", 1))
+			mirror = _facing * walk_facing < 0.0
+	var house_scale := float((_spec.get("illustrated", {}) as Dictionary).get("house_scale", 1.0))
+	IllustratedArt.draw(self, art, origin, float(_spec.get("height_scale", 1.0)) * house_scale, mirror, sin(_t * 2.0) * 0.004 if anim != "walk" else 0.0)
+	return true
 
 
 func _reaction_partner() -> CreatorState:

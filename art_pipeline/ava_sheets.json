@@ -1,0 +1,66 @@
+{
+  "_comment": "Extraction manifest for Ava's illustrated reference sheets. Boxes are [x0, y0, x1, y1] in sheet pixels; each box holds one figure (the largest blob in the box plus nearby hair strands and earrings). Figures on one sheet share one scale, taken from that sheet's 'scale_ref' item, so their relative sizes are preserved. 'patches' repaint small areas before extraction (e.g. remove a real brand logo). kinds: full_body (feet anchor, game sprite + hero image), bust (expression portrait), scene (kept with its props, reference only).",
+  "character": "ava",
+  "source_dir": "assets/characters/ava/references",
+  "out_dir": "assets/characters/ava/illustrated",
+  "figure_units": 124.0,
+  "sprite_height_px": 256,
+  "sheets": [
+    {
+      "file": "ava_master.png",
+      "scale_ref": "master_front",
+      "items": [
+        { "name": "master_front", "box": [0, 0, 1024, 1536], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "standing" }
+      ]
+    },
+    {
+      "file": "ava_turnaround.png",
+      "scale_ref": "turn_front",
+      "items": [
+        { "name": "turn_front", "box": [0, 0, 395, 1086], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "standing" },
+        { "name": "turn_side", "box": [395, 0, 700, 1086], "kind": "full_body", "view": "side", "outfit": "casual", "pose": "standing" },
+        { "name": "turn_back34", "box": [700, 0, 1062, 1086], "kind": "full_body", "view": "back_three_quarter", "outfit": "casual", "pose": "standing" },
+        { "name": "turn_back", "box": [1062, 0, 1448, 1086], "kind": "full_body", "view": "back", "outfit": "casual", "pose": "standing" }
+      ]
+    },
+    {
+      "file": "ava_expressions.png",
+      "items": [
+        { "name": "expr_confident", "box": [0, 0, 495, 528], "kind": "bust", "expression": "confident" },
+        { "name": "expr_happy", "box": [495, 0, 970, 528], "kind": "bust", "expression": "happy" },
+        { "name": "expr_surprised", "box": [970, 0, 1448, 528], "kind": "bust", "expression": "surprised" },
+        { "name": "expr_angry", "box": [0, 528, 505, 1086], "kind": "bust", "expression": "angry" },
+        { "name": "expr_sad", "box": [505, 528, 968, 1086], "kind": "bust", "expression": "sad" },
+        { "name": "expr_playful", "box": [968, 528, 1448, 1086], "kind": "bust", "expression": "playful" }
+      ]
+    },
+    {
+      "file": "ava_outfits.png",
+      "scale_ref": "outfit_casual",
+      "patches": [
+        { "_comment": "Paint out the real sportswear logo on the sports bra (fictional branding only).", "box": [914, 278, 952, 298], "mode": "fill_dark" }
+      ],
+      "items": [
+        { "name": "outfit_casual", "box": [0, 0, 393, 1086], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "standing" },
+        { "name": "outfit_glamour", "box": [393, 0, 730, 1086], "kind": "full_body", "view": "front", "outfit": "glamour", "pose": "standing" },
+        { "name": "outfit_fitness", "box": [730, 0, 1084, 1086], "kind": "full_body", "view": "front", "outfit": "fitness", "pose": "standing" },
+        { "name": "outfit_swimwear", "box": [1084, 0, 1448, 1086], "kind": "full_body", "view": "front", "outfit": "swimwear", "pose": "standing",
+          "sheer": [
+            { "_comment": "Sheer cover-up hanging on her right (box in item coordinates).", "box": [0, 280, 95, 1000], "close": 14, "opacity": 0.82 },
+            { "_comment": "Cover-up on her left.", "box": [250, 260, 364, 1000], "close": 16, "opacity": 0.82 }
+          ] }
+      ]
+    },
+    {
+      "file": "ava_poses.png",
+      "scale_ref": "pose_standing",
+      "items": [
+        { "name": "pose_standing", "box": [0, 0, 280, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "standing" },
+        { "name": "pose_selfie", "box": [280, 0, 560, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "selfie" },
+        { "name": "pose_filming", "box": [560, 0, 842, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "filming" },
+        { "name": "pose_walking", "box": [842, 0, 1105, 880], "kind": "full_body", "view": "front", "outfit": "casual", "pose": "walking" },
+        { "name": "pose_sleeping", "box": [1095, 120, 1448, 880], "kind": "scene", "pose": "sleeping" }
+      ]
+    }
+  ]
+}

@@ -23,6 +23,8 @@ const EXPRESSIONS := {
 	"annoyed": {"lids": [0.72, 0.72], "mouth": "frown", "brows": [0.0, 0.0], "angry": 1.0},
 	"sleep": {"lids": [0.0, 0.0], "mouth": "soft", "brows": [0.0, 0.0]},
 	"soft": {"lids": [0.9, 0.9], "mouth": "soft", "brows": [0.2, 0.2]},
+	"sad": {"lids": [0.68, 0.68], "mouth": "frown", "brows": [0.35, 0.35], "angry": -1.0},
+	"surprised": {"lids": [1.0, 1.0], "mouth": "gasp", "brows": [1.1, 1.1]},
 }
 
 const HEAD_CTRL := [
@@ -69,6 +71,8 @@ static func expression(name: String, t: float, seed: float) -> Dictionary:
 			open = 0.3
 		"pout":
 			open = 0.25
+		"gasp":
+			open = 1.0
 	open = snappedf(open, 0.125)
 	var brows: Array = def["brows"]
 	var result := {
@@ -252,6 +256,10 @@ static func _mouth(pen: InkPen, spec: Dictionary, makeup: Dictionary, expr: Dict
 			mc = Vector2(2.8, 6.7)
 			ut *= 1.3
 			lt *= 1.2
+		"gasp":
+			fc = Vector2(1.5, 6.5)
+			nc = Vector2(4.1, 6.4)
+			mc = Vector2(2.8, 6.4)
 		"frown":
 			fc = Vector2(0.8, 7.0)
 			nc = Vector2(4.85, 6.95)

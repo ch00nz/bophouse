@@ -115,6 +115,7 @@ func refresh() -> void:
 	var creator := _creator()
 	if creator == null or _activity == null:
 		return
+	_portrait.set_mood(CreatorMood.expression(creator, Game.state.game_minutes))
 	var signature := JSON.stringify(creator.look) + creator.measurements.summary() + str(Game.imperial_units()) + str(creator.is_recovering())
 	if signature != _look_signature:
 		_look_signature = signature
